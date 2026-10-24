@@ -1,0 +1,68 @@
+畫畫小鎮（Kids Paint Town）
+Copyright © 2026 yaufan (https://github.com/yaufan). 保留一切權利。All rights reserved.
+
+────────────────────────────────────────
+中文
+────────────────────────────────────────
+
+1. 這個儲存庫裡的程式碼、圖畫、角色、聲音、文字和設計文件（以下合稱「本作品」），
+   著作權都屬於作者 yaufan。
+
+2. 本作品公開放在 GitHub 上，只是讓人可以看。除了 GitHub 服務條款讓 GitHub 使用者
+   在 GitHub 上瀏覽和 fork 之外，作者沒有給任何人其他權利。
+
+3. 沒有作者事先的書面同意，不可以：
+   (a) 複製、修改、改寫或翻譯本作品或其中任何部分；
+   (b) 散布、發行、販賣或出租本作品，或把它的任何部分放進 APP、網站、產品或服務，
+       不論是否收費；
+   (c) 使用「畫畫小鎮」的名稱、角色或圖畫；
+   (d) 用本作品訓練、微調或評估 AI 模型；
+   (e) 把以上任何權利授權給別人。
+
+4. 這份授權適用於本儲存庫的每一個版本，包括以前的提交。以前版本中如果出現
+   Apache License 2.0 的檔案，那只是建立儲存庫時自動產生的預設檔；作者從來沒有
+   用它把本作品授權給任何人。
+
+5. 別人做的部分（列在 NOTICE.md）照它們自己的授權，不受這份授權限制。
+
+6. 本作品照現況提供，作者不負任何明示或默示的保證責任，也不對使用本作品造成的
+   任何損害負責。
+
+7. 想使用本作品，請先透過 GitHub（https://github.com/yaufan）聯絡作者，取得書面同意。
+
+8. 中文版和英文版的意思不同時，以中文版為準。
+
+────────────────────────────────────────
+English
+────────────────────────────────────────
+
+1. The code, artwork, characters, sounds, text and design documents in this
+   repository (together, "the Work") are copyrighted by the author, yaufan.
+
+2. The Work is public on GitHub only so that it can be viewed. Apart from the
+   rights GitHub's Terms of Service give GitHub users to view and fork it on
+   GitHub, the author grants no rights to anyone.
+
+3. Without the author's prior written permission, you may not:
+   (a) copy, modify, adapt or translate the Work or any part of it;
+   (b) distribute, publish, sell or rent the Work, or put any part of it in an
+       app, website, product or service, whether paid or free;
+   (c) use the name 畫畫小鎮 (Kids Paint Town), its characters or its artwork;
+   (d) use the Work to train, fine-tune or evaluate AI models;
+   (e) sublicense any of the above.
+
+4. This license covers every version in this repository, including earlier
+   commits. Where an earlier version contains an Apache License 2.0 file, that
+   file was a default created with the repository; the author never licensed
+   the Work to anyone under it.
+
+5. Parts made by others (listed in NOTICE.md) remain under their own licenses
+   and are not restricted by this license.
+
+6. The Work is provided "as is", without warranty of any kind, express or
+   implied. The author is not liable for any damage arising from its use.
+
+7. To use the Work, contact the author through GitHub
+   (https://github.com/yaufan) for written permission first.
+
+8. If the Chinese and English versions differ, the Chinese version prevails.
