@@ -2,8 +2,9 @@
 
 Without arguments it uses public-domain sample photos bundled with
 scikit-image. Pass a folder to test your own photos instead; an optional
-samples.json in that folder gives each photo's subject box and face flag:
-  {"dog.jpg": {"rect": [0.1, 0.1, 0.9, 0.95], "face": false}}
+samples.json in that folder gives each photo's rough subject box (omit it to
+keep the whole scene) and whether the cute style gets a face:
+  {"cup.jpg": {"rect": [0.1, 0.1, 0.9, 0.95], "face": true}}
 """
 import argparse
 import json
@@ -15,10 +16,10 @@ from PIL import Image, ImageDraw, ImageFont
 
 from lineart import convert, preview_colored, resize_long
 
-BUILTIN = {  # scikit-image sample name -> subject hint
-    "coffee": {"rect": [0.12, 0.02, 0.81, 0.98], "face": True},
+BUILTIN = {  # scikit-image sample name -> rough subject box (None = whole frame)
+    "coffee": {"rect": [0.12, 0.02, 0.81, 0.98], "face": False},
     "chelsea": {"rect": None, "face": False},
-    "rocket": {"rect": [0.46, 0.28, 0.54, 0.97], "face": True},
+    "rocket": {"rect": [0.46, 0.28, 0.54, 0.97], "face": False},
 }
 VARIANTS = [  # label, style, detail, also show a simulated coloring
     ("真實・簡單", "realistic", "simple", True),
@@ -43,7 +44,7 @@ def load_inputs(folder):
         if path.suffix.lower() in {".jpg", ".jpeg", ".png", ".heic", ".webp"}:
             img = cv2.imread(str(path))
             if img is not None:
-                yield path.stem, img, {"rect": None, "face": True, **hints.get(path.name, {})}
+                yield path.stem, img, {"rect": None, "face": False, **hints.get(path.name, {})}
 
 
 def font(size):
