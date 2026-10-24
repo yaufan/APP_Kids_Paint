@@ -73,6 +73,8 @@ flutter:
 
   assets:
     - assets/fonts/OFL-jf-openhuninn.txt
+    # Microsoft Fluent Emoji 3D illustrations (MIT).
+    - assets/illustrations/
 
   # jf open 粉圓 (SIL Open Font License 1.1), a rounded typeface made in Taiwan.
   fonts:

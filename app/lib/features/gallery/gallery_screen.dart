@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../app/mascot.dart';
+import '../../app/art.dart';
 import '../../app/scene.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
@@ -40,10 +40,10 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
                   children: [
                     HomeButton(onPressed: () => context.go('/')),
                     const Spacer(),
-                    KidButton(
-                      icon: _favoritesOnly ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                    ToyButton(
+                      art: _favoritesOnly ? Art.heart : Art.heartEmpty,
                       label: Strings.favorite,
-                      color: KidColors.berry,
+                      tint: KidColors.berry,
                       size: KidTheme.toolButton,
                       selected: _favoritesOnly,
                       onPressed: () => setState(() => _favoritesOnly = !_favoritesOnly),
@@ -56,16 +56,19 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
                   loading: () => const Center(child: BouncingDots()),
                   error: (e, _) => Center(child: Text('$e')),
                   data: (list) => list.isEmpty
-                      ? _EmptyWall(favoritesOnly: _favoritesOnly)
+                      ? _EmptyWall(avatar: child?.avatar, favoritesOnly: _favoritesOnly)
                       : GridView.builder(
                           padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
                           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 240,
+                            maxCrossAxisExtent: 280,
                             mainAxisSpacing: 36,
                             crossAxisSpacing: 28,
                           ),
                           itemCount: list.length,
-                          itemBuilder: (context, i) => _ArtworkTile(artwork: list[i]),
+                          itemBuilder: (context, i) => PopIn(
+                            delay: Duration(milliseconds: 60 * (i % 8)),
+                            child: _ArtworkTile(artwork: list[i]),
+                          ),
                         ),
                 ),
               ),
@@ -77,10 +80,11 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
   }
 }
 
-/// Nothing here yet: the mascot points the way to the camera.
+/// Nothing here yet: the child's animal points the way to the camera.
 class _EmptyWall extends StatelessWidget {
-  const _EmptyWall({required this.favoritesOnly});
+  const _EmptyWall({required this.avatar, required this.favoritesOnly});
 
+  final String? avatar;
   final bool favoritesOnly;
 
   @override
@@ -89,13 +93,13 @@ class _EmptyWall extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const CrayonBuddy(height: 170, color: KidColors.sky),
+          ArtImage(favoritesOnly ? Art.heartEmpty : (avatar == null ? Art.palette : Art.avatar(avatar!)), size: 150),
           const SizedBox(height: 28),
           if (!favoritesOnly)
-            KidButton(
-              icon: Icons.photo_camera_rounded,
+            ToyButton(
+              art: Art.camera,
               label: Strings.takePhoto,
-              color: KidColors.berry,
+              tint: KidColors.berry,
               breathing: true,
               onPressed: () => context.go('/capture'),
             ),
@@ -122,9 +126,9 @@ class _ArtworkTile extends ConsumerWidget {
       clipBehavior: Clip.none,
       children: [
         Positioned.fill(
-          child: GestureDetector(
+          child: Pressable(
             onTap: () => context.push('/canvas/${artwork.id}'),
-            child: StickerCard(
+            child: ToyCard(
               tilt: tilt,
               tape: _tapes[artwork.id % _tapes.length],
               padding: const EdgeInsets.fromLTRB(10, 18, 10, 10),
@@ -133,14 +137,14 @@ class _ArtworkTile extends ConsumerWidget {
           ),
         ),
         Positioned(
-          right: -10,
-          bottom: -10,
-          child: KidButton(
-            icon: artwork.isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+          right: -12,
+          bottom: -12,
+          child: ToyButton(
+            art: artwork.isFavorite ? Art.heart : Art.heartEmpty,
             label: Strings.favorite,
-            color: artwork.isFavorite ? KidColors.berry : Colors.white,
-            iconColor: artwork.isFavorite ? Colors.white : KidColors.berry,
-            size: 54,
+            tint: KidColors.berry,
+            size: 58,
+            round: true,
             onPressed: () => ref.read(artworkRepositoryProvider).toggleFavorite(artwork.id),
           ),
         ),

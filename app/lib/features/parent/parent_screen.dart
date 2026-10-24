@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/art.dart';
 import '../../app/strings.dart';
 import '../../core/providers.dart';
 import '../../core/repositories.dart';
@@ -35,9 +36,10 @@ class _ParentScreenState extends ConsumerState<ParentScreen> {
           alignment: WrapAlignment.center,
           children: [
             for (final a in free)
-              TextButton(
+              IconButton(
                 onPressed: () => Navigator.of(sheet).pop(a),
-                child: Text(a, style: const TextStyle(fontSize: 48)),
+                padding: const EdgeInsets.all(12),
+                icon: ArtImage(Art.avatar(a), size: 64),
               ),
           ],
         ),
@@ -89,9 +91,12 @@ class _ParentScreenState extends ConsumerState<ParentScreen> {
               Card(
                 child: ListTile(
                   title: const Text(Strings.children),
-                  subtitle: Text(
-                    children.map((c) => c.avatar).join('  '),
-                    style: const TextStyle(fontSize: 32),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Wrap(
+                      spacing: 8,
+                      children: [for (final c in children) ArtImage(Art.avatar(c.avatar), size: 44)],
+                    ),
                   ),
                   trailing: IconButton(
                     tooltip: Strings.addChild,

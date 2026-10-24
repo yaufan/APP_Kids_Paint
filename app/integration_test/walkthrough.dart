@@ -94,6 +94,7 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   // 6. Home saves the picture; it shows up in the gallery.
   await tester.tap(find.bySemanticsLabel(Strings.home));
   await waitFor(tester, find.bySemanticsLabel(Strings.gallery));
+  await idle(tester, 800); // the buttons pop in one by one
   await tester.tap(find.bySemanticsLabel(Strings.gallery));
   await waitFor(tester, find.descendant(of: find.byType(GridView), matching: find.byType(Image)));
   await idle(tester);

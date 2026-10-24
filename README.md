@@ -15,11 +15,13 @@
 - [技術架構建議](docs/tech-architecture.md)：Flutter、線稿轉換、畫布引擎、資料模型、沒有 Mac 的上架方式
 - [線稿轉換原型](prototypes/lineart/README.md)：第 0 階段驗證程式與測試結果
 - [APP 程式](app/README.md)：Flutter APP 的架構與開發方式
-- [視覺設計](docs/design.md)：繪本貼紙風的設計原則、配色、元件與截圖
+- [視覺設計](docs/design.md)：3D 玩具風的設計原則、配色、元件與截圖
+- [參考 APP 研究](docs/design-references.md)：Pok Pok、Toca Boca、Crayola 等上架 APP 的設計做法
 
 ## 目前狀態
 - **第 0 階段（技術驗證）**：
   - 線稿轉換原型：真實、可愛 v1、Q 版 v2 都已試做
   - 還在等真實照片測試
 - **第 1 階段（MVP）**：Flutter APP 骨架已建立，可以完整走一次：拍照 → 選風格 → 著色 → 作品集。轉換引擎目前是簡易版。
+- **介面**：3D 玩具風 v2，參考 Pok Pok、Toca Boca、Crayola 等上架 APP 重新設計。
 - 每次推送都會在 GitHub Actions 自動測試，並建置可安裝的 Android APK。

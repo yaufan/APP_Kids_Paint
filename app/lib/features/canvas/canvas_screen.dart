@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/art.dart';
+import '../../app/celebration.dart';
 import '../../app/scene.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
@@ -96,14 +98,20 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
     if (page != null) _service.saveOps(page.artwork, page.document);
   }
 
+  /// Saves and goes home; a page with any coloring on it gets a celebration
+  /// while it saves.
   Future<void> _leave() async {
     final page = _page;
     if (_leaving) return;
     setState(() => _leaving = true);
     if (page != null) {
+      final celebrate = page.document.ops.isNotEmpty
+          ? Future<void>.delayed(Celebration.duration)
+          : Future<void>.value();
       await _service.saveFinished(page);
       final files = ref.read(artworkStoreProvider).open(page.artwork.folder);
       await FileImage(files.thumbnail).evict();
+      await celebrate;
     }
     if (mounted) context.go('/');
   }
@@ -116,21 +124,20 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
     final page = _page;
     final wide = MediaQuery.sizeOf(context).aspectRatio > 1;
 
-    Widget toolButton(Tool tool, IconData icon, String label, Color color) => KidButton(
-          icon: icon,
+    Widget toolButton(Tool tool, String art, String label, Color tint) => ToyButton(
+          art: art,
           label: label,
-          color: color,
-          shape: StickerShape.rounded,
+          tint: tint,
           size: KidTheme.toolButton,
           selected: _tool == tool,
           onPressed: () => setState(() => _tool = tool),
         );
     final nav = [
       HomeButton(onPressed: _leave),
-      KidButton(
-        icon: Icons.undo_rounded,
+      ToyButton(
+        art: Art.undo,
         label: Strings.undo,
-        color: KidColors.lavender,
+        tint: KidColors.lavender,
         size: KidTheme.toolButton,
         onPressed: page != null && page.document.canUndo
             ? () {
@@ -141,8 +148,8 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
       ),
     ];
     final tools = [
-      toolButton(Tool.bucket, Icons.format_color_fill_rounded, Strings.bucket, KidColors.sky),
-      toolButton(Tool.crayon, Icons.brush_rounded, Strings.crayon, KidColors.grass),
+      toolButton(Tool.bucket, Art.bucket, Strings.bucket, KidColors.sky),
+      toolButton(Tool.crayon, Art.crayon, Strings.crayon, KidColors.grass),
     ];
     const gap = SizedBox.square(dimension: 14);
     final tray = CrayonTray(selected: _color, onSelect: (c) => setState(() => _color = c), vertical: wide);
@@ -150,15 +157,15 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
     final sheet = page == null || _lines == null
         ? const Center(child: BouncingDots())
         : LayoutBuilder(builder: (context, box) {
-            const margin = 14.0, border = 3.0;
+            const margin = 14.0;
             final doc = page.document;
-            final room = 2 * (margin + border);
+            const room = 2 * margin;
             final scale = math.min(
               (box.maxWidth - room) / doc.width,
-              (box.maxHeight - room - KidTheme.depth) / doc.height,
+              (box.maxHeight - room - 12) / doc.height, // 12: room for the card's shadow
             );
             return Center(
-              child: StickerCard(
+              child: ToyCard(
                 padding: const EdgeInsets.all(margin),
                 radius: 20,
                 child: SizedBox(
@@ -235,8 +242,8 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
                           tray,
                         ]),
                 ),
-                if (_leaving) const ModalBarrier(color: Colors.black26, dismissible: false),
-                if (_leaving) const Center(child: BouncingDots()),
+                if (_leaving) const ModalBarrier(dismissible: false),
+                if (_leaving && (page?.document.ops.isNotEmpty ?? false)) const Positioned.fill(child: Celebration()),
               ],
             ),
           ),

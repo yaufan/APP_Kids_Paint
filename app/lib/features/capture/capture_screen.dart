@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../app/mascot.dart';
+import '../../app/art.dart';
 import '../../app/scene.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
@@ -46,31 +46,39 @@ class CaptureScreen extends StatelessWidget {
                     runSpacing: unit * 0.1,
                     alignment: WrapAlignment.center,
                     children: [
-                      KidButton(
-                        icon: Icons.photo_camera_rounded,
-                        label: Strings.camera,
-                        color: KidColors.berry,
-                        shape: StickerShape.rounded,
-                        size: size,
-                        breathing: true,
-                        onPressed: () => _pick(context, ImageSource.camera),
+                      PopIn(
+                        child: ToyButton(
+                          art: Art.camera,
+                          label: Strings.camera,
+                          tint: KidColors.berry,
+                          size: size,
+                          breathing: true,
+                          onPressed: () => _pick(context, ImageSource.camera),
+                        ),
                       ),
-                      KidButton(
-                        icon: Icons.photo_library_rounded,
-                        label: Strings.album,
-                        color: KidColors.sky,
-                        shape: StickerShape.rounded,
-                        size: size,
-                        onPressed: () => _pick(context, ImageSource.gallery),
+                      PopIn(
+                        delay: const Duration(milliseconds: 120),
+                        child: ToyButton(
+                          art: Art.gallery,
+                          label: Strings.album,
+                          tint: KidColors.sky,
+                          size: size,
+                          onPressed: () => _pick(context, ImageSource.gallery),
+                        ),
                       ),
                     ],
                   ),
                 ),
                 Positioned(left: 16, top: 12, child: HomeButton(onPressed: () => context.go('/'))),
                 Positioned(
-                  right: unit * 0.05,
-                  bottom: unit * 0.04,
-                  child: CrayonBuddy(height: (unit * 0.26).clamp(90.0, 160.0), color: KidColors.lavender),
+                  right: unit * 0.06,
+                  bottom: unit * 0.05,
+                  child: Transform.rotate(angle: 0.25, child: ArtImage(Art.sparkles, size: unit * 0.16)),
+                ),
+                Positioned(
+                  left: unit * 0.07,
+                  bottom: unit * 0.1,
+                  child: Transform.rotate(angle: -0.3, child: ArtImage(Art.crayon, size: unit * 0.14)),
                 ),
               ],
             );

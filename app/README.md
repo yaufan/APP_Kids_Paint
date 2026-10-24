@@ -30,10 +30,11 @@ lib/
   app/                      APP 外殼
     app.dart                MaterialApp（繁體中文）
     router.dart             頁面路由（go_router）
-    theme.dart              幼兒用的顏色、超大按鈕尺寸
-    widgets.dart            貼紙按鈕、貼紙卡片、頭像、等待動畫、家長鎖頭
-    scene.dart              首頁繪本場景、點點紙背景
-    mascot.dart             吉祥物「蠟筆寶寶」
+    theme.dart              3D 玩具風的配色、陰影、超大按鈕尺寸
+    widgets.dart            玩具方塊按鈕、卡片、頭像、對話框、彈出動畫、家長鎖頭
+    scene.dart              首頁立體場景、紙背景
+    art.dart                3D 插圖清單（Fluent Emoji）
+    celebration.dart        完成時的彩帶慶祝
     strings.dart            家長看的文字；小朋友畫面的文字只給讀螢幕軟體用
   core/                     共用的資料層
     db/database.dart        資料表：小朋友、地點、作品、設定（drift / SQLite）
@@ -52,6 +53,7 @@ lib/
 test/                       自動測試（含手機／平板完整模擬操作與截圖）
 integration_test/           在模擬器或真機上跑的同一套模擬操作
 assets/fonts/               jf open 粉圓（OFL 授權）
+assets/illustrations/       Fluent Emoji 3D 插圖（MIT 授權）
 ```
 
 **重要設計**

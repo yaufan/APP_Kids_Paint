@@ -17,6 +17,8 @@ Future<void> main() async {
   LicenseRegistry.addLicense(() async* {
     final text = await rootBundle.loadString('assets/fonts/OFL-jf-openhuninn.txt');
     yield LicenseEntryWithLineBreaks(const ['jf open 粉圓 (jf-openhuninn)'], text);
+    final emoji = await rootBundle.loadString('assets/illustrations/LICENSE-fluentui-emoji.txt');
+    yield LicenseEntryWithLineBreaks(const ['Fluent Emoji (Microsoft)'], emoji);
   });
   final documents = await getApplicationDocumentsDirectory();
   runApp(ProviderScope(

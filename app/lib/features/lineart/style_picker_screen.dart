@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../app/mascot.dart';
+import '../../app/art.dart';
 import '../../app/scene.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
@@ -13,8 +13,8 @@ import '../../core/providers.dart';
 import '../canvas/page_image.dart';
 import 'line_art.dart';
 
-/// Both styles side by side as two tilted photos; the child taps the one they
-/// like. No settings: the detail level is a parent option (default: simple).
+/// Both styles side by side as two taped-up photos; the child taps the one
+/// they like. No settings: detail is a parent option (default: simple).
 class StylePickerScreen extends ConsumerStatefulWidget {
   const StylePickerScreen({super.key, required this.photo, this.detail = DetailLevel.simple});
 
@@ -54,6 +54,7 @@ class _StylePickerScreenState extends ConsumerState<StylePickerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final avatar = ref.watch(currentChildProvider).value?.avatar;
     return Scaffold(
       body: PaperBackground(
         child: SafeArea(
@@ -69,17 +70,21 @@ class _StylePickerScreenState extends ConsumerState<StylePickerScreen> {
                   }
                   final pages = snapshot.data;
                   if (pages == null || _saving) {
-                    return const Center(
+                    // The child's animal "draws" while the page is being made.
+                    return Center(
                       child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        CrayonBuddy(height: 170),
-                        SizedBox(height: 32),
-                        BouncingDots(),
+                        Stack(clipBehavior: Clip.none, children: [
+                          if (avatar != null) ArtImage(Art.avatar(avatar), size: 150),
+                          const Positioned(right: -40, bottom: -6, child: ArtImage(Art.crayon, size: 80)),
+                        ]),
+                        const SizedBox(height: 36),
+                        const BouncingDots(),
                       ]),
                     );
                   }
                   final wide = MediaQuery.sizeOf(context).aspectRatio > 1;
                   return Padding(
-                    padding: const EdgeInsets.fromLTRB(28, 96, 28, 36),
+                    padding: const EdgeInsets.fromLTRB(28, 100, 28, 36),
                     child: Flex(
                       direction: wide ? Axis.horizontal : Axis.vertical,
                       children: [
@@ -87,10 +92,13 @@ class _StylePickerScreenState extends ConsumerState<StylePickerScreen> {
                           Expanded(
                             child: Padding(
                               padding: const EdgeInsets.all(18),
-                              child: _StyleCard(
-                                style: style,
-                                page: pages[style.index],
-                                onTap: () => _choose(style, pages[style.index]),
+                              child: PopIn(
+                                delay: Duration(milliseconds: 140 * style.index),
+                                child: _StyleCard(
+                                  style: style,
+                                  page: pages[style.index],
+                                  onTap: () => _choose(style, pages[style.index]),
+                                ),
                               ),
                             ),
                           ),
@@ -108,8 +116,8 @@ class _StylePickerScreenState extends ConsumerState<StylePickerScreen> {
   }
 }
 
-/// One style as a tilted photo with a sticker badge: a camera for the
-/// realistic page, a sparkle for the cute one.
+/// One style as a tilted photo with a badge: a camera for the realistic
+/// page, sparkles for the cute one.
 class _StyleCard extends StatelessWidget {
   const _StyleCard({required this.style, required this.page, required this.onTap});
 
@@ -123,27 +131,23 @@ class _StyleCard extends StatelessWidget {
     return Semantics(
       button: true,
       label: realistic ? Strings.realistic : Strings.cute,
-      child: GestureDetector(
+      child: Pressable(
         onTap: onTap,
         child: Stack(
           clipBehavior: Clip.none,
           children: [
             Positioned.fill(
-              child: StickerCard(
+              child: ToyCard(
                 tilt: realistic ? -2.5 : 2.5,
                 tape: realistic ? KidColors.sky : KidColors.berry,
-                padding: const EdgeInsets.fromLTRB(14, 22, 14, 14),
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
                 child: Center(child: GrayPagePreview(gray: page.lines, width: page.width, height: page.height)),
               ),
             ),
             Positioned(
-              left: -14,
-              top: -14,
-              child: StickerBadge(
-                icon: realistic ? Icons.photo_camera_rounded : Icons.auto_awesome_rounded,
-                color: realistic ? KidColors.sky : KidColors.berry,
-                size: 60,
-              ),
+              left: -16,
+              top: -16,
+              child: ArtBadge(art: realistic ? Art.camera : Art.sparkles, size: 72),
             ),
           ],
         ),

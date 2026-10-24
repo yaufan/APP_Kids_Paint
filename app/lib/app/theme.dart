@@ -1,25 +1,38 @@
 import 'package:flutter/material.dart';
 
-/// Picture-book sticker style: warm paper, candy colors, thick ink outlines.
+/// 3D toy style: soft pastel daylight, white rounded toys with gentle
+/// shadows, 3D illustrations. See docs/design.md.
 abstract final class KidColors {
-  static const paper = Color(0xFFFFF6E5);
-  static const paperDot = Color(0x14000000);
-  static const ink = Color(0xFF3D2C2E);
-  static const berry = Color(0xFFFF6F91);
-  static const sun = Color(0xFFFFC93C);
-  static const sky = Color(0xFF4FB8F5);
-  static const grass = Color(0xFF6CCB6A);
-  static const lavender = Color(0xFFAE8CF5);
-  static const tangerine = Color(0xFFFF9F45);
-  static const skyTop = Color(0xFFAEE3FF);
-  static const hillBack = Color(0xFFA9DE8C);
-  static const hillFront = Color(0xFF82CC6E);
-  static const tray = Color(0xFFF6DDB0);
-  static const blush = Color(0xFFFF9EB5);
+  static const paper = Color(0xFFFFF8EE);
+  static const paperDeep = Color(0xFFFCEBD5);
+  static const ink = Color(0xFF4A3B47);
+  static const inkSoft = Color(0xFF8D7E8A);
+
+  static const berry = Color(0xFFFF7FA3);
+  static const sun = Color(0xFFFFC94D);
+  static const sky = Color(0xFF5CC2FF);
+  static const grass = Color(0xFF7DD87A);
+  static const lavender = Color(0xFFB79CFF);
+  static const tangerine = Color(0xFFFFA45C);
+
+  static const skyTop = Color(0xFF9FDBFF);
+  static const skyBottom = Color(0xFFE6F6FF);
+  static const hillBack = Color(0xFFB4E59A);
+  static const hillFront = Color(0xFF8ED47B);
+  static const hillShade = Color(0xFF6FC069);
+  static const blush = Color(0xFFFFA9BE);
+}
+
+/// Soft, layered shadows that make white shapes read as physical toys.
+abstract final class KidShadows {
+  static List<BoxShadow> toy([Color tint = const Color(0xFF6B4E71)]) => [
+        BoxShadow(color: tint.withValues(alpha: 0.18), blurRadius: 18, offset: const Offset(0, 10)),
+        BoxShadow(color: tint.withValues(alpha: 0.12), blurRadius: 4, offset: const Offset(0, 2)),
+      ];
 }
 
 abstract final class KidTheme {
-  // Kept for existing call sites; see KidColors for the full palette.
+  // Short names kept for call sites; see KidColors for the full palette.
   static const paper = KidColors.paper;
   static const sun = KidColors.sun;
   static const sky = KidColors.sky;
@@ -29,11 +42,7 @@ abstract final class KidTheme {
 
   /// About 2 cm on a typical phone: twice a normal app button.
   static const bigButton = 124.0;
-  static const toolButton = 72.0;
-
-  /// Thickness of every outline and the depth of sticker shadows.
-  static const outline = 4.0;
-  static const depth = 6.0;
+  static const toolButton = 76.0;
 
   /// jf open 粉圓 (OFL): a rounded typeface made in Taiwan.
   static const font = 'Huninn';
@@ -43,7 +52,7 @@ abstract final class KidTheme {
       colorScheme: ColorScheme.fromSeed(seedColor: KidColors.berry, surface: KidColors.paper),
       scaffoldBackgroundColor: KidColors.paper,
       fontFamily: font,
-      // Color emoji for the animal avatars wherever the main font lacks them.
+      // Color emoji wherever the main font lacks them.
       fontFamilyFallback: const ['Noto Color Emoji'],
       materialTapTargetSize: MaterialTapTargetSize.padded,
       visualDensity: VisualDensity.comfortable,
@@ -60,15 +69,12 @@ abstract final class KidTheme {
         margin: const EdgeInsets.symmetric(vertical: 8),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
-          side: const BorderSide(color: KidColors.ink, width: 2),
+          side: BorderSide(color: KidColors.ink.withValues(alpha: 0.08)),
         ),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: KidColors.paper,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28),
-          side: const BorderSide(color: KidColors.ink, width: 3),
-        ),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
       ),
     );
     return base.copyWith(
