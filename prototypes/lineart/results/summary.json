@@ -1,0 +1,74 @@
+[
+  {
+    "style": "realistic",
+    "detail": "simple",
+    "regions": 11,
+    "smallest_region_pct": 0.05,
+    "ms": 2931,
+    "photo": "coffee"
+  },
+  {
+    "style": "realistic",
+    "detail": "normal",
+    "regions": 14,
+    "smallest_region_pct": 0.04,
+    "ms": 2730,
+    "photo": "coffee"
+  },
+  {
+    "style": "cute",
+    "detail": "cute",
+    "regions": 13,
+    "smallest_region_pct": 0.16,
+    "ms": 2412,
+    "photo": "coffee"
+  },
+  {
+    "style": "realistic",
+    "detail": "simple",
+    "regions": 11,
+    "smallest_region_pct": 0.23,
+    "ms": 731,
+    "photo": "chelsea"
+  },
+  {
+    "style": "realistic",
+    "detail": "normal",
+    "regions": 14,
+    "smallest_region_pct": 0.08,
+    "ms": 744,
+    "photo": "chelsea"
+  },
+  {
+    "style": "cute",
+    "detail": "cute",
+    "regions": 4,
+    "smallest_region_pct": 1.85,
+    "ms": 639,
+    "photo": "chelsea"
+  },
+  {
+    "style": "realistic",
+    "detail": "simple",
+    "regions": 4,
+    "smallest_region_pct": 0.34,
+    "ms": 965,
+    "photo": "rocket"
+  },
+  {
+    "style": "realistic",
+    "detail": "normal",
+    "regions": 8,
+    "smallest_region_pct": 0.07,
+    "ms": 990,
+    "photo": "rocket"
+  },
+  {
+    "style": "cute",
+    "detail": "cute",
+    "regions": 11,
+    "smallest_region_pct": 0.1,
+    "ms": 986,
+    "photo": "rocket"
+  }
+]
