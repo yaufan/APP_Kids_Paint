@@ -6,12 +6,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/scene.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../core/artwork_service.dart';
 import '../../core/providers.dart';
 import 'coloring.dart';
+import 'crayon_tray.dart';
 import 'page_image.dart';
 
 enum Tool { bucket, crayon }
@@ -112,19 +114,23 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
   @override
   Widget build(BuildContext context) {
     final page = _page;
-    final wide = MediaQuery.of(context).size.aspectRatio > 1;
-    final tools = [
-      KidButton(
-        icon: Icons.home_rounded,
-        label: Strings.home,
-        color: KidTheme.sun,
-        size: KidTheme.toolButton,
-        onPressed: _leave,
-      ),
+    final wide = MediaQuery.sizeOf(context).aspectRatio > 1;
+
+    Widget toolButton(Tool tool, IconData icon, String label, Color color) => KidButton(
+          icon: icon,
+          label: label,
+          color: color,
+          shape: StickerShape.rounded,
+          size: KidTheme.toolButton,
+          selected: _tool == tool,
+          onPressed: () => setState(() => _tool = tool),
+        );
+    final nav = [
+      HomeButton(onPressed: _leave),
       KidButton(
         icon: Icons.undo_rounded,
         label: Strings.undo,
-        color: KidTheme.ink.withValues(alpha: 0.7),
+        color: KidColors.lavender,
         size: KidTheme.toolButton,
         onPressed: page != null && page.document.canUndo
             ? () {
@@ -133,81 +139,69 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
               }
             : null,
       ),
-      KidButton(
-        icon: Icons.format_color_fill_rounded,
-        label: Strings.bucket,
-        color: KidTheme.sky,
-        size: KidTheme.toolButton,
-        selected: _tool == Tool.bucket,
-        onPressed: () => setState(() => _tool = Tool.bucket),
-      ),
-      KidButton(
-        icon: Icons.brush_rounded,
-        label: Strings.crayon,
-        color: KidTheme.grass,
-        size: KidTheme.toolButton,
-        selected: _tool == Tool.crayon,
-        onPressed: () => setState(() => _tool = Tool.crayon),
-      ),
     ];
+    final tools = [
+      toolButton(Tool.bucket, Icons.format_color_fill_rounded, Strings.bucket, KidColors.sky),
+      toolButton(Tool.crayon, Icons.brush_rounded, Strings.crayon, KidColors.grass),
+    ];
+    const gap = SizedBox.square(dimension: 14);
+    final tray = CrayonTray(selected: _color, onSelect: (c) => setState(() => _color = c), vertical: wide);
 
-    final palette = Wrap(
-      direction: wide ? Axis.vertical : Axis.horizontal,
-      spacing: 10,
-      runSpacing: 10,
-      children: [
-        for (final c in kidPalette)
-          _Swatch(
-            key: ValueKey('swatch-$c'),
-            color: Color(c),
-            selected: c == _color,
-            onTap: () => setState(() => _color = c),
-          ),
-      ],
-    );
-
-    final canvas = page == null || _lines == null
-        ? const Center(child: CircularProgressIndicator())
+    final sheet = page == null || _lines == null
+        ? const Center(child: BouncingDots())
         : LayoutBuilder(builder: (context, box) {
+            const margin = 14.0, border = 3.0;
             final doc = page.document;
-            final scale = math.min(box.maxWidth / doc.width, box.maxHeight / doc.height);
+            final room = 2 * (margin + border);
+            final scale = math.min(
+              (box.maxWidth - room) / doc.width,
+              (box.maxHeight - room - KidTheme.depth) / doc.height,
+            );
             return Center(
-              child: SizedBox(
-                width: doc.width * scale,
-                height: doc.height * scale,
-                child: GestureDetector(
-                  onTapUp: _tool == Tool.bucket
-                      ? (d) {
-                          final p = _toPage(d.localPosition, scale);
-                          if (doc.fill(p.x, p.y, _color)) _changed();
-                        }
-                      : null,
-                  onPanStart: _tool == Tool.crayon
-                      ? (d) {
-                          final p = _toPage(d.localPosition, scale);
-                          final region = doc.regions.labelAt(p.x.floor(), p.y.floor());
-                          if (region == 0) return;
-                          _stroke = CrayonOp(region, _color, doc.width * 0.02, [p]);
-                          doc.add(_stroke!);
-                          _refreshColors();
-                        }
-                      : null,
-                  onPanUpdate: _tool == Tool.crayon
-                      ? (d) {
-                          final stroke = _stroke;
-                          if (stroke == null) return;
-                          stroke.points.add(_toPage(d.localPosition, scale));
-                          doc.applyStroke(stroke, stroke.points.length - 1);
-                          _refreshColors();
-                        }
-                      : null,
-                  onPanEnd: _tool == Tool.crayon
-                      ? (_) {
-                          if (_stroke != null) _changed();
-                          _stroke = null;
-                        }
-                      : null,
-                  child: CustomPaint(painter: _PagePainter(colors: _colors, lines: _lines!)),
+              child: StickerCard(
+                padding: const EdgeInsets.all(margin),
+                radius: 20,
+                child: SizedBox(
+                  key: const ValueKey('page'),
+                  width: doc.width * scale,
+                  height: doc.height * scale,
+                  child: GestureDetector(
+                    onTapUp: _tool == Tool.bucket
+                        ? (d) {
+                            final p = _toPage(d.localPosition, scale);
+                            if (doc.fill(p.x, p.y, _color)) _changed();
+                          }
+                        : null,
+                    onPanStart: _tool == Tool.crayon
+                        ? (d) {
+                            final p = _toPage(d.localPosition, scale);
+                            final region = doc.regions.labelAt(p.x.floor(), p.y.floor());
+                            if (region == 0) return;
+                            _stroke = CrayonOp(region, _color, doc.width * 0.02, [p]);
+                            doc.add(_stroke!);
+                            _refreshColors();
+                          }
+                        : null,
+                    onPanUpdate: _tool == Tool.crayon
+                        ? (d) {
+                            final stroke = _stroke;
+                            if (stroke == null) return;
+                            stroke.points.add(_toPage(d.localPosition, scale));
+                            doc.applyStroke(stroke, stroke.points.length - 1);
+                            _refreshColors();
+                          }
+                        : null,
+                    onPanEnd: _tool == Tool.crayon
+                        ? (_) {
+                            if (_stroke != null) _changed();
+                            _stroke = null;
+                          }
+                        : null,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: CustomPaint(painter: _PagePainter(colors: _colors, lines: _lines!)),
+                    ),
+                  ),
                 ),
               ),
             );
@@ -219,56 +213,33 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
         if (!didPop) _leave();
       },
       child: Scaffold(
-        body: SafeArea(
-          child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: wide
-                    ? Row(children: [
-                        Column(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: tools),
-                        const SizedBox(width: 12),
-                        Expanded(child: canvas),
-                        const SizedBox(width: 12),
-                        palette,
-                      ])
-                    : Column(children: [
-                        Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: tools),
-                        const SizedBox(height: 12),
-                        Expanded(child: canvas),
-                        const SizedBox(height: 12),
-                        palette,
-                      ]),
-              ),
-              if (_leaving) const ModalBarrier(color: Colors.black26, dismissible: false),
-              if (_leaving) const Center(child: CircularProgressIndicator()),
-            ],
+        body: PaperBackground(
+          child: SafeArea(
+            child: Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: wide
+                      ? Row(children: [
+                          Column(children: [...nav.expand((w) => [w, gap]), const Spacer(), ...tools.expand((w) => [gap, w])]),
+                          gap,
+                          Expanded(child: sheet),
+                          gap,
+                          tray,
+                        ])
+                      : Column(children: [
+                          Row(children: [...nav.expand((w) => [w, gap]), const Spacer(), ...tools.expand((w) => [gap, w])]),
+                          gap,
+                          Expanded(child: sheet),
+                          gap,
+                          tray,
+                        ]),
+                ),
+                if (_leaving) const ModalBarrier(color: Colors.black26, dismissible: false),
+                if (_leaving) const Center(child: BouncingDots()),
+              ],
+            ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Swatch extends StatelessWidget {
-  const _Swatch({super.key, required this.color, required this.selected, required this.onTap});
-
-  final Color color;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: selected ? 64 : 52,
-        height: selected ? 64 : 52,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: Border.all(color: selected ? KidTheme.ink : Colors.black12, width: selected ? 5 : 2),
         ),
       ),
     );

@@ -15,6 +15,7 @@
 - [技術架構建議](docs/tech-architecture.md)：Flutter、線稿轉換、畫布引擎、資料模型、沒有 Mac 的上架方式
 - [線稿轉換原型](prototypes/lineart/README.md)：第 0 階段驗證程式與測試結果
 - [APP 程式](app/README.md)：Flutter APP 的架構與開發方式
+- [視覺設計](docs/design.md)：繪本貼紙風的設計原則、配色、元件與截圖
 
 ## 目前狀態
 - **第 0 階段（技術驗證）**：

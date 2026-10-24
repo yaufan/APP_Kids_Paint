@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/mascot.dart';
+import '../../app/scene.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
@@ -13,35 +15,34 @@ class MapScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.map_rounded, size: 160, color: KidTheme.grass),
-                    const SizedBox(height: 24),
-                    Text(Strings.mapComingSoon,
-                        textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
-                  ],
+      body: SceneBackground(
+        child: SafeArea(
+          child: Stack(
+            children: [
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const StickerBadge(icon: Icons.map_rounded, color: KidColors.grass, size: 150),
+                      const SizedBox(height: 28),
+                      StickerCard(
+                        padding: const EdgeInsets.all(20),
+                        child: Text(
+                          Strings.mapComingSoon,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            Positioned(
-              left: 12,
-              top: 12,
-              child: KidButton(
-                icon: Icons.home_rounded,
-                label: Strings.home,
-                color: KidTheme.sun,
-                size: KidTheme.toolButton,
-                onPressed: () => context.go('/'),
-              ),
-            ),
-          ],
+              const Positioned(right: 24, bottom: 32, child: CrayonBuddy(height: 130, color: KidColors.grass)),
+              Positioned(left: 16, top: 12, child: HomeButton(onPressed: () => context.go('/'))),
+            ],
+          ),
         ),
       ),
     );

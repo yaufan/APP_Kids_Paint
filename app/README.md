@@ -31,7 +31,9 @@ lib/
     app.dart                MaterialApp（繁體中文）
     router.dart             頁面路由（go_router）
     theme.dart              幼兒用的顏色、超大按鈕尺寸
-    widgets.dart            KidButton（大圓形圖示按鈕）、家長鎖頭
+    widgets.dart            貼紙按鈕、貼紙卡片、頭像、等待動畫、家長鎖頭
+    scene.dart              首頁繪本場景、點點紙背景
+    mascot.dart             吉祥物「蠟筆寶寶」
     strings.dart            家長看的文字；小朋友畫面的文字只給讀螢幕軟體用
   core/                     共用的資料層
     db/database.dart        資料表：小朋友、地點、作品、設定（drift / SQLite）
@@ -47,7 +49,9 @@ lib/
     gallery/                作品集、我的最愛
     map_journal/            地圖日誌（佔位）
     parent/                 家長關卡、家長模式
-test/                       自動測試
+test/                       自動測試（含手機／平板完整模擬操作與截圖）
+integration_test/           在模擬器或真機上跑的同一套模擬操作
+assets/fonts/               jf open 粉圓（OFL 授權）
 ```
 
 **重要設計**
@@ -66,5 +70,14 @@ flutter test
 flutter run                   # 接上 Android 手機或模擬器
 ```
 
-每次推送到 GitHub，**Actions** 會自動檢查、測試，並建置 Android APK（在該次執行的 Artifacts 下載 `kids-paint-android-apk`）。
+每次推送到 GitHub，**Actions** 會自動：
+- 檢查程式、執行測試
+- 跑一次完整的模擬操作，產生手機和平板截圖（Artifacts：`app-screenshots`）
+- 建置 Android APK（Artifacts：`kids-paint-android-apk`）
+
+**iPhone／iPad 模擬器測試**（`.github/workflows/ios.yml`）：
+- 會在 iPhone 和 iPad 模擬器上跑同一套模擬操作並截圖（Artifacts：`ios-simulator-screenshots`）
+- 雲端 Mac 主機消耗的免費時間是一般的 10 倍，所以只在三種情況執行：合併到 `main`、手動觸發，或 commit 訊息含 `[ios]`
+- 本機執行：`flutter drive --driver=test_driver/integration_test.dart --target=integration_test/app_flow_test.dart -d 裝置ID`
+
 這個 APK 用除錯金鑰簽署，可以直接裝到 Android 手機測試，但不能上架 Google Play。

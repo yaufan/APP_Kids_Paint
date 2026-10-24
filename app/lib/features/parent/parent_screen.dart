@@ -31,13 +31,16 @@ class _ParentScreenState extends ConsumerState<ParentScreen> {
     final picked = await showModalBottomSheet<String>(
       context: context,
       builder: (sheet) => SafeArea(
-        child: Wrap(alignment: WrapAlignment.center, children: [
-          for (final a in free)
-            TextButton(
-              onPressed: () => Navigator.of(sheet).pop(a),
-              child: Text(a, style: const TextStyle(fontSize: 48)),
-            ),
-        ]),
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          children: [
+            for (final a in free)
+              TextButton(
+                onPressed: () => Navigator.of(sheet).pop(a),
+                child: Text(a, style: const TextStyle(fontSize: 48)),
+              ),
+          ],
+        ),
       ),
     );
     if (picked != null) await ref.read(childRepositoryProvider).add(picked);
@@ -50,8 +53,14 @@ class _ParentScreenState extends ConsumerState<ParentScreen> {
         title: const Text(Strings.deleteAll),
         content: const Text(Strings.deleteAllConfirm),
         actions: [
-          TextButton(onPressed: () => Navigator.of(dialog).pop(false), child: const Text(Strings.cancel)),
-          FilledButton(onPressed: () => Navigator.of(dialog).pop(true), child: const Text(Strings.delete)),
+          TextButton(
+            onPressed: () => Navigator.of(dialog).pop(false),
+            child: const Text(Strings.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialog).pop(true),
+            child: const Text(Strings.delete),
+          ),
         ],
       ),
     );
@@ -60,7 +69,8 @@ class _ParentScreenState extends ConsumerState<ParentScreen> {
     await ref.read(artworkStoreProvider).deleteAll();
     ref.invalidate(currentChildProvider);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(Strings.deleted)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text(Strings.deleted)));
     context.go('/');
   }
 
@@ -70,43 +80,81 @@ class _ParentScreenState extends ConsumerState<ParentScreen> {
     final minutes = _minutes;
     return Scaffold(
       appBar: AppBar(title: const Text(Strings.parentMode)),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          ListTile(
-            title: const Text(Strings.children),
-            subtitle: Text(children.map((c) => c.avatar).join('  '), style: const TextStyle(fontSize: 32)),
-            trailing: IconButton(
-              tooltip: Strings.addChild,
-              icon: const Icon(Icons.person_add_alt_1),
-              onPressed: () => _addChild([for (final c in children) c.avatar]),
-            ),
-          ),
-          const Divider(),
-          ListTile(
-            title: const Text(Strings.dailyLimit),
-            subtitle: minutes == null
-                ? null
-                : Slider(
-                    value: minutes.toDouble(),
-                    min: 10,
-                    max: 60,
-                    divisions: 10,
-                    label: Strings.minutes(minutes),
-                    onChanged: (v) => setState(() => _minutes = v.round()),
-                    onChangeEnd: (v) => ref.read(settingsRepositoryProvider).setDailyMinutes(v.round()),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Card(
+                child: ListTile(
+                  title: const Text(Strings.children),
+                  subtitle: Text(
+                    children.map((c) => c.avatar).join('  '),
+                    style: const TextStyle(fontSize: 32),
                   ),
-            trailing: minutes == null ? null : Text(Strings.minutes(minutes)),
+                  trailing: IconButton(
+                    tooltip: Strings.addChild,
+                    icon: const Icon(Icons.person_add_alt_1_rounded),
+                    onPressed: () =>
+                        _addChild([for (final c in children) c.avatar]),
+                  ),
+                ),
+              ),
+              Card(
+                child: ListTile(
+                  title: const Text(Strings.dailyLimit),
+                  subtitle: minutes == null
+                      ? null
+                      : Slider(
+                          value: minutes.toDouble(),
+                          min: 10,
+                          max: 60,
+                          divisions: 10,
+                          label: Strings.minutes(minutes),
+                          onChanged: (v) =>
+                              setState(() => _minutes = v.round()),
+                          onChangeEnd: (v) => ref
+                              .read(settingsRepositoryProvider)
+                              .setDailyMinutes(v.round()),
+                        ),
+                  trailing: minutes == null
+                      ? null
+                      : Text(Strings.minutes(minutes)),
+                ),
+              ),
+              const Card(
+                child: ListTile(
+                  title: Text(Strings.privacy),
+                  subtitle: Text(Strings.privacyBody),
+                ),
+              ),
+              Card(
+                child: ListTile(
+                  title: const Text(Strings.licenses),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => showLicensePage(
+                    context: context,
+                    applicationName: Strings.appName,
+                  ),
+                ),
+              ),
+              Card(
+                child: ListTile(
+                  title: const Text(
+                    Strings.deleteAll,
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  leading: const Icon(
+                    Icons.delete_forever_rounded,
+                    color: Colors.red,
+                  ),
+                  onTap: _deleteAll,
+                ),
+              ),
+            ],
           ),
-          const Divider(),
-          const ListTile(title: Text(Strings.privacy), subtitle: Text(Strings.privacyBody)),
-          const Divider(),
-          ListTile(
-            title: const Text(Strings.deleteAll, style: TextStyle(color: Colors.red)),
-            leading: const Icon(Icons.delete_forever, color: Colors.red),
-            onTap: _deleteAll,
-          ),
-        ],
+        ),
       ),
     );
   }

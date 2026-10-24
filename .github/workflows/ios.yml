@@ -1,0 +1,77 @@
+name: iOS Simulator
+
+# macOS runners use the private repo's free minutes ten times faster, so this
+# runs only on main, by hand, or for a push whose commit message has [ios].
+on:
+  push:
+    paths: ['app/**', '.github/workflows/ios.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  simulators:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.ref == 'refs/heads/main' ||
+      contains(github.event.head_commit.message, '[ios]')
+    runs-on: macos-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.8'
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Pick an iPhone and an iPad simulator
+        id: sims
+        run: |
+          python3 - <<'EOF' >> "$GITHUB_OUTPUT"
+          import json, re, subprocess
+          data = json.loads(subprocess.check_output(
+              ['xcrun', 'simctl', 'list', 'devices', 'available', '-j']))
+          def version(runtime):
+              return [int(n) for n in re.findall(r'\d+', runtime.split('iOS')[-1])]
+          ios = sorted((r for r in data['devices'] if 'iOS' in r), key=version, reverse=True)
+          devices = [d for r in ios for d in data['devices'][r]]
+          iphone = next(d for d in devices if d['name'].startswith('iPhone'))
+          ipad = next(d for d in devices if d['name'].startswith('iPad'))
+          print(f"iphone={iphone['udid']}")
+          print(f"iphone_name={iphone['name']}")
+          print(f"ipad={ipad['udid']}")
+          print(f"ipad_name={ipad['name']}")
+          EOF
+
+      - name: Walk-through on ${{ steps.sims.outputs.iphone_name }}
+        env:
+          SCREENSHOT_DIR: build/ios_screenshots/iphone
+        run: |
+          xcrun simctl boot "${{ steps.sims.outputs.iphone }}"
+          flutter drive --driver=test_driver/integration_test.dart \
+            --target=integration_test/app_flow_test.dart -d "${{ steps.sims.outputs.iphone }}"
+          xcrun simctl shutdown "${{ steps.sims.outputs.iphone }}"
+
+      - name: Walk-through on ${{ steps.sims.outputs.ipad_name }}
+        env:
+          SCREENSHOT_DIR: build/ios_screenshots/ipad
+        run: |
+          xcrun simctl boot "${{ steps.sims.outputs.ipad }}"
+          flutter drive --driver=test_driver/integration_test.dart \
+            --target=integration_test/app_flow_test.dart -d "${{ steps.sims.outputs.ipad }}"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-simulator-screenshots
+          path: app/build/ios_screenshots/
+          retention-days: 30

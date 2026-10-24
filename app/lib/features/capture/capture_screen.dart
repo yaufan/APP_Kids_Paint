@@ -1,7 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../app/mascot.dart';
+import '../../app/scene.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
@@ -29,44 +33,48 @@ class CaptureScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Center(
-              child: Wrap(
-                spacing: 48,
-                runSpacing: 48,
-                alignment: WrapAlignment.center,
-                children: [
-                  KidButton(
-                    icon: Icons.photo_camera_rounded,
-                    label: Strings.camera,
-                    color: KidTheme.berry,
-                    size: KidTheme.bigButton * 1.3,
-                    onPressed: () => _pick(context, ImageSource.camera),
+      body: PaperBackground(
+        child: SafeArea(
+          child: LayoutBuilder(builder: (context, box) {
+            final unit = math.min(box.maxWidth, box.maxHeight);
+            final size = (unit * 0.42).clamp(140.0, 240.0);
+            return Stack(
+              children: [
+                Center(
+                  child: Wrap(
+                    spacing: unit * 0.1,
+                    runSpacing: unit * 0.1,
+                    alignment: WrapAlignment.center,
+                    children: [
+                      KidButton(
+                        icon: Icons.photo_camera_rounded,
+                        label: Strings.camera,
+                        color: KidColors.berry,
+                        shape: StickerShape.rounded,
+                        size: size,
+                        breathing: true,
+                        onPressed: () => _pick(context, ImageSource.camera),
+                      ),
+                      KidButton(
+                        icon: Icons.photo_library_rounded,
+                        label: Strings.album,
+                        color: KidColors.sky,
+                        shape: StickerShape.rounded,
+                        size: size,
+                        onPressed: () => _pick(context, ImageSource.gallery),
+                      ),
+                    ],
                   ),
-                  KidButton(
-                    icon: Icons.photo_library_rounded,
-                    label: Strings.album,
-                    color: KidTheme.sky,
-                    size: KidTheme.bigButton * 1.3,
-                    onPressed: () => _pick(context, ImageSource.gallery),
-                  ),
-                ],
-              ),
-            ),
-            Positioned(
-              left: 12,
-              top: 12,
-              child: KidButton(
-                icon: Icons.home_rounded,
-                label: Strings.home,
-                color: KidTheme.sun,
-                size: KidTheme.toolButton,
-                onPressed: () => context.go('/'),
-              ),
-            ),
-          ],
+                ),
+                Positioned(left: 16, top: 12, child: HomeButton(onPressed: () => context.go('/'))),
+                Positioned(
+                  right: unit * 0.05,
+                  bottom: unit * 0.04,
+                  child: CrayonBuddy(height: (unit * 0.26).clamp(90.0, 160.0), color: KidColors.lavender),
+                ),
+              ],
+            );
+          }),
         ),
       ),
     );
