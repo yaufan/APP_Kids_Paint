@@ -123,7 +123,7 @@ class _Params {
       DetailLevel.detailed => const _Params(2, 55, 30, 2, 4, 500),
     };
     final p = style == ArtStyle.cute
-        ? _Params(base.blur + 2, base.threshold + 20, base.minStroke * 2, base.lineRadius + 2,
+        ? _Params(base.blur + 1, base.threshold, base.minStroke * 3 ~/ 2, base.lineRadius + 2,
             base.gap + 2, base.minRegion * 2)
         : base;
     int s(int v) => math.max(1, (v * k).round());

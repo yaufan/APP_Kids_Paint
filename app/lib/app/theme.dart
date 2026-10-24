@@ -21,7 +21,9 @@ abstract final class KidTheme {
       materialTapTargetSize: MaterialTapTargetSize.padded,
       visualDensity: VisualDensity.comfortable,
       appBarTheme: const AppBarTheme(backgroundColor: paper, foregroundColor: ink, centerTitle: true),
-      textTheme: Typography.blackMountainView.apply(bodyColor: ink, displayColor: ink),
+      // Color emoji for the animal avatars wherever the main font lacks them.
+      textTheme: Typography.blackMountainView
+          .apply(bodyColor: ink, displayColor: ink, fontFamilyFallback: const ['Noto Color Emoji']),
     );
   }
 }

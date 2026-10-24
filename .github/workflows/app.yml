@@ -41,7 +41,20 @@ jobs:
 
       - run: flutter analyze
 
+      # Real fonts so the walk-through screenshots show Chinese text and emoji.
+      - name: Install fonts for screenshots
+        run: sudo apt-get update -q && sudo apt-get install -y -q fonts-wqy-zenhei fonts-noto-color-emoji
+
+      # Includes test/flow_test.dart: a simulated child goes through the whole
+      # app on a phone-sized screen and every step is captured.
       - run: flutter test
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: app-screenshots
+          path: app/build/screenshots/
+          retention-days: 30
 
       # Signed with the debug key (see android/app/build.gradle.kts): fine for
       # installing on a test phone, not for Google Play.

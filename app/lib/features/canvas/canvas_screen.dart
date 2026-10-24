@@ -157,7 +157,12 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
       runSpacing: 10,
       children: [
         for (final c in kidPalette)
-          _Swatch(color: Color(c), selected: c == _color, onTap: () => setState(() => _color = c)),
+          _Swatch(
+            key: ValueKey('swatch-$c'),
+            color: Color(c),
+            selected: c == _color,
+            onTap: () => setState(() => _color = c),
+          ),
       ],
     );
 
@@ -246,7 +251,7 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
 }
 
 class _Swatch extends StatelessWidget {
-  const _Swatch({required this.color, required this.selected, required this.onTap});
+  const _Swatch({super.key, required this.color, required this.selected, required this.onTap});
 
   final Color color;
   final bool selected;
