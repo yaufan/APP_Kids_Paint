@@ -222,19 +222,26 @@ Artwork      作品
 ## 12. 專案目錄
 
 ```text
-prototypes/         第 0 階段的驗證原型（Python）
-  lineart/          線稿轉換原型＋測試結果
-app/                Flutter APP（第 1 階段建立）
+prototypes/lineart/   第 0 階段的線稿轉換原型（Python）＋測試結果
+app/                  Flutter APP（第 1 階段骨架已建立，說明見 app/README.md）
   lib/
-    app/            路由、主題、多語系
+    app/              外殼：路由（go_router）、主題、大按鈕元件、繁中文字
+    core/             資料層：drift 資料庫、作品資料夾、repositories、Riverpod providers
     features/
-      capture/      拍照、去背、手指圈選
-      lineart/      線稿轉換
-      canvas/       畫布、筆刷、圖層
-      gallery/      作品集、分類
-      map_journal/  地圖日誌
-      share/        分享、圖卡、影片
-      parent/       家長模式、家長關卡、使用時間
-    core/           資料庫、檔案儲存、ML 服務、地點
-docs/               規劃文件
+      home/           首頁、切換小朋友
+      capture/        拍照、選相簿
+      lineart/        轉換引擎介面（可替換）、簡易引擎、塗色區塊圖、風格選擇
+      canvas/         著色畫布：油漆桶、魔法蠟筆、復原、自動儲存
+      gallery/        作品集、我的最愛
+      map_journal/    地圖日誌（佔位，第 2 階段）
+      parent/         家長關卡、家長模式
+  test/               自動測試（區塊圖、著色、家長關卡、資料庫、引擎、首頁）
+.github/workflows/    GitHub Actions：檢查、測試、建置 Android APK
+docs/                 規劃文件
 ```
+
+**套件版本**（第 1 階段骨架）
+- Flutter 3.47.8（Dart 3.13）
+- flutter_riverpod 3、go_router 18、drift 2.35、image_picker、image
+
+**尚未加入**：分享（share_plus）、定位、DexiNed 引擎移植、語音、使用時間提醒、內建著色圖庫。
