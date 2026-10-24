@@ -20,10 +20,10 @@ BUILTIN = {  # scikit-image sample name -> subject hint
     "chelsea": {"rect": None, "face": False},
     "rocket": {"rect": [0.46, 0.28, 0.54, 0.97], "face": True},
 }
-VARIANTS = [
-    ("真實・簡單", "realistic", "simple"),
-    ("真實・普通", "realistic", "normal"),
-    ("可愛", "cute", "simple"),
+VARIANTS = [  # label, style, detail, also show a simulated coloring
+    ("真實・簡單", "realistic", "simple", True),
+    ("真實・普通", "realistic", "normal", False),
+    ("可愛", "cute", "simple", True),
 ]
 FONTS = ["/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
          "/System/Library/Fonts/PingFang.ttc", "C:/Windows/Fonts/msjh.ttc"]
@@ -76,15 +76,15 @@ def main():
     rows, summary = [], []
     for name, img, hint in load_inputs(a.folder):
         cells = [tile(img, f"{name}（原圖）")]
-        for label, style, detail in VARIANTS:
+        for label, style, detail, colored in VARIANTS:
             page, regions, stats = convert(img, style, detail, hint["rect"], hint["face"])
             stats["photo"] = name
             summary.append(stats)
             cv2.imwrite(str(out / f"{name}_{stats['detail']}_page.png"), page)
             caption = f"{label}　{stats['regions']} 區"
             cells.append(tile(page, caption))
-            if style == "cute":
-                cells.append(tile(preview_colored(page, regions), "可愛・模擬塗色"))
+            if colored:
+                cells.append(tile(preview_colored(page, regions), f"{label}・模擬塗色"))
             print(json.dumps(stats, ensure_ascii=False))
         rows.append(np.hstack(cells))
 

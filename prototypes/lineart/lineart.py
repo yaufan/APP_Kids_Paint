@@ -1,43 +1,66 @@
 """Phase 0 prototype: photo -> toddler-friendly coloring page.
 
-Region-based approach: instead of tracing edges (which leaves gaps), the
-subject is split into a few flat color regions and the lines are drawn on
-the region borders. Every region is therefore closed by construction, so
-bucket fill and the "stay inside the lines" brush always work.
+Realistic style: an open-source edge-detection network (DexiNed, MIT
+license) traces the real outlines of the photo. The soft edge map is
+cleaned into thick, even lines, the background is removed, and the
+subject gets a solid silhouette. Fill regions are computed separately
+with gap closing, so bucket fill never leaks through small breaks in a
+line even though the visible lines stay faithful to the photo.
 
-Only OpenCV/NumPy are used so the same steps can later be ported to the
-app (opencv_dart on Flutter). GrabCut stands in for the on-device subject
+Cute style: the subject is simplified into a few rounded color regions
+(every border is a closed line), then gets a kawaii face, a sticker-style
+outline and stars and hearts. No AI is needed.
+
+Only OpenCV/NumPy (plus the ONNX model) are used so the steps can later
+be ported to the app. GrabCut stands in for the on-device subject
 segmentation (ML Kit on Android, Vision on iOS) the app will use.
 """
 import argparse
 import json
 import time
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
 import cv2
 import numpy as np
+from skimage.morphology import skeletonize
 
 PROC_SIZE = 512   # long side used for segmentation
+EDGE_SIZE = 640   # long side fed to the edge network
 OUT_SIZE = 1024   # long side of the produced coloring page
+
+MODEL_URL = ("https://media.githubusercontent.com/media/opencv/opencv_zoo/main/"
+             "models/edge_detection_dexined/edge_detection_dexined_2024sep.onnx")
+MODEL_PATH = Path(__file__).parent / "models" / "dexined.onnx"
 
 
 @dataclass(frozen=True)
-class Detail:
+class Realistic:
+    edge_low: float    # weakest edge kept when connected to a strong one (0..1)
+    edge_high: float   # edge strength that starts a line (0..1)
+    stroke_len: float  # shortest line kept, as a fraction of the diagonal
+    line: float        # inner line thickness, as a fraction of OUT_SIZE
+    outline: float     # silhouette thickness, as a fraction of OUT_SIZE
+    gap: float         # line breaks closed for filling, as a fraction of OUT_SIZE
+    min_region: float  # smallest fill region, as a fraction of the page
+
+
+@dataclass(frozen=True)
+class Cute:
     colors: int        # k-means clusters inside the subject
     min_area: float    # smallest region, as a fraction of the subject area
     smooth: float      # border smoothing, as a fraction of PROC_SIZE
     outer_line: float  # outline thickness, as a fraction of OUT_SIZE
     inner_line: float  # inner line thickness, as a fraction of OUT_SIZE
-    stroke_len: float  # shortest detail stroke kept, as a fraction of the diagonal; 0 = none
 
 
 DETAILS = {
-    "simple": Detail(3, 0.06, 0.020, 0.012, 0.008, stroke_len=0.10),
-    "normal": Detail(5, 0.025, 0.014, 0.010, 0.006, stroke_len=0.06),
-    "detailed": Detail(8, 0.008, 0.009, 0.008, 0.004, stroke_len=0.035),
+    "simple": Realistic(0.30, 0.75, 0.050, 0.0090, 0.0120, 0.012, 0.0040),
+    "normal": Realistic(0.20, 0.55, 0.025, 0.0065, 0.0090, 0.009, 0.0015),
+    "detailed": Realistic(0.12, 0.40, 0.012, 0.0045, 0.0065, 0.006, 0.0006),
 }
-CUTE = Detail(3, 0.10, 0.030, 0.014, 0.009, stroke_len=0)
+CUTE = Cute(colors=3, min_area=0.10, smooth=0.030, outer_line=0.014, inner_line=0.009)
 
 
 # ---------------------------------------------------------------- subject
@@ -238,25 +261,93 @@ def build_regions(img, mask, detail):
     return merge_small(split_components(labels), min_px, lab)
 
 
-def detail_strokes(img, mask, min_len):
-    """Strong, long edges (eyes, a nose, a mouth) as open strokes inside the subject.
+# ---------------------------------------------------------------- edges
 
-    They do not have to close: filling flows around them, but they keep
-    features that flat color regions lose, e.g. on an animal close-up.
-    """
-    gray = cv2.cvtColor(cv2.bilateralFilter(img, 9, 40, 9), cv2.COLOR_BGR2GRAY)
-    gray = cv2.GaussianBlur(gray, (0, 0), 2.5)
-    v = float(np.median(gray[mask > 0]))
-    edges = cv2.Canny(gray, 0.33 * v, 0.8 * v)
-    edges[cv2.erode(mask, np.ones((9, 9), np.uint8)) == 0] = 0  # the outline is drawn already
-    n, cc, stats, _ = cv2.connectedComponentsWithStats(
-        cv2.dilate(edges, np.ones((3, 3), np.uint8)), connectivity=8)
-    w, h = stats[:, cv2.CC_STAT_WIDTH], stats[:, cv2.CC_STAT_HEIGHT]
-    density = stats[:, cv2.CC_STAT_AREA] / np.maximum(1, w * h)
-    # Long strokes only; dense scribbles come from glare and texture, not shapes.
-    keep = (np.maximum(w, h) >= min_len * np.hypot(*mask.shape)) & (density < 0.3)
+_net = None
+
+
+def edge_net():
+    global _net
+    if _net is None:
+        if not MODEL_PATH.exists():
+            MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
+            print(f"downloading DexiNed model (MIT license) to {MODEL_PATH} ...")
+            urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
+        _net = cv2.dnn.readNetFromONNX(str(MODEL_PATH))
+    return _net
+
+
+def edge_map(img):
+    """Edge probability (0..1) per pixel from DexiNed's fused output."""
+    h, w = img.shape[:2]
+    s = EDGE_SIZE / max(h, w)
+    size = (max(16, round(w * s / 16) * 16), max(16, round(h * s / 16) * 16))
+    net = edge_net()
+    net.setInput(cv2.dnn.blobFromImage(img, 1.0, size, (103.5, 116.2, 123.6), swapRB=False))
+    fused = net.forward(net.getUnconnectedOutLayersNames())[-1].squeeze()
+    return cv2.resize(1 / (1 + np.exp(-fused)), (w, h))
+
+
+def hysteresis(edges, low, high):
+    """Keep weak edges only where they connect to a strong one."""
+    n, cc = cv2.connectedComponents((edges > low).astype(np.uint8), connectivity=8)
+    seeded = np.zeros(n, bool)
+    seeded[np.unique(cc[edges > high])] = True
+    seeded[0] = False
+    return seeded[cc]
+
+
+def drop_short(lines, min_px):
+    n, cc, stats, _ = cv2.connectedComponentsWithStats(lines.astype(np.uint8), connectivity=8)
+    keep = stats[:, cv2.CC_STAT_AREA] >= min_px
     keep[0] = False
-    return keep[cc] & (edges > 0)
+    return keep[cc]
+
+
+def realistic_ink(img, mask, d, has_background):
+    """Even, smooth lines that follow the photo, plus a solid silhouette."""
+    edges = edge_map(img)
+    if has_background:
+        edges[cv2.dilate(mask, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))) == 0] = 0
+    lines = hysteresis(edges, d.edge_low, d.edge_high).astype(np.uint8)
+    # Bridge the small breaks the network leaves, then reduce to 1 px center lines.
+    lines = cv2.morphologyEx(lines, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9)))
+    min_len = d.stroke_len * np.hypot(*mask.shape)
+    center = drop_short(skeletonize(lines > 0), min_len)
+    line_px, outline_px = d.line * OUT_SIZE, d.outline * OUT_SIZE
+
+    outline = np.zeros_like(center)
+    if has_background:
+        outline = (mask > 0) & (cv2.erode(mask, np.ones((3, 3), np.uint8)) == 0)
+        # The silhouette replaces model lines that hug it, so there is no double line.
+        near = cv2.distanceTransform((~outline).astype(np.uint8), cv2.DIST_L2, 5) <= 2.2 * line_px
+        center = drop_short(center & ~near, min_len)
+
+    smooth = cv2.GaussianBlur(center.astype(np.float32), (0, 0), 1.2) > 0.12
+    return np.maximum(stroke(smooth, line_px), stroke(outline, outline_px))
+
+
+def fill_regions(ink, gap_px, min_region_px):
+    """Region map for bucket fill: lines plus closed gaps up to gap_px wide.
+
+    Seeds are the areas left after thickening every line by gap_px; a
+    watershed then grows them back to the real lines, so a gap in a line
+    becomes an invisible border instead of a leak.
+    """
+    line = (ink >= 0.5).astype(np.uint8)
+    k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * gap_px + 1,) * 2)
+    n, cc, stats, _ = cv2.connectedComponentsWithStats(1 - cv2.dilate(line, k), connectivity=4)
+    keep = stats[:, cv2.CC_STAT_AREA] >= min_region_px
+    keep[0] = False
+    ids = np.zeros(n, np.int32)
+    ids[keep] = np.arange(1, keep.sum() + 1)
+    markers = ids[cc]
+    page = cv2.cvtColor(np.round(255 * (1 - ink)).astype(np.uint8), cv2.COLOR_GRAY2BGR)
+    cv2.watershed(page, markers)
+    seam = markers < 0
+    markers[seam] = 0
+    markers[seam] = cv2.dilate(markers.astype(np.float32), np.ones((3, 3), np.uint8)).astype(np.int32)[seam]
+    return markers
 
 
 # ---------------------------------------------------------------- lines
@@ -375,12 +466,41 @@ def convert(img, style="realistic", detail="simple", rect=None, face=True):
     """Return (page, region_map, stats). page is white with black lines."""
     t0 = time.perf_counter()
     cute = style == "cute"
-    d = CUTE if cute else DETAILS[detail]
     if rect is not None:
         coarse = subject_mask(resize_long(img, PROC_SIZE), rect, smooth=0.006)
         img, rect = crop_to_subject(img, coarse, margin=0.25 if cute else 0.08)
+    if cute:
+        page, regions = cute_page(img, rect, face)
+    else:
+        page, regions = realistic_page(img, rect, DETAILS[detail])
+
+    areas = np.bincount(regions.ravel())[1:]
+    areas = areas[areas > 0]
+    stats = {
+        "style": style,
+        "detail": "cute" if cute else detail,
+        "regions": int(len(areas)),
+        "smallest_region_pct": round(100 * float(areas.min()) / regions.size, 2) if len(areas) else 0,
+        "ms": round(1000 * (time.perf_counter() - t0)),
+    }
+    return page, regions, stats
+
+
+def realistic_page(img, rect, d):
+    big = resize_long(img, OUT_SIZE, cv2.INTER_CUBIC)
+    mask = subject_mask(resize_long(img, PROC_SIZE), rect, smooth=0.006)
+    mask = cv2.resize(mask, (big.shape[1], big.shape[0]), interpolation=cv2.INTER_LINEAR)
+    mask = np.where(cv2.GaussianBlur(mask, (0, 0), 2) > 127, 255, 0).astype(np.uint8)
+    ink = realistic_ink(big, mask, d, has_background=rect is not None)
+    page = np.round(255 * (1 - ink)).astype(np.uint8)
+    regions = fill_regions(ink, round(d.gap * OUT_SIZE), d.min_region * page.size)
+    return page, regions
+
+
+def cute_page(img, rect, face):
+    d = CUTE
     small = resize_long(img, PROC_SIZE)
-    mask = subject_mask(small, rect, smooth=d.smooth if cute else 0.006)
+    mask = subject_mask(small, rect, smooth=d.smooth)
     labels = build_regions(small, mask, d)
 
     out_h, out_w = resize_long(img, OUT_SIZE).shape[:2]
@@ -388,7 +508,7 @@ def convert(img, style="realistic", detail="simple", rect=None, face=True):
     sigma = min(d.smooth * OUT_SIZE * 0.5, 0.3 * inscribed_radius(mask) * scale)
     labels = upscale_labels(labels, (out_h, out_w), sigma)
     extra = np.zeros(labels.shape, np.float32)
-    if cute and face:
+    if face:
         labels, center, radius = make_room_for_face(labels)
         extra = draw_face(labels.shape, center, radius, d.inner_line * OUT_SIZE)
     big_mask = np.where(labels > 0, 255, 0).astype(np.uint8)
@@ -404,12 +524,7 @@ def convert(img, style="realistic", detail="simple", rect=None, face=True):
     frame[[0, -1], :] = frame[:, [0, -1]] = True
     outer |= frame & ~bg
 
-    if d.stroke_len:
-        feat = detail_strokes(small, mask, d.stroke_len).astype(np.float32)
-        feat = cv2.GaussianBlur(cv2.resize(feat, (out_w, out_h)), (0, 0), 1.5)
-        extra = np.maximum(extra, stroke(feat > 0.15, 0.5 * inner_px))
-
-    if cute and bg.any():
+    if bg.any():
         # Sticker-style halo around the subject, then stars and hearts around it.
         halo = cv2.dilate(big_mask, cv2.getStructuringElement(
             cv2.MORPH_ELLIPSE, (int(0.05 * OUT_SIZE),) * 2))
@@ -418,17 +533,7 @@ def convert(img, style="realistic", detail="simple", rect=None, face=True):
         extra = np.maximum(extra, draw_decorations(keepout, inner_px))
 
     ink = np.maximum.reduce([stroke(outer, outer_px), stroke(inner, inner_px), extra])
-    page, regions = finish(ink, min_region_px=0.0004 * out_h * out_w)
-
-    areas = np.bincount(regions.ravel())[1:]
-    stats = {
-        "style": style,
-        "detail": detail if style != "cute" else "cute",
-        "regions": int(len(areas)),
-        "smallest_region_pct": round(100 * float(areas.min()) / regions.size, 2) if len(areas) else 0,
-        "ms": round(1000 * (time.perf_counter() - t0)),
-    }
-    return page, regions, stats
+    return finish(ink, min_region_px=0.0004 * out_h * out_w)
 
 
 KID_PALETTE = [  # bright, toddler-friendly colors (BGR)
