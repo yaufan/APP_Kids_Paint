@@ -103,6 +103,11 @@ Python 原型與測試結果：[prototypes/lineart](../prototypes/lineart/README
   2. 上傳 → 內容審核 → 生成 → 套用 3.1 的後處理，確保區塊封閉 → 回傳
   3. 伺服器不保留照片
 - **AI 供應商要能替換**：模型和主機都用轉接層包起來。
+- **原型結果**（`prototypes/lineart/cute_gen.py`）：
+  - 用照片線稿當 ControlNet 骨架、LCM 6 步，杯子、貓、火箭都畫成認得出來的 Q 版
+  - 模型畫的是扁平上色卡通，再用 DexiNed 描成線稿
+  - 伺服器 CPU 每張約 1–2 分鐘，正式上線一定要用 GPU
+  - 提示詞中的「主角是什麼」由手機端圖片辨識（ML Kit Image Labeling）自動提供
 
 ---
 

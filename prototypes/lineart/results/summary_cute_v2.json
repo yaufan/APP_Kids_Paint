@@ -1,0 +1,68 @@
+[
+  {
+    "style": "cute_v2",
+    "label": "coffee cup on a saucer with a spoon",
+    "strength": 0.5,
+    "seed": 1,
+    "framing": "subject",
+    "regions": 9,
+    "generate_s": 116.6,
+    "total_s": 125.7,
+    "photo": "coffee"
+  },
+  {
+    "style": "cute_v2",
+    "label": "coffee cup on a saucer with a spoon",
+    "strength": 0.75,
+    "seed": 1,
+    "framing": "subject",
+    "regions": 9,
+    "generate_s": 80.4,
+    "total_s": 89.6,
+    "photo": "coffee"
+  },
+  {
+    "style": "cute_v2",
+    "label": "cat face",
+    "strength": 0.5,
+    "seed": 1,
+    "framing": "scene",
+    "regions": 18,
+    "generate_s": 54.9,
+    "total_s": 59.5,
+    "photo": "chelsea"
+  },
+  {
+    "style": "cute_v2",
+    "label": "cat face",
+    "strength": 0.75,
+    "seed": 1,
+    "framing": "scene",
+    "regions": 18,
+    "generate_s": 57.4,
+    "total_s": 61.6,
+    "photo": "chelsea"
+  },
+  {
+    "style": "cute_v2",
+    "label": "rocket on a launch pad between two towers",
+    "strength": 0.5,
+    "seed": 1,
+    "framing": "scene",
+    "regions": 5,
+    "generate_s": 56.5,
+    "total_s": 61.1,
+    "photo": "rocket"
+  },
+  {
+    "style": "cute_v2",
+    "label": "rocket on a launch pad between two towers",
+    "strength": 0.75,
+    "seed": 1,
+    "framing": "scene",
+    "regions": 3,
+    "generate_s": 56.6,
+    "total_s": 61.8,
+    "photo": "rocket"
+  }
+]
