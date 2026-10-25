@@ -4,21 +4,24 @@ import 'dart:typed_data';
 
 import '../lineart/region_map.dart';
 
-/// Bright, toddler-friendly colors (ARGB). Twelve big swatches, no color wheel.
+/// Bright, toddler-friendly colors (ARGB). Twelve big paint pots, no color wheel.
 const kidPalette = <int>[
-  0xFFE53935, // red
-  0xFFFF8A00, // orange
-  0xFFFFD600, // yellow
-  0xFF7CB342, // green
-  0xFF00ACC1, // teal
-  0xFF1E88E5, // blue
-  0xFF8E24AA, // purple
-  0xFFF06292, // pink
-  0xFF8D6E63, // brown
-  0xFFFFCCBC, // skin peach
-  0xFF9E9E9E, // gray
+  0xFFFF5E5B, // red
+  0xFFFF9F45, // orange
+  0xFFFFD166, // yellow
+  0xFF5FCB79, // green
+  0xFF2EC4B6, // teal
+  0xFF4DA3FF, // blue
+  0xFF8C6CFF, // purple
+  0xFFFF8FB1, // pink
+  0xFFA0673F, // brown
+  0xFFFFD2B8, // skin peach
   0xFFFFFFFF, // white (works as an eraser)
+  0xFF34413A, // dark green-black
 ];
+
+/// What each color is called, for screen readers.
+const kidPaletteNames = ['紅', '橘', '黃', '綠', '藍綠', '藍', '紫', '粉紅', '咖啡', '膚', '白', '黑'];
 
 /// One thing the child did. The page is always rebuilt from this list, which
 /// gives undo, autosave and a time-lapse replay for free.

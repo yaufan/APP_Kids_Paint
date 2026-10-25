@@ -55,106 +55,96 @@ class _PressableState extends State<Pressable> with SingleTickerProviderStateMix
   }
 }
 
-/// The main button of the app: a soft white toy tile, like a keycap, with a
-/// 3D illustration on it. Children's screens use only these: no text; [label]
-/// is read out by screen readers.
-class ToyButton extends StatefulWidget {
-  const ToyButton({
-    super.key,
-    required this.art,
-    required this.label,
-    required this.onPressed,
-    this.tint = KidColors.sky,
-    this.size = KidTheme.bigButton,
-    this.selected = false,
-    this.breathing = false,
-    this.round = false,
-  });
+/// Gently grows and shrinks to invite the first tap on a screen.
+class Breathing extends StatefulWidget {
+  const Breathing({super.key, required this.child, this.enabled = true});
 
-  final String art;
-  final String label;
-  final VoidCallback? onPressed;
-
-  /// Color of the tile's edge and of its selected state.
-  final Color tint;
-  final double size;
-  final bool selected;
-
-  /// Gently pulses to invite the first tap (the main action on a screen).
-  final bool breathing;
-  final bool round;
+  final Widget child;
+  final bool enabled;
 
   @override
-  State<ToyButton> createState() => _ToyButtonState();
+  State<Breathing> createState() => _BreathingState();
 }
 
-class _ToyButtonState extends State<ToyButton> with SingleTickerProviderStateMixin {
-  late final AnimationController _pulse =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 1700));
+class _BreathingState extends State<Breathing> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1300));
 
   @override
   void initState() {
     super.initState();
-    if (widget.breathing) _pulse.repeat(reverse: true);
+    if (widget.enabled) _c.repeat(reverse: true);
   }
 
   @override
   void dispose() {
-    _pulse.dispose();
+    _c.dispose();
     super.dispose();
   }
 
   @override
+  Widget build(BuildContext context) => ScaleTransition(
+        scale: Tween(begin: 1.0, end: 1.05).animate(CurvedAnimation(parent: _c, curve: Curves.easeInOut)),
+        child: widget.child,
+      );
+}
+
+/// A fat, colorful button with a thick darker bottom edge: obviously pressable.
+/// Children's buttons carry no words; [label] is what screen readers say.
+class ChunkyButton extends StatelessWidget {
+  const ChunkyButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    required this.child,
+    this.color = Colors.white,
+    this.edge = const Color(0xFFE6DCCB),
+    this.width,
+    this.height = 76,
+    this.radius,
+    this.depth = 7,
+    this.circle = false,
+    this.selected = false,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final Widget child;
+  final Color color;
+  final Color edge;
+  final double? width;
+  final double height;
+  final double? radius;
+  final double depth;
+  final bool circle;
+  final bool selected;
+
+  @override
   Widget build(BuildContext context) {
-    final s = widget.size;
-    final edge = s * 0.06;
-    final radius = widget.round ? BorderRadius.circular(s) : BorderRadius.circular(s * 0.3);
-    final edgeColor = Color.lerp(widget.tint, Colors.black, 0.08)!;
-    final face = widget.selected
-        ? [Color.lerp(Colors.white, widget.tint, 0.32)!, Color.lerp(Colors.white, widget.tint, 0.5)!]
-        : [Colors.white, Color.lerp(Colors.white, widget.tint, 0.12)!];
-
-    final tile = SizedBox(
-      width: s,
-      height: s + edge,
-      child: Stack(
-        children: [
-          // The colored edge underneath gives the tile its thickness.
-          Positioned(
-            top: edge,
-            child: Container(
-              width: s,
-              height: s,
-              decoration: BoxDecoration(color: edgeColor, borderRadius: radius, boxShadow: KidShadows.toy(widget.tint)),
-            ),
-          ),
-          Container(
-            width: s,
-            height: s,
-            decoration: BoxDecoration(
-              borderRadius: radius,
-              gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: face),
-              border: widget.selected ? Border.all(color: widget.tint, width: s * 0.05) : null,
-            ),
-            alignment: Alignment.center,
-            child: ArtImage(widget.art, size: s * 0.66),
-          ),
-        ],
-      ),
-    );
-
+    final enabled = onPressed != null;
     return Semantics(
       button: true,
-      enabled: widget.onPressed != null,
-      selected: widget.selected,
-      label: widget.label,
+      enabled: enabled,
+      selected: selected,
+      label: label,
+      excludeSemantics: true,
       child: Opacity(
-        opacity: widget.onPressed == null ? 0.45 : 1,
+        opacity: enabled ? 1 : 0.45,
         child: Pressable(
-          onTap: widget.onPressed,
-          child: ScaleTransition(
-            scale: Tween(begin: 1.0, end: 1.06).animate(CurvedAnimation(parent: _pulse, curve: Curves.easeInOut)),
-            child: tile,
+          onTap: onPressed,
+          child: Padding(
+            padding: EdgeInsets.only(bottom: depth),
+            child: Container(
+              width: width,
+              height: height,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: color,
+                shape: circle ? BoxShape.circle : BoxShape.rectangle,
+                borderRadius: circle ? null : BorderRadius.circular(radius ?? height / 2),
+                boxShadow: KidShadows.chunky(edge, depth),
+              ),
+              child: child,
+            ),
           ),
         ),
       ),
@@ -162,139 +152,68 @@ class _ToyButtonState extends State<ToyButton> with SingleTickerProviderStateMix
   }
 }
 
-/// A white card with a soft shadow; [tilt] in degrees, optional washi tape.
-class ToyCard extends StatelessWidget {
-  const ToyCard({
-    super.key,
-    required this.child,
-    this.tilt = 0,
-    this.padding = const EdgeInsets.all(12),
-    this.radius = 26,
-    this.tape,
-  });
+/// A white rounded square with an icon: back to the map, undo, close.
+class NavButton extends StatelessWidget {
+  const NavButton({super.key, required this.icon, required this.label, required this.onPressed, this.color = KidColors.ink});
 
-  final Widget child;
-  final double tilt;
-  final EdgeInsets padding;
-  final double radius;
-  final Color? tape;
+  final String icon;
+  final String label;
+  final VoidCallback? onPressed;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    final card = Container(
-      padding: padding,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(radius),
-        boxShadow: KidShadows.toy(),
-      ),
-      child: child,
-    );
-    return Transform.rotate(
-      angle: tilt * math.pi / 180,
-      child: tape == null
-          ? card
-          : Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.topCenter,
-              children: [
-                card,
-                Positioned(
-                  top: -11,
-                  child: Transform.rotate(
-                    angle: -0.06,
-                    child: Container(
-                      width: 78,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: tape!.withValues(alpha: 0.7),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+    final enabled = onPressed != null;
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: label,
+      excludeSemantics: true,
+      child: Opacity(
+        opacity: enabled ? 1 : 0.4,
+        child: Pressable(
+          onTap: onPressed,
+          child: Container(
+            width: KidTheme.navButton,
+            height: KidTheme.navButton,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: KidShadows.soft(),
             ),
-    );
-  }
-}
-
-/// The child's 3D animal on a round white token.
-class AvatarBadge extends StatelessWidget {
-  const AvatarBadge({super.key, required this.avatar, this.size = 68, this.onTap});
-
-  final String avatar;
-  final double size;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Pressable(
-      onTap: onTap,
-      child: Container(
-        width: size,
-        height: size,
-        padding: EdgeInsets.all(size * 0.1),
-        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: KidShadows.toy()),
-        child: ArtImage(Art.avatar(avatar)),
+            child: KidIcon(icon, size: 30, color: color),
+          ),
+        ),
       ),
     );
   }
 }
 
-/// A decorative round badge with a 3D illustration (not a button).
-class ArtBadge extends StatelessWidget {
-  const ArtBadge({super.key, required this.art, this.size = 60, this.tint = Colors.white});
+/// What a character says. The words are for grown-ups and screen readers;
+/// children will hear them (voice comes in a later version).
+class VoiceBubble extends StatelessWidget {
+  const VoiceBubble(this.text, {super.key, this.fontSize = 17, this.maxWidth = 280});
 
-  final String art;
-  final double size;
-  final Color tint;
+  final String text;
+  final double fontSize;
+  final double maxWidth;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: size,
-      height: size,
-      padding: EdgeInsets.all(size * 0.16),
-      decoration: BoxDecoration(color: tint, shape: BoxShape.circle, boxShadow: KidShadows.toy()),
-      child: ArtImage(art),
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: KidShadows.soft()),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        const KidIcon('sound', size: 20, color: KidColors.sky),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(text, style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w700, height: 1.35)),
+        ),
+      ]),
     );
   }
-}
-
-/// A white speech bubble with a tail pointing down-left at whoever speaks.
-class SpeechBubble extends StatelessWidget {
-  const SpeechBubble({super.key, required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _BubblePainter(),
-      child: Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 26), child: child),
-    );
-  }
-}
-
-class _BubblePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final body = RRect.fromLTRBR(0, 0, size.width, size.height - 14, const Radius.circular(24));
-    final tail = Path()
-      ..moveTo(size.width * 0.18, size.height - 16)
-      ..lineTo(size.width * 0.1, size.height)
-      ..lineTo(size.width * 0.34, size.height - 16)
-      ..close();
-    final shape = Path()
-      ..addRRect(body)
-      ..addPath(tail, Offset.zero);
-    canvas.drawShadow(shape, const Color(0xFF6B4E71), 6, false);
-    canvas.drawPath(shape, Paint()..color = Colors.white);
-  }
-
-  @override
-  bool shouldRepaint(_BubblePainter old) => false;
 }
 
 /// Pops in with a little bounce, after [delay]; lets a screen's toys arrive
@@ -340,7 +259,9 @@ class _PopInState extends State<PopIn> with SingleTickerProviderStateMixin {
 
 /// Three bouncing colored dots: "working on it", without words.
 class BouncingDots extends StatefulWidget {
-  const BouncingDots({super.key});
+  const BouncingDots({super.key, this.colors = const [KidColors.coral, KidColors.sun, KidColors.sky]});
+
+  final List<Color> colors;
 
   @override
   State<BouncingDots> createState() => _BouncingDotsState();
@@ -358,20 +279,21 @@ class _BouncingDotsState extends State<BouncingDots> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    const colors = [KidColors.berry, KidColors.sun, KidColors.sky];
     return AnimatedBuilder(
       animation: _c,
       builder: (context, _) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (var i = 0; i < 3; i++)
-            Transform.translate(
-              offset: Offset(0, -18 * math.max(0, math.sin((_c.value - i * 0.18) * 2 * math.pi))),
-              child: Container(
-                width: 26,
-                height: 26,
-                margin: const EdgeInsets.symmetric(horizontal: 8),
-                decoration: BoxDecoration(color: colors[i], shape: BoxShape.circle, boxShadow: KidShadows.toy(colors[i])),
+          for (var i = 0; i < widget.colors.length; i++)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: Transform.translate(
+                offset: Offset(0, -14 * math.max(0, math.sin((_c.value - i * 0.18) * 2 * math.pi))),
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(color: widget.colors[i], shape: BoxShape.circle),
+                ),
               ),
             ),
         ],
@@ -380,35 +302,218 @@ class _BouncingDotsState extends State<BouncingDots> with SingleTickerProviderSt
   }
 }
 
-/// A small lock in a corner that opens the parent gate; deliberately
-/// unremarkable so children leave it alone.
-class ParentCornerButton extends StatelessWidget {
-  const ParentCornerButton({super.key, required this.onPressed});
+/// The small padlock in a corner that leads to the parent gate.
+class ParentLockButton extends StatelessWidget {
+  const ParentLockButton({super.key, required this.onPressed});
 
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      tooltip: Strings.parentMode,
-      onPressed: onPressed,
-      icon: Icon(Icons.lock_outline_rounded, color: KidColors.ink.withValues(alpha: 0.3)),
+    return Tooltip(
+      message: Strings.parentMode,
+      child: Semantics(
+        button: true,
+        label: Strings.parentMode,
+        excludeSemantics: true,
+        child: Pressable(
+          onTap: onPressed,
+          child: Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.85), shape: BoxShape.circle),
+            child: const KidIcon('lock', size: 19, color: KidColors.inkSoft),
+          ),
+        ),
+      ),
     );
   }
 }
 
-/// The home button every child screen has in its top-left corner.
-class HomeButton extends StatelessWidget {
-  const HomeButton({super.key, required this.onPressed});
+/// Warm postcard paper with faint dots.
+class PaperBackground extends StatelessWidget {
+  const PaperBackground({super.key, required this.child, this.color = KidColors.paper});
 
-  final VoidCallback onPressed;
+  final Widget child;
+  final Color color;
 
   @override
-  Widget build(BuildContext context) => ToyButton(
-        art: Art.home,
-        label: Strings.home,
-        tint: KidColors.sun,
-        size: KidTheme.toolButton,
-        onPressed: onPressed,
+  Widget build(BuildContext context) => CustomPaint(painter: _DotsPainter(color), child: child);
+}
+
+class _DotsPainter extends CustomPainter {
+  _DotsPainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(Offset.zero & size, Paint()..color = color);
+    final dot = Paint()..color = KidColors.paperDot;
+    for (var y = 10.0; y < size.height; y += 20) {
+      for (var x = 10.0; x < size.width; x += 20) {
+        canvas.drawCircle(Offset(x, y), 1.4, dot);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DotsPainter old) => old.color != color;
+}
+
+/// The white card a picture sits on, slightly tilted like a real postcard.
+class PostcardFrame extends StatelessWidget {
+  const PostcardFrame({super.key, required this.child, this.tilt = 0, this.padding = 12, this.radius = 22});
+
+  final Widget child;
+  final double tilt;
+  final double padding;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) => Transform.rotate(
+        angle: tilt * math.pi / 180,
+        child: Container(
+          padding: EdgeInsets.all(padding),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(radius), boxShadow: KidShadows.soft()),
+          child: child,
+        ),
       );
 }
+
+/// The original photo as a postage stamp with perforated edges.
+class PhotoStamp extends StatelessWidget {
+  const PhotoStamp({super.key, required this.image, this.width = 76, this.height = 90, this.tilt = 7});
+
+  final ImageProvider image;
+  final double width;
+  final double height;
+  final double tilt;
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+        child: Transform.rotate(
+          angle: tilt * math.pi / 180,
+          child: DecoratedBox(
+            decoration: const BoxDecoration(boxShadow: [BoxShadow(color: Color(0x47284032), blurRadius: 8, offset: Offset(0, 6))]),
+            child: ClipPath(
+              clipper: _StampClipper(),
+              child: Container(
+                width: width,
+                height: height,
+                color: Colors.white,
+                padding: const EdgeInsets.all(7),
+                child: Image(image: image, fit: BoxFit.cover, gaplessPlayback: true),
+              ),
+            ),
+          ),
+        ),
+      );
+}
+
+class _StampClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    const r = 3.2, step = 8.0;
+    final path = Path()..addRect(Offset.zero & size);
+    final holes = Path();
+    final nx = (size.width / step).round(), ny = (size.height / step).round();
+    for (var i = 0; i < nx; i++) {
+      final x = size.width / nx * (i + 0.5);
+      holes.addOval(Rect.fromCircle(center: Offset(x, 0), radius: r));
+      holes.addOval(Rect.fromCircle(center: Offset(x, size.height), radius: r));
+    }
+    for (var i = 0; i < ny; i++) {
+      final y = size.height / ny * (i + 0.5);
+      holes.addOval(Rect.fromCircle(center: Offset(0, y), radius: r));
+      holes.addOval(Rect.fromCircle(center: Offset(size.width, y), radius: r));
+    }
+    return Path.combine(PathOperation.difference, path, holes);
+  }
+
+  @override
+  bool shouldReclip(_StampClipper old) => false;
+}
+
+/// A round postmark with the date and wavy lines.
+class Postmark extends StatelessWidget {
+  const Postmark(this.text, {super.key, this.size = 58, this.color = const Color(0x9EB0561C)});
+
+  final String text;
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+        child: Transform.rotate(
+          angle: -0.25,
+          child: CustomPaint(size: Size(size * 1.6, size), painter: _PostmarkPainter(text, color)),
+        ),
+      );
+}
+
+class _PostmarkPainter extends CustomPainter {
+  _PostmarkPainter(this.text, this.color);
+
+  final String text;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = size.height;
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.4;
+    final c = Offset(s / 2, s / 2);
+    canvas.drawCircle(c, s / 2 - 2, paint);
+    canvas.drawCircle(c, s / 2 - 8, paint..strokeWidth = 1.4);
+    for (var i = 0; i < 3; i++) {
+      final y = s * (0.36 + 0.14 * i);
+      final wave = Path()..moveTo(s * 0.72, y);
+      for (var k = 0; k < 3; k++) {
+        final x = s * 0.72 + k * 16;
+        wave.quadraticBezierTo(x + 4, y - 5, x + 8, y);
+        wave.quadraticBezierTo(x + 12, y + 5, x + 16, y);
+      }
+      canvas.drawPath(wave, paint..strokeWidth = 2.2);
+    }
+    final tp = TextPainter(
+      text: TextSpan(text: text, style: TextStyle(color: color, fontSize: s * 0.2, fontWeight: FontWeight.w700, fontFamily: KidTheme.font)),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, c - Offset(tp.width / 2, tp.height / 2));
+  }
+
+  @override
+  bool shouldRepaint(_PostmarkPainter old) => old.text != text || old.color != color;
+}
+
+/// A white chip with an icon and text (parents read these).
+class InfoChip extends StatelessWidget {
+  const InfoChip({super.key, required this.icon, required this.text, this.iconColor = const Color(0xFFE0702A), this.dashed = false});
+
+  final String icon;
+  final String text;
+  final Color iconColor;
+  final bool dashed;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: dashed ? Border.all(color: const Color(0xFFE89A4C), width: 2) : null,
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          KidIcon(icon, size: 17, color: iconColor),
+          const SizedBox(width: 6),
+          Text(text, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF8A4B12))),
+        ]),
+      );
+}
+
+String shortDate(DateTime d) => '${d.month}/${d.day}';

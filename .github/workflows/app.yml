@@ -20,6 +20,8 @@ jobs:
         working-directory: app
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the build number is the commit count
 
       - uses: actions/setup-java@v4
         with:
@@ -56,13 +58,34 @@ jobs:
           path: app/build/screenshots/
           retention-days: 30
 
+      # Version from pubspec.yaml, build number from the commit count (only
+      # ever grows, as the stores require). See docs/versioning.md.
+      - name: Version
+        run: |
+          echo "VERSION=$(sed -n 's/^version: *\([0-9.]*\).*/\1/p' pubspec.yaml)" >> "$GITHUB_ENV"
+          echo "BUILD=$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
+
       # Signed with the debug key (see android/app/build.gradle.kts): fine for
       # installing on a test phone, not for Google Play.
       - name: Build Android APK
-        run: flutter build apk --release
+        run: |
+          flutter build apk --release --build-name="$VERSION" --build-number="$BUILD" \
+            --dart-define=APP_VERSION="$VERSION" --dart-define=APP_BUILD="$BUILD"
+          mv build/app/outputs/flutter-apk/app-release.apk "build/kids-paint-$VERSION-$BUILD.apk"
+
+      # The privacy promise, checked on the real package: no network, no
+      # location, no advertising ID (docs/safety-privacy.md).
+      - name: Check Android permissions
+        run: |
+          AAPT2=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)
+          "$AAPT2" dump permissions "build/kids-paint-$VERSION-$BUILD.apk" | tee permissions.txt
+          if grep -E 'INTERNET|LOCATION|AD_ID' permissions.txt; then
+            echo "::error::The APK asks for a permission the app promises not to use"
+            exit 1
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
           name: kids-paint-android-apk
-          path: app/build/app/outputs/flutter-apk/app-release.apk
+          path: app/build/kids-paint-*.apk
           retention-days: 30

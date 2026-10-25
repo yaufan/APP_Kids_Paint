@@ -2,23 +2,23 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import 'art.dart';
 import 'theme.dart';
 
-/// A short "well done!" moment when a child finishes a picture: confetti
-/// bursts up and floats down while a party popper and a star pop in.
-class Celebration extends StatefulWidget {
-  const Celebration({super.key});
+/// Confetti shot up from the bottom that floats down and fades: the "well
+/// done!" moment when a postcard is sent or a new place is built.
+class Confetti extends StatefulWidget {
+  const Confetti({super.key, this.duration = const Duration(milliseconds: 2200), this.pieces = 90});
 
-  static const duration = Duration(milliseconds: 1800);
+  final Duration duration;
+  final int pieces;
 
   @override
-  State<Celebration> createState() => _CelebrationState();
+  State<Confetti> createState() => _ConfettiState();
 }
 
-class _CelebrationState extends State<Celebration> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: Celebration.duration)..forward();
-  final _pieces = _Confetti.burst(90, math.Random());
+class _ConfettiState extends State<Confetti> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: widget.duration)..forward();
+  late final _pieces = _Piece.burst(widget.pieces, math.Random());
 
   @override
   void dispose() {
@@ -27,53 +27,31 @@ class _CelebrationState extends State<Celebration> with SingleTickerProviderStat
   }
 
   @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: AnimatedBuilder(
-        animation: _c,
-        builder: (context, _) {
-          final t = _c.value;
-          final pop = Curves.elasticOut.transform((t / 0.45).clamp(0.0, 1.0));
-          final fade = 1 - Curves.easeIn.transform(((t - 0.75) / 0.25).clamp(0.0, 1.0));
-          return Opacity(
-            opacity: fade,
-            child: Stack(
-              children: [
-                Positioned.fill(child: ColoredBox(color: Colors.white.withValues(alpha: 0.35 * (1 - t)))),
-                Positioned.fill(child: CustomPaint(painter: _ConfettiPainter(_pieces, t))),
-                Center(
-                  child: Transform.scale(
-                    scale: pop,
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Transform.rotate(angle: -0.2, child: const ArtImage(Art.party, size: 150)),
-                      const SizedBox(width: 12),
-                      Transform.rotate(angle: 0.15 + t * 0.6, child: const ArtImage(Art.star, size: 120)),
-                    ]),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
+  Widget build(BuildContext context) => IgnorePointer(
+        child: AnimatedBuilder(
+          animation: _c,
+          builder: (context, _) => Opacity(
+            opacity: 1 - Curves.easeIn.transform(((_c.value - 0.75) / 0.25).clamp(0.0, 1.0)),
+            child: CustomPaint(size: Size.infinite, painter: _ConfettiPainter(_pieces, _c.value)),
+          ),
+        ),
+      );
 }
 
-class _Confetti {
-  _Confetti(this.x, this.vx, this.vy, this.spin, this.size, this.color);
+class _Piece {
+  _Piece(this.x, this.vx, this.vy, this.spin, this.size, this.color);
 
   final double x, vx, vy, spin, size;
   final Color color;
 
   static const _colors = [
-    KidColors.berry, KidColors.sun, KidColors.sky, KidColors.grass, KidColors.lavender, KidColors.tangerine,
+    KidColors.coral, KidColors.sun, KidColors.sky, KidColors.grass, KidColors.grape, KidColors.pink, KidColors.teal,
   ];
 
   /// Pieces shot up from the bottom center, fanning out.
-  static List<_Confetti> burst(int n, math.Random r) => [
+  static List<_Piece> burst(int n, math.Random r) => [
         for (var i = 0; i < n; i++)
-          _Confetti(
+          _Piece(
             0.5 + (r.nextDouble() - 0.5) * 0.2,
             (r.nextDouble() - 0.5) * 1.3,
             1.2 + r.nextDouble() * 0.9,
@@ -87,7 +65,7 @@ class _Confetti {
 class _ConfettiPainter extends CustomPainter {
   _ConfettiPainter(this.pieces, this.t);
 
-  final List<_Confetti> pieces;
+  final List<_Piece> pieces;
   final double t;
 
   @override

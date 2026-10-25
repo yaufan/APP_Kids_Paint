@@ -4,6 +4,7 @@ import '../features/lineart/line_art.dart';
 import '../features/lineart/simple_engine.dart';
 import 'artwork_service.dart';
 import 'db/database.dart';
+import 'places.dart';
 import 'repositories.dart';
 import 'storage/artwork_store.dart';
 
@@ -13,6 +14,7 @@ final artworkStoreProvider = Provider<ArtworkStore>((ref) => throw Unimplemented
 
 final childRepositoryProvider = Provider((ref) => ChildRepository(ref.watch(databaseProvider)));
 final artworkRepositoryProvider = Provider((ref) => ArtworkRepository(ref.watch(databaseProvider)));
+final placeRepositoryProvider = Provider((ref) => PlaceRepository(ref.watch(databaseProvider)));
 final settingsRepositoryProvider = Provider((ref) => SettingsRepository(ref.watch(databaseProvider)));
 final artworkServiceProvider = Provider(
   (ref) => ArtworkService(ref.watch(artworkRepositoryProvider), ref.watch(artworkStoreProvider)),
@@ -44,3 +46,23 @@ final currentChildProvider = FutureProvider<Child>((ref) async {
 final artworksProvider = StreamProvider.family<List<Artwork>, ({int childId, bool favoritesOnly})>(
   (ref, q) => ref.watch(artworkRepositoryProvider).watchForChild(q.childId, favoritesOnly: q.favoritesOnly),
 );
+
+/// The child's postcards on the map, newest first.
+final postcardsProvider = StreamProvider.family<List<Postcard>, int>(
+  (ref, childId) => ref.watch(artworkRepositoryProvider).watchPostcards(childId),
+);
+
+final placesProvider = StreamProvider.family<List<Place>, int>(
+  (ref, childId) => ref.watch(placeRepositoryProvider).watchForChild(childId),
+);
+
+/// A place picked before taking the photo ("draw here again"); sending
+/// offers it first.
+final preferredPlaceProvider = NotifierProvider<PreferredPlace, PlaceKind?>(PreferredPlace.new);
+
+class PreferredPlace extends Notifier<PlaceKind?> {
+  @override
+  PlaceKind? build() => null;
+
+  void choose(PlaceKind? kind) => state = kind;
+}

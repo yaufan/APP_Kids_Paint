@@ -6,7 +6,7 @@ import 'package:kids_paint/features/parent/parent_gate.dart';
 void main() {
   test('the question spells the numbers out in Chinese characters', () {
     final gate = ParentGateChallenge(7, 8);
-    expect(gate.question, '請輸入「七」加「八」的答案');
+    expect(gate.question, '「七」加「八」等於多少？');
     expect(gate.question, isNot(contains(RegExp(r'[0-9]'))));
   });
 

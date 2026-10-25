@@ -1,62 +1,123 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
-/// 3D illustrations from Microsoft Fluent Emoji (MIT license), bundled in
-/// `assets/illustrations/`. Placeholders for the app's own art later.
+import '../core/places.dart';
+
+/// The app's drawings (design v3), all vector art made for this app in
+/// docs/design/v3/src and exported with `export_art.py`.
 abstract final class Art {
-  static const _dir = 'assets/illustrations';
+  static const _dir = 'assets/art';
 
-  static const camera = '$_dir/camera.png';
-  static const gallery = '$_dir/gallery.png';
-  static const map = '$_dir/map.png';
-  static const home = '$_dir/home.png';
-  static const crayon = '$_dir/crayon.png';
-  static const bucket = '$_dir/bucket.png';
-  static const brush = '$_dir/brush.png';
-  static const undo = '$_dir/undo.png';
-  static const heart = '$_dir/heart.png';
-  static const heartEmpty = '$_dir/heart_empty.png';
-  static const sparkles = '$_dir/sparkles.png';
-  static const party = '$_dir/party.png';
-  static const star = '$_dir/star.png';
-  static const palette = '$_dir/palette.png';
-  static const sun = '$_dir/sun.png';
-  static const cloud = '$_dir/cloud.png';
-  static const rainbow = '$_dir/rainbow.png';
-  static const tree = '$_dir/tree.png';
-  static const tulip = '$_dir/tulip.png';
-  static const blossom = '$_dir/blossom.png';
-  static const sunflower = '$_dir/sunflower.png';
+  static String icon(String name, {bool solid = false}) => '$_dir/icons/$name${solid ? '_solid' : ''}.svg';
+  static String place(PlaceKind kind) => '$_dir/places/${kind.name}.svg';
+  static String animal(String kind) => '$_dir/animals/${animals.contains(kind) ? kind : animals.first}.svg';
+  static String town(String layer) => '$_dir/town/$layer.svg';
 
-  static const _avatars = {
-    '🐻': 'avatar_bear',
-    '🐰': 'avatar_rabbit',
-    '🐱': 'avatar_cat',
-    '🐶': 'avatar_dog',
-    '🐼': 'avatar_panda',
-    '🦊': 'avatar_fox',
-    '🐸': 'avatar_frog',
-    '🐧': 'avatar_penguin',
-  };
-
-  /// The 3D picture for a child's avatar (stored as an emoji).
-  static String avatar(String emoji) => '$_dir/${_avatars[emoji] ?? 'avatar_bear'}.png';
+  static const pigeon = '$_dir/pigeon.svg';
+  static const pigeonFlying = '$_dir/pigeon_flying.svg';
+  static const pigeonFlyingLetter = '$_dir/pigeon_flying_letter.svg';
+  static const logo = '$_dir/logo.svg';
+  static const miniAlbum = '$_dir/ui/mini_album.svg';
+  static const miniBook = '$_dir/ui/mini_book.svg';
+  static const bucket = '$_dir/tools/bucket.svg';
+  static const crayon = '$_dir/tools/crayon.svg';
 }
 
-/// A bundled illustration, smoothly scaled.
-class ArtImage extends StatelessWidget {
-  const ArtImage(this.asset, {super.key, this.size});
+/// A drawing at a fixed size. Decorative: screen readers skip it.
+class ArtSvg extends StatelessWidget {
+  const ArtSvg(this.asset, {super.key, this.size, this.width, this.height});
 
   final String asset;
   final double? size;
+  final double? width;
+  final double? height;
 
   @override
-  Widget build(BuildContext context) => Image.asset(
-        asset,
-        width: size,
-        height: size,
-        fit: BoxFit.contain,
-        filterQuality: FilterQuality.medium,
-        gaplessPlayback: true,
-        excludeFromSemantics: true,
+  Widget build(BuildContext context) => ExcludeSemantics(
+        child: SvgPicture.asset(asset, width: width ?? size, height: height ?? size),
       );
+}
+
+/// A line icon in any color.
+class KidIcon extends StatelessWidget {
+  const KidIcon(this.name, {super.key, this.size = 28, this.color = const Color(0xFF34413A), this.solid = false});
+
+  final String name;
+  final double size;
+  final Color color;
+  final bool solid;
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+        child: SvgPicture.asset(
+          Art.icon(name, solid: solid),
+          width: size,
+          height: size,
+          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+        ),
+      );
+}
+
+/// The child's animal.
+class AnimalArt extends StatelessWidget {
+  const AnimalArt(this.kind, {super.key, this.size = 56});
+
+  final String kind;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => ArtSvg(Art.animal(kind), size: size);
+}
+
+/// A tool drawn in the chosen color (the bucket's paint, the crayon's wax).
+class ToolArt extends StatelessWidget {
+  const ToolArt(this.asset, {super.key, required this.color, this.size = 40});
+
+  final String asset;
+  final Color color;
+  final double size;
+
+  /// Loaded templates; kept as text (not futures) so a test's zone never
+  /// leaks into the next one.
+  static final _templates = <String, String>{};
+
+  static String _hex(Color c) => '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}';
+
+  static Color _shade(Color c, double amount) {
+    final hsl = HSLColor.fromColor(c);
+    return hsl.withLightness((hsl.lightness + amount).clamp(0.0, 1.0)).toColor();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cached = _templates[asset];
+    final template = cached != null
+        ? Future.value(cached)
+        : rootBundle.loadString(asset).then((svg) => _templates[asset] = svg);
+    return ExcludeSemantics(
+      child: SizedBox(
+        width: size,
+        height: size * 1.2,
+        child: FutureBuilder<String>(
+          initialData: cached,
+          future: template,
+          builder: (context, snap) {
+            final svg = snap.data;
+            if (svg == null) return const SizedBox.shrink();
+            // White paint would vanish on the white bucket: give it an edge.
+            final dark = color.computeLuminance() > 0.9 ? const Color(0xFFB9C2CC) : _shade(color, -0.25);
+            return SvgPicture.string(
+              svg
+                  .replaceAll('#C0FFEE', _hex(color))
+                  .replaceAll('#C0FFE1', _hex(dark))
+                  .replaceAll('#C0FFE2', _hex(_shade(color, 0.15))),
+              width: size,
+              height: size * 1.2,
+            );
+          },
+        ),
+      ),
+    );
+  }
 }

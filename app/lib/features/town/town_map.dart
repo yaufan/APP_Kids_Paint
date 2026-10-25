@@ -1,0 +1,450 @@
+import 'dart:io';
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
+import '../../app/art.dart';
+import '../../app/strings.dart';
+import '../../app/theme.dart';
+import '../../core/db/database.dart';
+import '../../core/places.dart';
+import '../../core/repositories.dart';
+import 'town_layout_data.dart';
+
+/// What the map shows at one kind of place: how many postcards, the newest.
+class TownSpot {
+  const TownSpot({required this.kind, required this.count, required this.latest, required this.today});
+
+  final PlaceKind kind;
+  final int count;
+  final Artwork latest;
+
+  /// Sent in the last 24 hours: the pin glows.
+  final bool today;
+}
+
+/// Groups postcards (newest first) by kind of place.
+Map<PlaceKind, TownSpot> townSpots(List<Postcard> postcards, DateTime now) {
+  final counts = <PlaceKind, int>{};
+  final latest = <PlaceKind, Artwork>{};
+  for (final p in postcards) {
+    final kind = PlaceKind.byName(p.place.kind);
+    counts[kind] = (counts[kind] ?? 0) + 1;
+    latest.putIfAbsent(kind, () => p.artwork);
+  }
+  return {
+    for (final kind in counts.keys)
+      kind: TownSpot(
+        kind: kind,
+        count: counts[kind]!,
+        latest: latest[kind]!,
+        today: now.difference(latest[kind]!.sentAt ?? latest[kind]!.updatedAt).inHours < 24,
+      ),
+  };
+}
+
+/// The child's town: drawn layers (scenery, one building or empty lot per
+/// kind of place) with the child's postcards pinned on top. Pans with a
+/// finger; phones first see the middle column, wide screens see more.
+class TownMap extends StatefulWidget {
+  const TownMap({
+    super.key,
+    required this.spots,
+    required this.thumbnailOf,
+    required this.avatar,
+    this.onPin,
+    this.onLot,
+    this.grow,
+    this.focus,
+    this.interactive = true,
+  });
+
+  final Map<PlaceKind, TownSpot> spots;
+  final File Function(Artwork artwork) thumbnailOf;
+
+  /// The child's animal, walking near home.
+  final String avatar;
+  final ValueChanged<PlaceKind>? onPin;
+  final ValueChanged<PlaceKind>? onLot;
+
+  /// A place that was just built: it grows out of its lot.
+  final PlaceKind? grow;
+
+  /// A place to scroll to and bounce (a postcard just arrived there).
+  final PlaceKind? focus;
+  final bool interactive;
+
+  /// How many world points a screen of [width] shows across.
+  static double scaleFor(Size viewport) {
+    final across = viewport.width.clamp(390.0, townSize.width);
+    return math.max(viewport.width / across, viewport.height / townSize.height);
+  }
+
+  @override
+  State<TownMap> createState() => _TownMapState();
+}
+
+class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
+  final _view = TransformationController();
+  Size? _laidOutFor;
+  late final AnimationController _life =
+      AnimationController(vsync: this, duration: const Duration(seconds: 24))..repeat();
+  late final AnimationController _grow =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 1600));
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.grow != null) _grow.forward();
+  }
+
+  @override
+  void dispose() {
+    _view.dispose();
+    _life.dispose();
+    _grow.dispose();
+    super.dispose();
+  }
+
+  bool _built(PlaceKind kind) => kind == PlaceKind.home || widget.spots.containsKey(kind);
+
+  void _place(Size viewport, double s) {
+    if (_laidOutFor == viewport) return;
+    _laidOutFor = viewport;
+    final map = townSize * s;
+    var tx = (viewport.width - map.width) / 2;
+    // Wide screens show little height: start at the mountains, not the sky.
+    var ty = viewport.width > viewport.height ? -170 * s : 0.0;
+    final focus = widget.focus ?? widget.grow;
+    if (focus != null) {
+      final pin = townSlots[focus.name]!.pin * s;
+      tx = viewport.width / 2 - pin.dx;
+      ty = viewport.height * 0.45 - pin.dy;
+    }
+    tx = tx.clamp(math.min(0.0, viewport.width - map.width), 0.0);
+    ty = ty.clamp(math.min(0.0, viewport.height - map.height), 0.0);
+    _view.value = Matrix4.translationValues(tx, ty, 0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, box) {
+      final viewport = box.biggest;
+      final s = TownMap.scaleFor(viewport);
+      _place(viewport, s);
+      final size = townSize * s;
+
+      final layers = <Widget>[_layer('base')];
+      for (final name in townLayerOrder) {
+        final kind = PlaceKind.byName(name);
+        final slot = townSlots[name]!;
+        if (_built(kind)) {
+          if (kind == widget.grow && slot.lot != null) {
+            final center = slot.lot!.center * s;
+            layers.add(Positioned.fill(
+              child: FadeTransition(
+                opacity: ReverseAnimation(CurvedAnimation(parent: _grow, curve: const Interval(0, 0.4))),
+                child: _svg('${name}_lot'),
+              ),
+            ));
+            layers.add(Positioned.fill(
+              child: AnimatedBuilder(
+                animation: _grow,
+                builder: (context, child) => Opacity(
+                  opacity: Curves.easeOut.transform((_grow.value / 0.3).clamp(0.0, 1.0)),
+                  child: Transform.scale(
+                    scale: 0.2 + 0.8 * Curves.elasticOut.transform(_grow.value),
+                    alignment: Alignment(center.dx / size.width * 2 - 1, center.dy / size.height * 2 - 1),
+                    child: child,
+                  ),
+                ),
+                child: _svg(name),
+              ),
+            ));
+          } else {
+            layers.add(_layer(name));
+          }
+        } else if (slot.lot != null) {
+          layers.add(_layer('${name}_lot'));
+        }
+      }
+      layers.add(_layer('traffic'));
+
+      final lots = [
+        for (final MapEntry(key: name, value: slot) in townSlots.entries)
+          if (slot.lot != null && !_built(PlaceKind.byName(name)))
+            Positioned.fromRect(
+              rect: Rect.fromLTWH(slot.lot!.left * s, slot.lot!.top * s, slot.lot!.width * s, slot.lot!.height * s),
+              child: Semantics(
+                button: true,
+                label: '${PlaceKind.byName(name).label}，還沒畫過',
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: widget.onLot == null ? null : () => widget.onLot!(PlaceKind.byName(name)),
+                ),
+              ),
+            ),
+      ];
+
+      final home = townSlots['home']!.pin;
+      final pins = [
+        for (final spot in widget.spots.values)
+          _Pin(
+            key: ValueKey('pin-${spot.kind.name}'),
+            spot: spot,
+            image: FileImage(widget.thumbnailOf(spot.latest)),
+            at: townSlots[spot.kind.name]!.pin * s,
+            bounce: spot.kind == widget.focus,
+            onTap: widget.onPin == null ? null : () => widget.onPin!(spot.kind),
+          ),
+      ];
+
+      final map = SizedBox.fromSize(
+        size: size,
+        child: Stack(clipBehavior: Clip.none, children: [
+          ...layers,
+          ...lots,
+          _Walker(life: _life, at: Offset((home.dx + 64) * s, (home.dy + 88) * s), avatar: widget.avatar),
+          _FlyingPigeon(life: _life, mapWidth: size.width, y: 96 * s),
+          ...pins,
+        ]),
+      );
+
+      return InteractiveViewer(
+        transformationController: _view,
+        constrained: false,
+        scaleEnabled: false,
+        panEnabled: widget.interactive,
+        child: map,
+      );
+    });
+  }
+
+  Widget _svg(String name) => ExcludeSemantics(child: SvgPicture.asset(Art.town(name), fit: BoxFit.fill));
+
+  Widget _layer(String name) => Positioned.fill(child: _svg(name));
+}
+
+/// A postcard pinned at its place: the newest picture, how many there are,
+/// and a glow if one arrived today.
+class _Pin extends StatefulWidget {
+  const _Pin({super.key, required this.spot, required this.image, required this.at, this.bounce = false, this.onTap});
+
+  final TownSpot spot;
+  final ImageProvider image;
+  final Offset at;
+  final bool bounce;
+  final VoidCallback? onTap;
+
+  @override
+  State<_Pin> createState() => _PinState();
+}
+
+class _PinState extends State<_Pin> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800));
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.spot.today) {
+      _c.repeat();
+    } else if (widget.bounce) {
+      _c.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final today = widget.spot.today;
+    final size = today ? 72.0 : 58.0;
+    const tip = 12.0;
+    final ring = today ? KidColors.sun : Colors.white;
+    return Positioned(
+      left: widget.at.dx - size / 2 - 40,
+      top: widget.at.dy - size - tip - 20,
+      width: size + 80,
+      height: size + tip + 40,
+      child: Semantics(
+        button: true,
+        label: Strings.pinLabel(widget.spot.kind.label, widget.spot.count),
+        excludeSemantics: true,
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: widget.onTap,
+          child: AnimatedBuilder(
+            animation: _c,
+            builder: (context, child) {
+              final drop = widget.bounce ? -36 * (1 - Curves.bounceOut.transform(_c.value)) : 0.0;
+              return Stack(clipBehavior: Clip.none, children: [
+                if (today)
+                  for (final phase in [0.0, 0.5])
+                    Positioned(
+                      left: 40 + size / 2 - 30,
+                      top: 20 + size + tip - 16,
+                      child: Transform.scale(
+                        scale: 0.6 + ((_c.value + phase) % 1) * 1.2,
+                        child: Opacity(
+                          opacity: (1 - (_c.value + phase) % 1) * 0.7,
+                          child: Container(
+                            width: 60,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(30),
+                              border: Border.all(color: KidColors.sun, width: 4),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                Positioned(
+                  left: 40 + size / 2 - 12,
+                  top: 20 + size + tip - 5,
+                  child: Container(
+                    width: 24,
+                    height: 9,
+                    decoration: BoxDecoration(color: const Color(0x381E3C28), borderRadius: BorderRadius.circular(9)),
+                  ),
+                ),
+                Positioned(left: 40, top: 20 + drop, child: child!),
+              ]);
+            },
+            child: SizedBox(
+              width: size,
+              height: size + tip,
+              child: Stack(clipBehavior: Clip.none, children: [
+                Positioned(
+                  left: size / 2 - 9,
+                  top: size - 1,
+                  child: CustomPaint(size: Size(18, tip + 1), painter: _TipPainter(ring)),
+                ),
+                Container(
+                  width: size,
+                  height: size,
+                  padding: EdgeInsets.all(today ? 6 : 5),
+                  decoration: BoxDecoration(
+                    color: ring,
+                    borderRadius: BorderRadius.circular(size * 0.3),
+                    boxShadow: KidShadows.soft(),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(size * 0.3 - 5),
+                    child: Image(image: widget.image, fit: BoxFit.cover, gaplessPlayback: true),
+                  ),
+                ),
+                if (today)
+                  Positioned(
+                    right: -11,
+                    top: -11,
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: KidColors.coral,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3),
+                      ),
+                      child: const KidIcon('star', size: 16, color: Colors.white, solid: true),
+                    ),
+                  )
+                else if (widget.spot.count > 1)
+                  Positioned(
+                    right: -9,
+                    top: -9,
+                    child: Container(
+                      constraints: const BoxConstraints(minWidth: 26),
+                      height: 26,
+                      padding: const EdgeInsets.symmetric(horizontal: 5),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: KidColors.coral,
+                        borderRadius: BorderRadius.circular(13),
+                        border: Border.all(color: Colors.white, width: 3),
+                      ),
+                      child: Text('${widget.spot.count}',
+                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700, height: 1)),
+                    ),
+                  ),
+              ]),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TipPainter extends CustomPainter {
+  _TipPainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawPath(
+      Path()
+        ..moveTo(0, 0)
+        ..lineTo(size.width, 0)
+        ..lineTo(size.width / 2, size.height)
+        ..close(),
+      Paint()..color = color,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_TipPainter old) => old.color != color;
+}
+
+/// The child's own animal, hopping on the sidewalk by home.
+class _Walker extends StatelessWidget {
+  const _Walker({required this.life, required this.at, required this.avatar});
+
+  final Animation<double> life;
+  final Offset at;
+  final String avatar;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: life,
+      builder: (context, child) {
+        final t = life.value * 2 * math.pi * 16;
+        return Positioned(
+          left: at.dx - 24,
+          top: at.dy - 48 - 5 * math.sin(t).abs(),
+          child: Transform.rotate(angle: 0.07 * math.sin(t), child: child),
+        );
+      },
+      child: AnimalArt(avatar, size: 48),
+    );
+  }
+}
+
+/// Gugu the mail pigeon, gliding across the sky.
+class _FlyingPigeon extends StatelessWidget {
+  const _FlyingPigeon({required this.life, required this.mapWidth, required this.y});
+
+  final Animation<double> life;
+  final double mapWidth;
+  final double y;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: life,
+      builder: (context, child) => Positioned(
+        left: -90 + (mapWidth + 180) * life.value,
+        top: y + 10 * math.sin(life.value * 2 * math.pi * 6),
+        child: child!,
+      ),
+      child: const ArtSvg(Art.pigeonFlyingLetter, size: 70),
+    );
+  }
+}

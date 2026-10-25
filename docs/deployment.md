@@ -15,16 +15,19 @@
 ## Android
 
 ### A. 現在就裝到手機（側載 APK）
+最簡單：GitHub 專案 → **Releases** → 選最新版本 → 下載 `kids-paint-版本.apk`（不用解壓縮，也不會過期）。版本怎麼發行見 [versioning.md](versioning.md)。
+
+想裝最新一次推送的測試版：
 1. 打開 GitHub 專案 → **Actions** → 左邊選 **App** → 點最新一次綠色勾勾的執行。
 2. 頁面最下方 **Artifacts** → 下載 `kids-paint-android-apk`（會是一個 zip）。
    - 用手機瀏覽器登入 GitHub 下載，或在電腦下載後用 LINE、Google 雲端硬碟傳到手機。
-3. 解壓縮，點 `app-release.apk`。
+3. 解壓縮，點裡面的 `kids-paint-版本-建置號碼.apk`。
 4. 手機會問要不要允許「安裝未知應用程式」：允許給你用來開檔的 APP（例如 Chrome 或「檔案」）。
 5. 安裝完成，桌面會出現「Kids Paint」。
 
 注意：
 - 這個 APK 用測試用的金鑰簽章，以後換成 Google Play 版之前要先移除。
-- GitHub 的 Artifacts 預設保存 90 天，過期就重新推送一次產生新的。
+- Actions 的 Artifacts 保存 30 天；Releases 頁面的 APK 不會過期。
 - 沒有 Android 手機：電腦（Windows 也可以）安裝 Android Studio，用裡面的模擬器開 APK。
 
 ### B. 上架 Google Play

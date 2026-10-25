@@ -1,6 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kids_paint/core/db/database.dart';
+import 'package:kids_paint/core/places.dart';
 import 'package:kids_paint/core/repositories.dart';
 
 void main() {
@@ -8,12 +9,14 @@ void main() {
   late ChildRepository children;
   late ArtworkRepository artworks;
   late SettingsRepository settings;
+  late PlaceRepository places;
 
   setUp(() {
     db = AppDatabase(NativeDatabase.memory());
     children = ChildRepository(db);
     artworks = ArtworkRepository(db);
     settings = SettingsRepository(db);
+    places = PlaceRepository(db);
   });
 
   tearDown(() => db.close());
@@ -22,12 +25,12 @@ void main() {
     final first = await children.ensureDefault();
     final again = await children.ensureDefault();
     expect(again.id, first.id);
-    expect(first.avatar, avatars.first);
+    expect(first.avatar, animals.first);
   });
 
   test('artworks are listed per child, newest first, with a favorites filter', () async {
     final kid = await children.ensureDefault();
-    final sibling = await children.add('🐰');
+    final sibling = await children.add('rabbit');
     final a = await artworks.create(childId: kid.id, style: 'realistic', detail: 'simple', folder: 'a');
     final b = await artworks.create(childId: kid.id, style: 'cute', detail: 'simple', folder: 'b');
     await artworks.create(childId: sibling.id, style: 'cute', detail: 'simple', folder: 'c');
@@ -37,6 +40,37 @@ void main() {
     await artworks.toggleFavorite(a.id);
     final favorites = await artworks.watchForChild(kid.id, favoritesOnly: true).first;
     expect(favorites.map((x) => x.id), [a.id]);
+  });
+
+  test('each kind has one default place per child', () async {
+    final kid = await children.ensureDefault();
+    final sibling = await children.add('cat');
+    final park = await places.defaultPlace(kid.id, PlaceKind.park);
+    expect((await places.defaultPlace(kid.id, PlaceKind.park)).id, park.id);
+    expect((await places.defaultPlace(sibling.id, PlaceKind.park)).id, isNot(park.id));
+    final named = await places.addNamed(kid.id, PlaceKind.park, '青年公園');
+    expect(named.id, isNot(park.id));
+    expect((await places.defaultPlace(kid.id, PlaceKind.park)).id, park.id);
+    await places.rename(named.id, '  ');
+    expect((await places.watchForChild(kid.id).first).firstWhere((p) => p.id == named.id).label, isNull);
+  });
+
+  test('sent postcards are on the map with their place; drafts are not', () async {
+    final kid = await children.ensureDefault();
+    final park = await places.defaultPlace(kid.id, PlaceKind.park);
+    final home = await places.defaultPlace(kid.id, PlaceKind.home);
+    final a = await artworks.create(childId: kid.id, style: 'realistic', detail: 'simple', folder: 'a');
+    final b = await artworks.create(childId: kid.id, style: 'realistic', detail: 'simple', folder: 'b');
+    await artworks.create(childId: kid.id, style: 'realistic', detail: 'simple', folder: 'draft');
+    expect(await artworks.suggestedKinds(kid.id), [PlaceKind.home, PlaceKind.park, PlaceKind.school, PlaceKind.grandma]);
+
+    await artworks.send(a.id, park.id);
+    await artworks.send(b.id, home.id);
+    final postcards = await artworks.watchPostcards(kid.id).first;
+    expect(postcards.map((p) => (p.artwork.id, p.place.kind)), [(b.id, 'home'), (a.id, 'park')]);
+    expect(postcards.every((p) => p.artwork.isCompleted && p.artwork.sentAt != null), isTrue);
+    // The last place comes first.
+    expect((await artworks.suggestedKinds(kid.id)).first, PlaceKind.home);
   });
 
   test('daily limit has a default and can be changed', () async {

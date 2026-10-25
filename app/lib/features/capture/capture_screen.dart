@@ -1,17 +1,17 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../app/art.dart';
-import '../../app/scene.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
+import '../../core/places.dart';
+import '../../core/providers.dart';
 
 /// Take a photo or pick one from the album (usually with a parent's help).
-class CaptureScreen extends StatelessWidget {
+class CaptureScreen extends ConsumerWidget {
   const CaptureScreen({super.key});
 
   /// Photos are scaled down on capture; pages are only 1024 px anyway and
@@ -31,57 +31,64 @@ class CaptureScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final avatar = ref.watch(currentChildProvider).value?.avatar ?? animals.first;
     return Scaffold(
       body: PaperBackground(
         child: SafeArea(
           child: LayoutBuilder(builder: (context, box) {
-            final unit = math.min(box.maxWidth, box.maxHeight);
-            final size = (unit * 0.42).clamp(140.0, 240.0);
-            return Stack(
-              children: [
-                Center(
-                  child: Wrap(
-                    spacing: unit * 0.1,
-                    runSpacing: unit * 0.1,
-                    alignment: WrapAlignment.center,
-                    children: [
-                      PopIn(
-                        child: ToyButton(
-                          art: Art.camera,
-                          label: Strings.camera,
-                          tint: KidColors.berry,
-                          size: size,
-                          breathing: true,
-                          onPressed: () => _pick(context, ImageSource.camera),
-                        ),
-                      ),
-                      PopIn(
-                        delay: const Duration(milliseconds: 120),
-                        child: ToyButton(
-                          art: Art.gallery,
-                          label: Strings.album,
-                          tint: KidColors.sky,
-                          size: size,
-                          onPressed: () => _pick(context, ImageSource.gallery),
-                        ),
-                      ),
-                    ],
+            final wide = box.maxWidth > box.maxHeight;
+            final size = ((wide ? box.maxHeight : box.maxWidth) * 0.42).clamp(150.0, 240.0);
+            final buttons = [
+              PopIn(
+                child: Breathing(
+                  child: ChunkyButton(
+                    label: Strings.camera,
+                    onPressed: () => _pick(context, ImageSource.camera),
+                    color: KidColors.coral,
+                    edge: KidColors.coralDark,
+                    width: size,
+                    height: size,
+                    radius: size * 0.3,
+                    depth: 9,
+                    child: KidIcon('camera', size: size * 0.5, color: Colors.white),
                   ),
                 ),
-                Positioned(left: 16, top: 12, child: HomeButton(onPressed: () => context.go('/'))),
-                Positioned(
-                  right: unit * 0.06,
-                  bottom: unit * 0.05,
-                  child: Transform.rotate(angle: 0.25, child: ArtImage(Art.sparkles, size: unit * 0.16)),
+              ),
+              SizedBox.square(dimension: size * 0.16),
+              PopIn(
+                delay: const Duration(milliseconds: 120),
+                child: ChunkyButton(
+                  label: Strings.photoLibrary,
+                  onPressed: () => _pick(context, ImageSource.gallery),
+                  color: Colors.white,
+                  edge: const Color(0xFFD8E6F5),
+                  width: size,
+                  height: size,
+                  radius: size * 0.3,
+                  depth: 9,
+                  child: ArtSvg(Art.miniAlbum, size: size * 0.62),
                 ),
-                Positioned(
-                  left: unit * 0.07,
-                  bottom: unit * 0.1,
-                  child: Transform.rotate(angle: -0.3, child: ArtImage(Art.crayon, size: unit * 0.14)),
-                ),
-              ],
-            );
+              ),
+            ];
+            return Stack(children: [
+              Center(
+                child: wide
+                    ? Row(mainAxisSize: MainAxisSize.min, children: buttons)
+                    : Column(mainAxisSize: MainAxisSize.min, children: buttons),
+              ),
+              Positioned(left: 14, top: 12, child: NavButton(icon: 'map', label: Strings.backToMap, color: KidColors.grassDark, onPressed: () => context.go('/'))),
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 24,
+                child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                  AnimalArt(avatar, size: 78),
+                  const SizedBox(width: 8),
+                  const Flexible(child: Padding(padding: EdgeInsets.only(bottom: 30), child: VoiceBubble(Strings.captureHint))),
+                ]),
+              ),
+            ]);
           }),
         ),
       ),

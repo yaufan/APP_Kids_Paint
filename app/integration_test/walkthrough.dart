@@ -10,6 +10,7 @@ import 'package:image/image.dart' as img;
 import 'package:kids_paint/app/app.dart';
 import 'package:kids_paint/app/strings.dart';
 import 'package:kids_paint/core/db/database.dart';
+import 'package:kids_paint/core/places.dart';
 import 'package:kids_paint/core/providers.dart';
 import 'package:kids_paint/core/storage/artwork_store.dart';
 import 'package:kids_paint/features/canvas/coloring.dart';
@@ -23,9 +24,9 @@ typedef Shot = Future<void> Function(String name);
 final walkthroughKey = GlobalKey();
 
 /// The whole app as a child (and then a parent) uses it, with a screenshot
-/// of every step. Shared by `test/flow_test.dart` (headless, phone-sized) and
-/// `integration_test/app_flow_test.dart` (iPhone/iPad simulators). Only the
-/// camera is skipped: [photo] is handed over as if it had just been taken.
+/// of every step. Shared by `test/flow_test.dart` (headless phone and tablet)
+/// and `integration_test/app_flow_test.dart` (iPhone/iPad simulators). Only
+/// the camera is skipped: [photo] is handed over as if it had just been taken.
 Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, required Shot shot}) async {
   final db = AppDatabase(NativeDatabase.memory());
   final storeDir = await tester.runAsync(() => Directory.systemTemp.createTemp('kids_paint_flow'));
@@ -42,10 +43,10 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
     ),
   ));
 
-  // 1. Home: big picture buttons.
+  // 1. Day one: the town has only home; the big camera button invites a photo.
   await waitFor(tester, find.bySemanticsLabel(Strings.takePhoto));
   await idle(tester);
-  await shot('01_home');
+  await shot('01_town');
 
   // 2. Camera or album.
   await tester.tap(find.bySemanticsLabel(Strings.takePhoto));
@@ -53,17 +54,20 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   await idle(tester, 800);
   await shot('02_capture');
 
-  // 3. The photo comes back from the camera -> both styles side by side.
+  // 3. The photo comes back from the camera -> magic, then both styles.
   GoRouter.of(tester.element(find.byType(CaptureScreen))).push('/styles', extra: photo);
+  await waitFor(tester, find.text(Strings.magic));
+  await idle(tester, 700);
+  await shot('03_magic');
   await waitFor(tester, find.bySemanticsLabel(Strings.realistic));
   await idle(tester);
-  await shot('03_styles');
+  await shot('04_styles');
 
-  // 4. Pick the realistic page -> canvas.
+  // 4. Pick the realistic page -> the postcard to color.
   await tester.tap(find.bySemanticsLabel(Strings.realistic));
   await waitFor(tester, find.bySemanticsLabel(Strings.bucket));
   await idle(tester);
-  await shot('04_canvas_blank');
+  await shot('05_canvas_blank');
 
   // 5. Bucket-fill a few areas in different colors, then a crayon stroke.
   final canvas = tester.getRect(find.byKey(const ValueKey('page')));
@@ -89,34 +93,55 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   }
   await gesture.up();
   await idle(tester);
-  await shot('05_canvas_colored');
+  await shot('06_canvas_colored');
 
-  // 6. Home saves the picture; it shows up in the gallery.
-  await tester.tap(find.bySemanticsLabel(Strings.home));
-  await waitFor(tester, find.bySemanticsLabel(Strings.gallery));
-  await idle(tester, 800); // the buttons pop in one by one
-  await tester.tap(find.bySemanticsLabel(Strings.gallery));
-  await waitFor(tester, find.descendant(of: find.byType(GridView), matching: find.byType(Image)));
+  // 6. Done -> where to? -> the park.
+  await tester.tap(find.bySemanticsLabel(Strings.done));
+  final park = find.bySemanticsLabel(Strings.sendTo(PlaceKind.park.label));
+  await waitFor(tester, park);
   await idle(tester);
-  await shot('06_gallery');
+  await shot('07_where_to');
+  await tester.tap(park);
+  await waitFor(tester, find.text(Strings.newPlace(PlaceKind.park.label)));
+  await idle(tester, 900);
+  await shot('08_sent');
+
+  // 7. Back in town by itself: the park was just built, with the postcard on it.
+  await waitFor(tester, find.bySemanticsLabel(Strings.pinLabel(PlaceKind.park.label, 1)));
+  await idle(tester, 2000);
+  await shot('09_town_new_place');
 
   final saved = await tester.runAsync(() => db.select(db.artworks).get());
   expect(saved, hasLength(1));
   expect(saved!.single.isCompleted, isTrue);
+  expect(saved.single.sentAt, isNotNull);
   expect(File('${storeDir.path}/${saved.single.folder}/colored.png').existsSync(), isTrue);
 
-  // 7. Parent gate, then parent mode.
-  await tester.tap(find.bySemanticsLabel(Strings.home));
+  // 8. The album.
+  await tester.tap(find.bySemanticsLabel(Strings.album));
+  await waitFor(tester, find.bySemanticsLabel(RegExp('的明信片\$')));
+  await idle(tester);
+  await shot('10_album');
+
+  // 9. Parent gate, parent mode, privacy.
+  await tester.tap(find.bySemanticsLabel(Strings.backToMap));
   await waitFor(tester, find.byTooltip(Strings.parentMode));
+  await idle(tester, 500);
   await tester.tap(find.byTooltip(Strings.parentMode));
   await waitFor(tester, find.text(Strings.parentGateTitle));
-  await idle(tester, 500); // let the dialog finish fading in
-  await shot('07_parent_gate');
-  await tester.enterText(find.byType(TextField), '${answerParentGate(tester)}');
-  await tester.tap(find.text(Strings.confirm));
+  await idle(tester, 600);
+  await shot('11_parent_gate');
+  for (final digit in '${answerParentGate(tester)}'.split('')) {
+    await tester.tap(find.byKey(ValueKey('gate-key-$digit')));
+    await tester.pump();
+  }
   await waitFor(tester, find.text(Strings.dailyLimit));
   await idle(tester, 500);
-  await shot('08_parent_mode');
+  await shot('12_parent_mode');
+  await tester.tap(find.text(Strings.privacy));
+  await waitFor(tester, find.text(Strings.allOnPhone));
+  await idle(tester, 500);
+  await shot('13_privacy');
 
   // Unmount so drift's stream queries shut down before the test ends.
   await tester.pumpWidget(const SizedBox());
@@ -146,13 +171,13 @@ Future<void> idle(WidgetTester tester, [int ms = 1500]) async {
   }
 }
 
-/// Reads the parent gate question ("七" 加 "八") and returns the sum.
+/// Reads the parent gate question (「七」加「八」) and returns the sum.
 int answerParentGate(WidgetTester tester) {
   const digits = '零一二三四五六七八九';
   final question = tester
       .widgetList<Text>(find.byType(Text))
       .map((t) => t.data ?? '')
-      .firstWhere((s) => s.startsWith('請輸入「'));
+      .firstWhere((s) => s.startsWith('「'));
   final numbers = RegExp('「(.)」').allMatches(question).map((m) => digits.indexOf(m.group(1)!));
   return numbers.reduce((a, b) => a + b);
 }

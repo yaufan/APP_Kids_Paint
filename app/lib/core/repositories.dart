@@ -1,9 +1,10 @@
 import 'package:drift/drift.dart';
 
 import 'db/database.dart';
+import 'places.dart';
 
-/// Animal avatars children pick from; no names or photos of children.
-const avatars = ['🐻', '🐰', '🐱', '🐶', '🐼', '🦊', '🐸', '🐧'];
+/// A postcard on the map: a sent artwork and the place it was sent to.
+typedef Postcard = ({Artwork artwork, Place place});
 
 class ChildRepository {
   ChildRepository(this._db);
@@ -24,8 +25,43 @@ class ChildRepository {
           ..orderBy([(c) => OrderingTerm(expression: c.id)])
           ..limit(1))
         .getSingleOrNull();
-    return first ?? add(avatars.first);
+    return first ?? add(animals.first);
   }
+}
+
+class PlaceRepository {
+  PlaceRepository(this._db);
+
+  final AppDatabase _db;
+
+  /// The child's first place of [kind] (where postcards go unless a parent
+  /// added more), created on first use. Parents may give it a name.
+  Future<Place> defaultPlace(int childId, PlaceKind kind) async {
+    final existing = await (_db.select(_db.places)
+          ..where((p) => p.childId.equals(childId) & p.kind.equals(kind.name))
+          ..orderBy([(p) => OrderingTerm(expression: p.id)])
+          ..limit(1))
+        .getSingleOrNull();
+    if (existing != null) return existing;
+    final id = await _db.into(_db.places).insert(PlacesCompanion.insert(childId: childId, kind: kind.name));
+    return (_db.select(_db.places)..where((p) => p.id.equals(id))).getSingle();
+  }
+
+  /// A named place parents add, e.g. a second park.
+  Future<Place> addNamed(int childId, PlaceKind kind, String label) async {
+    final id = await _db
+        .into(_db.places)
+        .insert(PlacesCompanion.insert(childId: childId, kind: kind.name, label: Value(label)));
+    return (_db.select(_db.places)..where((p) => p.id.equals(id))).getSingle();
+  }
+
+  Stream<List<Place>> watchForChild(int childId) => (_db.select(_db.places)
+        ..where((p) => p.childId.equals(childId))
+        ..orderBy([(p) => OrderingTerm(expression: p.id)]))
+      .watch();
+
+  Future<void> rename(int id, String? label) => (_db.update(_db.places)..where((p) => p.id.equals(id)))
+      .write(PlacesCompanion(label: Value(label?.trim().isEmpty ?? true ? null : label!.trim())));
 }
 
 class ArtworkRepository {
@@ -75,6 +111,47 @@ class ArtworkRepository {
       ));
 
   Future<void> delete(int id) => (_db.delete(_db.artworks)..where((a) => a.id.equals(id))).go();
+
+  /// Puts the postcard on the map at [placeId].
+  Future<void> send(int id, int placeId) {
+    final now = DateTime.now();
+    return (_db.update(_db.artworks)..where((a) => a.id.equals(id))).write(ArtworksCompanion(
+      placeId: Value(placeId),
+      sentAt: Value(now),
+      updatedAt: Value(now),
+      isCompleted: const Value(true),
+    ));
+  }
+
+  /// A child's postcards on the map with their places, newest first.
+  Stream<List<Postcard>> watchPostcards(int childId) {
+    final query = _db.select(_db.artworks).join([innerJoin(_db.places, _db.places.id.equalsExp(_db.artworks.placeId))])
+      ..where(_db.artworks.childId.equals(childId) & _db.artworks.sentAt.isNotNull())
+      ..orderBy([OrderingTerm.desc(_db.artworks.sentAt), OrderingTerm.desc(_db.artworks.id)]);
+    return query.watch().map((rows) => [
+          for (final r in rows) (artwork: r.readTable(_db.artworks), place: r.readTable(_db.places)),
+        ]);
+  }
+
+  /// Kinds of places to offer first when sending: the last one, then the
+  /// most used, then home and the usual everyday places.
+  Future<List<PlaceKind>> suggestedKinds(int childId, {int count = 4}) async {
+    final rows = await (_db.select(_db.artworks).join([innerJoin(_db.places, _db.places.id.equalsExp(_db.artworks.placeId))])
+          ..where(_db.artworks.childId.equals(childId) & _db.artworks.sentAt.isNotNull())
+          ..orderBy([OrderingTerm.desc(_db.artworks.sentAt), OrderingTerm.desc(_db.artworks.id)]))
+        .get();
+    final kinds = [for (final r in rows) PlaceKind.byName(r.readTable(_db.places).kind)];
+    final uses = <PlaceKind, int>{};
+    for (final k in kinds) {
+      uses[k] = (uses[k] ?? 0) + 1;
+    }
+    final byUse = uses.keys.toList()..sort((a, b) => uses[b]!.compareTo(uses[a]!));
+    final out = <PlaceKind>[];
+    for (final k in [if (kinds.isNotEmpty) kinds.first, ...byUse, PlaceKind.home, PlaceKind.park, PlaceKind.school, PlaceKind.grandma]) {
+      if (!out.contains(k)) out.add(k);
+    }
+    return out.take(count).toList();
+  }
 }
 
 class SettingsRepository {

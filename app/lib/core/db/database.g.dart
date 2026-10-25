@@ -105,6 +105,8 @@ class $ChildrenTable extends Children with TableInfo<$ChildrenTable, Child> {
 
 class Child extends DataClass implements Insertable<Child> {
   final int id;
+
+  /// One of [animals].
   final String avatar;
   final DateTime createdAt;
   const Child({
@@ -280,10 +282,10 @@ class $PlacesTable extends Places with TableInfo<$PlacesTable, Place> {
       'REFERENCES children (id)',
     ),
   );
-  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
   @override
-  late final GeneratedColumn<String> type = GeneratedColumn<String>(
-    'type',
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
     aliasedName,
     false,
     type: DriftSqlType.string,
@@ -295,32 +297,6 @@ class $PlacesTable extends Places with TableInfo<$PlacesTable, Place> {
     'label',
     aliasedName,
     true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _districtMeta = const VerificationMeta(
-    'district',
-  );
-  @override
-  late final GeneratedColumn<String> district = GeneratedColumn<String>(
-    'district',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _geohash6Meta = const VerificationMeta(
-    'geohash6',
-  );
-  @override
-  late final GeneratedColumn<String> geohash6 = GeneratedColumn<String>(
-    'geohash6',
-    aliasedName,
-    true,
-    additionalChecks: GeneratedColumn.checkTextLength(
-      minTextLength: 6,
-      maxTextLength: 6,
-    ),
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
@@ -337,15 +313,7 @@ class $PlacesTable extends Places with TableInfo<$PlacesTable, Place> {
     defaultValue: currentDateAndTime,
   );
   @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    childId,
-    type,
-    label,
-    district,
-    geohash6,
-    createdAt,
-  ];
+  List<GeneratedColumn> get $columns => [id, childId, kind, label, createdAt];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -369,30 +337,18 @@ class $PlacesTable extends Places with TableInfo<$PlacesTable, Place> {
     } else if (isInserting) {
       context.missing(_childIdMeta);
     }
-    if (data.containsKey('type')) {
+    if (data.containsKey('kind')) {
       context.handle(
-        _typeMeta,
-        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
       );
     } else if (isInserting) {
-      context.missing(_typeMeta);
+      context.missing(_kindMeta);
     }
     if (data.containsKey('label')) {
       context.handle(
         _labelMeta,
         label.isAcceptableOrUnknown(data['label']!, _labelMeta),
-      );
-    }
-    if (data.containsKey('district')) {
-      context.handle(
-        _districtMeta,
-        district.isAcceptableOrUnknown(data['district']!, _districtMeta),
-      );
-    }
-    if (data.containsKey('geohash6')) {
-      context.handle(
-        _geohash6Meta,
-        geohash6.isAcceptableOrUnknown(data['geohash6']!, _geohash6Meta),
       );
     }
     if (data.containsKey('created_at')) {
@@ -418,21 +374,13 @@ class $PlacesTable extends Places with TableInfo<$PlacesTable, Place> {
         DriftSqlType.int,
         data['${effectivePrefix}child_id'],
       )!,
-      type: attachedDatabase.typeMapping.read(
+      kind: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}type'],
+        data['${effectivePrefix}kind'],
       )!,
       label: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}label'],
-      ),
-      district: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}district'],
-      ),
-      geohash6: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}geohash6'],
       ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
@@ -451,19 +399,17 @@ class Place extends DataClass implements Insertable<Place> {
   final int id;
   final int childId;
 
-  /// auto | home | school | park | grandparents | custom
-  final String type;
+  /// A [PlaceKind] name.
+  final String kind;
+
+  /// A parent's name for it, e.g. "大安森林公園"; null for the kind's default.
   final String? label;
-  final String? district;
-  final String? geohash6;
   final DateTime createdAt;
   const Place({
     required this.id,
     required this.childId,
-    required this.type,
+    required this.kind,
     this.label,
-    this.district,
-    this.geohash6,
     required this.createdAt,
   });
   @override
@@ -471,15 +417,9 @@ class Place extends DataClass implements Insertable<Place> {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['child_id'] = Variable<int>(childId);
-    map['type'] = Variable<String>(type);
+    map['kind'] = Variable<String>(kind);
     if (!nullToAbsent || label != null) {
       map['label'] = Variable<String>(label);
-    }
-    if (!nullToAbsent || district != null) {
-      map['district'] = Variable<String>(district);
-    }
-    if (!nullToAbsent || geohash6 != null) {
-      map['geohash6'] = Variable<String>(geohash6);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
@@ -489,16 +429,10 @@ class Place extends DataClass implements Insertable<Place> {
     return PlacesCompanion(
       id: Value(id),
       childId: Value(childId),
-      type: Value(type),
+      kind: Value(kind),
       label: label == null && nullToAbsent
           ? const Value.absent()
           : Value(label),
-      district: district == null && nullToAbsent
-          ? const Value.absent()
-          : Value(district),
-      geohash6: geohash6 == null && nullToAbsent
-          ? const Value.absent()
-          : Value(geohash6),
       createdAt: Value(createdAt),
     );
   }
@@ -511,10 +445,8 @@ class Place extends DataClass implements Insertable<Place> {
     return Place(
       id: serializer.fromJson<int>(json['id']),
       childId: serializer.fromJson<int>(json['childId']),
-      type: serializer.fromJson<String>(json['type']),
+      kind: serializer.fromJson<String>(json['kind']),
       label: serializer.fromJson<String?>(json['label']),
-      district: serializer.fromJson<String?>(json['district']),
-      geohash6: serializer.fromJson<String?>(json['geohash6']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -524,10 +456,8 @@ class Place extends DataClass implements Insertable<Place> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'childId': serializer.toJson<int>(childId),
-      'type': serializer.toJson<String>(type),
+      'kind': serializer.toJson<String>(kind),
       'label': serializer.toJson<String?>(label),
-      'district': serializer.toJson<String?>(district),
-      'geohash6': serializer.toJson<String?>(geohash6),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -535,28 +465,22 @@ class Place extends DataClass implements Insertable<Place> {
   Place copyWith({
     int? id,
     int? childId,
-    String? type,
+    String? kind,
     Value<String?> label = const Value.absent(),
-    Value<String?> district = const Value.absent(),
-    Value<String?> geohash6 = const Value.absent(),
     DateTime? createdAt,
   }) => Place(
     id: id ?? this.id,
     childId: childId ?? this.childId,
-    type: type ?? this.type,
+    kind: kind ?? this.kind,
     label: label.present ? label.value : this.label,
-    district: district.present ? district.value : this.district,
-    geohash6: geohash6.present ? geohash6.value : this.geohash6,
     createdAt: createdAt ?? this.createdAt,
   );
   Place copyWithCompanion(PlacesCompanion data) {
     return Place(
       id: data.id.present ? data.id.value : this.id,
       childId: data.childId.present ? data.childId.value : this.childId,
-      type: data.type.present ? data.type.value : this.type,
+      kind: data.kind.present ? data.kind.value : this.kind,
       label: data.label.present ? data.label.value : this.label,
-      district: data.district.present ? data.district.value : this.district,
-      geohash6: data.geohash6.present ? data.geohash6.value : this.geohash6,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -566,74 +490,59 @@ class Place extends DataClass implements Insertable<Place> {
     return (StringBuffer('Place(')
           ..write('id: $id, ')
           ..write('childId: $childId, ')
-          ..write('type: $type, ')
+          ..write('kind: $kind, ')
           ..write('label: $label, ')
-          ..write('district: $district, ')
-          ..write('geohash6: $geohash6, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, childId, type, label, district, geohash6, createdAt);
+  int get hashCode => Object.hash(id, childId, kind, label, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Place &&
           other.id == this.id &&
           other.childId == this.childId &&
-          other.type == this.type &&
+          other.kind == this.kind &&
           other.label == this.label &&
-          other.district == this.district &&
-          other.geohash6 == this.geohash6 &&
           other.createdAt == this.createdAt);
 }
 
 class PlacesCompanion extends UpdateCompanion<Place> {
   final Value<int> id;
   final Value<int> childId;
-  final Value<String> type;
+  final Value<String> kind;
   final Value<String?> label;
-  final Value<String?> district;
-  final Value<String?> geohash6;
   final Value<DateTime> createdAt;
   const PlacesCompanion({
     this.id = const Value.absent(),
     this.childId = const Value.absent(),
-    this.type = const Value.absent(),
+    this.kind = const Value.absent(),
     this.label = const Value.absent(),
-    this.district = const Value.absent(),
-    this.geohash6 = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   PlacesCompanion.insert({
     this.id = const Value.absent(),
     required int childId,
-    required String type,
+    required String kind,
     this.label = const Value.absent(),
-    this.district = const Value.absent(),
-    this.geohash6 = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : childId = Value(childId),
-       type = Value(type);
+       kind = Value(kind);
   static Insertable<Place> custom({
     Expression<int>? id,
     Expression<int>? childId,
-    Expression<String>? type,
+    Expression<String>? kind,
     Expression<String>? label,
-    Expression<String>? district,
-    Expression<String>? geohash6,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (childId != null) 'child_id': childId,
-      if (type != null) 'type': type,
+      if (kind != null) 'kind': kind,
       if (label != null) 'label': label,
-      if (district != null) 'district': district,
-      if (geohash6 != null) 'geohash6': geohash6,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -641,19 +550,15 @@ class PlacesCompanion extends UpdateCompanion<Place> {
   PlacesCompanion copyWith({
     Value<int>? id,
     Value<int>? childId,
-    Value<String>? type,
+    Value<String>? kind,
     Value<String?>? label,
-    Value<String?>? district,
-    Value<String?>? geohash6,
     Value<DateTime>? createdAt,
   }) {
     return PlacesCompanion(
       id: id ?? this.id,
       childId: childId ?? this.childId,
-      type: type ?? this.type,
+      kind: kind ?? this.kind,
       label: label ?? this.label,
-      district: district ?? this.district,
-      geohash6: geohash6 ?? this.geohash6,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -667,17 +572,11 @@ class PlacesCompanion extends UpdateCompanion<Place> {
     if (childId.present) {
       map['child_id'] = Variable<int>(childId.value);
     }
-    if (type.present) {
-      map['type'] = Variable<String>(type.value);
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
     }
     if (label.present) {
       map['label'] = Variable<String>(label.value);
-    }
-    if (district.present) {
-      map['district'] = Variable<String>(district.value);
-    }
-    if (geohash6.present) {
-      map['geohash6'] = Variable<String>(geohash6.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -690,10 +589,8 @@ class PlacesCompanion extends UpdateCompanion<Place> {
     return (StringBuffer('PlacesCompanion(')
           ..write('id: $id, ')
           ..write('childId: $childId, ')
-          ..write('type: $type, ')
+          ..write('kind: $kind, ')
           ..write('label: $label, ')
-          ..write('district: $district, ')
-          ..write('geohash6: $geohash6, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -814,6 +711,15 @@ class $ArtworksTable extends Artworks with TableInfo<$ArtworksTable, Artwork> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _sentAtMeta = const VerificationMeta('sentAt');
+  @override
+  late final GeneratedColumn<DateTime> sentAt = GeneratedColumn<DateTime>(
+    'sent_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _sharedAtMeta = const VerificationMeta(
     'sharedAt',
   );
@@ -860,6 +766,7 @@ class $ArtworksTable extends Artworks with TableInfo<$ArtworksTable, Artwork> {
     tags,
     isFavorite,
     isCompleted,
+    sentAt,
     sharedAt,
     createdAt,
     updatedAt,
@@ -938,6 +845,12 @@ class $ArtworksTable extends Artworks with TableInfo<$ArtworksTable, Artwork> {
         ),
       );
     }
+    if (data.containsKey('sent_at')) {
+      context.handle(
+        _sentAtMeta,
+        sentAt.isAcceptableOrUnknown(data['sent_at']!, _sentAtMeta),
+      );
+    }
     if (data.containsKey('shared_at')) {
       context.handle(
         _sharedAtMeta,
@@ -1001,6 +914,10 @@ class $ArtworksTable extends Artworks with TableInfo<$ArtworksTable, Artwork> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_completed'],
       )!,
+      sentAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}sent_at'],
+      ),
       sharedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}shared_at'],
@@ -1040,6 +957,9 @@ class Artwork extends DataClass implements Insertable<Artwork> {
   final String tags;
   final bool isFavorite;
   final bool isCompleted;
+
+  /// When it was sent to its place on the map; null while it is a draft.
+  final DateTime? sentAt;
   final DateTime? sharedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -1053,6 +973,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
     required this.tags,
     required this.isFavorite,
     required this.isCompleted,
+    this.sentAt,
     this.sharedAt,
     required this.createdAt,
     required this.updatedAt,
@@ -1071,6 +992,9 @@ class Artwork extends DataClass implements Insertable<Artwork> {
     map['tags'] = Variable<String>(tags);
     map['is_favorite'] = Variable<bool>(isFavorite);
     map['is_completed'] = Variable<bool>(isCompleted);
+    if (!nullToAbsent || sentAt != null) {
+      map['sent_at'] = Variable<DateTime>(sentAt);
+    }
     if (!nullToAbsent || sharedAt != null) {
       map['shared_at'] = Variable<DateTime>(sharedAt);
     }
@@ -1092,6 +1016,9 @@ class Artwork extends DataClass implements Insertable<Artwork> {
       tags: Value(tags),
       isFavorite: Value(isFavorite),
       isCompleted: Value(isCompleted),
+      sentAt: sentAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sentAt),
       sharedAt: sharedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(sharedAt),
@@ -1115,6 +1042,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
       tags: serializer.fromJson<String>(json['tags']),
       isFavorite: serializer.fromJson<bool>(json['isFavorite']),
       isCompleted: serializer.fromJson<bool>(json['isCompleted']),
+      sentAt: serializer.fromJson<DateTime?>(json['sentAt']),
       sharedAt: serializer.fromJson<DateTime?>(json['sharedAt']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -1133,6 +1061,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
       'tags': serializer.toJson<String>(tags),
       'isFavorite': serializer.toJson<bool>(isFavorite),
       'isCompleted': serializer.toJson<bool>(isCompleted),
+      'sentAt': serializer.toJson<DateTime?>(sentAt),
       'sharedAt': serializer.toJson<DateTime?>(sharedAt),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -1149,6 +1078,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
     String? tags,
     bool? isFavorite,
     bool? isCompleted,
+    Value<DateTime?> sentAt = const Value.absent(),
     Value<DateTime?> sharedAt = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -1162,6 +1092,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
     tags: tags ?? this.tags,
     isFavorite: isFavorite ?? this.isFavorite,
     isCompleted: isCompleted ?? this.isCompleted,
+    sentAt: sentAt.present ? sentAt.value : this.sentAt,
     sharedAt: sharedAt.present ? sharedAt.value : this.sharedAt,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -1181,6 +1112,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
       isCompleted: data.isCompleted.present
           ? data.isCompleted.value
           : this.isCompleted,
+      sentAt: data.sentAt.present ? data.sentAt.value : this.sentAt,
       sharedAt: data.sharedAt.present ? data.sharedAt.value : this.sharedAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -1199,6 +1131,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
           ..write('tags: $tags, ')
           ..write('isFavorite: $isFavorite, ')
           ..write('isCompleted: $isCompleted, ')
+          ..write('sentAt: $sentAt, ')
           ..write('sharedAt: $sharedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
@@ -1217,6 +1150,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
     tags,
     isFavorite,
     isCompleted,
+    sentAt,
     sharedAt,
     createdAt,
     updatedAt,
@@ -1234,6 +1168,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
           other.tags == this.tags &&
           other.isFavorite == this.isFavorite &&
           other.isCompleted == this.isCompleted &&
+          other.sentAt == this.sentAt &&
           other.sharedAt == this.sharedAt &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
@@ -1249,6 +1184,7 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
   final Value<String> tags;
   final Value<bool> isFavorite;
   final Value<bool> isCompleted;
+  final Value<DateTime?> sentAt;
   final Value<DateTime?> sharedAt;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -1262,6 +1198,7 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
     this.tags = const Value.absent(),
     this.isFavorite = const Value.absent(),
     this.isCompleted = const Value.absent(),
+    this.sentAt = const Value.absent(),
     this.sharedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -1276,6 +1213,7 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
     this.tags = const Value.absent(),
     this.isFavorite = const Value.absent(),
     this.isCompleted = const Value.absent(),
+    this.sentAt = const Value.absent(),
     this.sharedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -1293,6 +1231,7 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
     Expression<String>? tags,
     Expression<bool>? isFavorite,
     Expression<bool>? isCompleted,
+    Expression<DateTime>? sentAt,
     Expression<DateTime>? sharedAt,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -1307,6 +1246,7 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
       if (tags != null) 'tags': tags,
       if (isFavorite != null) 'is_favorite': isFavorite,
       if (isCompleted != null) 'is_completed': isCompleted,
+      if (sentAt != null) 'sent_at': sentAt,
       if (sharedAt != null) 'shared_at': sharedAt,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -1323,6 +1263,7 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
     Value<String>? tags,
     Value<bool>? isFavorite,
     Value<bool>? isCompleted,
+    Value<DateTime?>? sentAt,
     Value<DateTime?>? sharedAt,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -1337,6 +1278,7 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
       tags: tags ?? this.tags,
       isFavorite: isFavorite ?? this.isFavorite,
       isCompleted: isCompleted ?? this.isCompleted,
+      sentAt: sentAt ?? this.sentAt,
       sharedAt: sharedAt ?? this.sharedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -1373,6 +1315,9 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
     if (isCompleted.present) {
       map['is_completed'] = Variable<bool>(isCompleted.value);
     }
+    if (sentAt.present) {
+      map['sent_at'] = Variable<DateTime>(sentAt.value);
+    }
     if (sharedAt.present) {
       map['shared_at'] = Variable<DateTime>(sharedAt.value);
     }
@@ -1397,6 +1342,7 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
           ..write('tags: $tags, ')
           ..write('isFavorite: $isFavorite, ')
           ..write('isCompleted: $isCompleted, ')
+          ..write('sentAt: $sentAt, ')
           ..write('sharedAt: $sharedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
@@ -1968,19 +1914,15 @@ typedef $$ChildrenTableProcessedTableManager =
 typedef $$PlacesTableCreateCompanionBuilder = PlacesCompanion Function({
   Value<int> id,
   required int childId,
-  required String type,
+  required String kind,
   Value<String?> label,
-  Value<String?> district,
-  Value<String?> geohash6,
   Value<DateTime> createdAt,
 });
 typedef $$PlacesTableUpdateCompanionBuilder = PlacesCompanion Function({
   Value<int> id,
   Value<int> childId,
-  Value<String> type,
+  Value<String> kind,
   Value<String?> label,
-  Value<String?> district,
-  Value<String?> geohash6,
   Value<DateTime> createdAt,
 });
 
@@ -2039,23 +1981,13 @@ class $$PlacesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get type => $composableBuilder(
-    column: $table.type,
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
     builder: (column) => ColumnFilters(column),
   );
 
   ColumnFilters<String> get label => $composableBuilder(
     column: $table.label,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get district => $composableBuilder(
-    column: $table.district,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get geohash6 => $composableBuilder(
-    column: $table.geohash6,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2127,23 +2059,13 @@ class $$PlacesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get type => $composableBuilder(
-    column: $table.type,
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
     builder: (column) => ColumnOrderings(column),
   );
 
   ColumnOrderings<String> get label => $composableBuilder(
     column: $table.label,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get district => $composableBuilder(
-    column: $table.district,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get geohash6 => $composableBuilder(
-    column: $table.geohash6,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -2188,17 +2110,11 @@ class $$PlacesTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<String> get type =>
-      $composableBuilder(column: $table.type, builder: (column) => column);
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
 
   GeneratedColumn<String> get label =>
       $composableBuilder(column: $table.label, builder: (column) => column);
-
-  GeneratedColumn<String> get district =>
-      $composableBuilder(column: $table.district, builder: (column) => column);
-
-  GeneratedColumn<String> get geohash6 =>
-      $composableBuilder(column: $table.geohash6, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -2282,36 +2198,28 @@ class $$PlacesTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<int> childId = const Value.absent(),
-                Value<String> type = const Value.absent(),
+                Value<String> kind = const Value.absent(),
                 Value<String?> label = const Value.absent(),
-                Value<String?> district = const Value.absent(),
-                Value<String?> geohash6 = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => PlacesCompanion(
                 id: id,
                 childId: childId,
-                type: type,
+                kind: kind,
                 label: label,
-                district: district,
-                geohash6: geohash6,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
                 required int childId,
-                required String type,
+                required String kind,
                 Value<String?> label = const Value.absent(),
-                Value<String?> district = const Value.absent(),
-                Value<String?> geohash6 = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => PlacesCompanion.insert(
                 id: id,
                 childId: childId,
-                type: type,
+                kind: kind,
                 label: label,
-                district: district,
-                geohash6: geohash6,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
@@ -2407,6 +2315,7 @@ typedef $$ArtworksTableCreateCompanionBuilder = ArtworksCompanion Function({
   Value<String> tags,
   Value<bool> isFavorite,
   Value<bool> isCompleted,
+  Value<DateTime?> sentAt,
   Value<DateTime?> sharedAt,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
@@ -2421,6 +2330,7 @@ typedef $$ArtworksTableUpdateCompanionBuilder = ArtworksCompanion Function({
   Value<String> tags,
   Value<bool> isFavorite,
   Value<bool> isCompleted,
+  Value<DateTime?> sentAt,
   Value<DateTime?> sharedAt,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
@@ -2506,6 +2416,11 @@ class $$ArtworksTableFilterComposer
 
   ColumnFilters<bool> get isCompleted => $composableBuilder(
     column: $table.isCompleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get sentAt => $composableBuilder(
+    column: $table.sentAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2615,6 +2530,11 @@ class $$ArtworksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get sentAt => $composableBuilder(
+    column: $table.sentAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get sharedAt => $composableBuilder(
     column: $table.sharedAt,
     builder: (column) => ColumnOrderings(column),
@@ -2711,6 +2631,9 @@ class $$ArtworksTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<DateTime> get sentAt =>
+      $composableBuilder(column: $table.sentAt, builder: (column) => column);
+
   GeneratedColumn<DateTime> get sharedAt =>
       $composableBuilder(column: $table.sharedAt, builder: (column) => column);
 
@@ -2804,6 +2727,7 @@ class $$ArtworksTableTableManager
                 Value<String> tags = const Value.absent(),
                 Value<bool> isFavorite = const Value.absent(),
                 Value<bool> isCompleted = const Value.absent(),
+                Value<DateTime?> sentAt = const Value.absent(),
                 Value<DateTime?> sharedAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -2817,6 +2741,7 @@ class $$ArtworksTableTableManager
                 tags: tags,
                 isFavorite: isFavorite,
                 isCompleted: isCompleted,
+                sentAt: sentAt,
                 sharedAt: sharedAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -2832,6 +2757,7 @@ class $$ArtworksTableTableManager
                 Value<String> tags = const Value.absent(),
                 Value<bool> isFavorite = const Value.absent(),
                 Value<bool> isCompleted = const Value.absent(),
+                Value<DateTime?> sentAt = const Value.absent(),
                 Value<DateTime?> sharedAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -2845,6 +2771,7 @@ class $$ArtworksTableTableManager
                 tags: tags,
                 isFavorite: isFavorite,
                 isCompleted: isCompleted,
+                sentAt: sentAt,
                 sharedAt: sharedAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,

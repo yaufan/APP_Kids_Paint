@@ -11,7 +11,7 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>從相簿選一張照片，轉成著色圖。照片只存在這支手機裡。</string>
 	<key>CFBundleDisplayName</key>
-	<string>Kids Paint</string>
+	<string>畫畫小鎮</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

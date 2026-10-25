@@ -2,17 +2,30 @@ import 'dart:typed_data';
 
 import 'package:go_router/go_router.dart';
 
+import '../core/places.dart';
+import '../features/album/album_screen.dart';
 import '../features/canvas/canvas_screen.dart';
 import '../features/capture/capture_screen.dart';
-import '../features/gallery/gallery_screen.dart';
-import '../features/home/home_screen.dart';
 import '../features/lineart/style_picker_screen.dart';
-import '../features/map_journal/map_screen.dart';
 import '../features/parent/parent_screen.dart';
+import '../features/parent/privacy_screen.dart';
+import '../features/send/send_screen.dart';
+import '../features/send/sent_screen.dart';
+import '../features/town/town_screen.dart';
+
+PlaceKind? _kind(String? name) => name == null ? null : PlaceKind.byName(name);
 
 GoRouter buildRouter() => GoRouter(
       routes: [
-        GoRoute(path: '/', builder: (_, _) => const HomeScreen()),
+        // The town map; after sending, ?focus=park (and &grow=park the first time).
+        GoRoute(
+          path: '/',
+          builder: (_, state) => TownScreen(
+            key: state.pageKey,
+            focus: _kind(state.uri.queryParameters['focus']),
+            grow: _kind(state.uri.queryParameters['grow']),
+          ),
+        ),
         GoRoute(path: '/capture', builder: (_, _) => const CaptureScreen()),
         GoRoute(
           path: '/styles',
@@ -24,9 +37,21 @@ GoRouter buildRouter() => GoRouter(
           path: '/canvas/:id',
           builder: (_, state) => CanvasScreen(artworkId: int.parse(state.pathParameters['id']!)),
         ),
-        GoRoute(path: '/gallery', builder: (_, _) => const GalleryScreen()),
-        GoRoute(path: '/map', builder: (_, _) => const MapScreen()),
-        // Only reached through the parent gate on the home screen.
+        GoRoute(
+          path: '/send/:id',
+          builder: (_, state) => SendScreen(artworkId: int.parse(state.pathParameters['id']!)),
+        ),
+        GoRoute(
+          path: '/sent/:id',
+          builder: (_, state) => SentScreen(
+            artworkId: int.parse(state.pathParameters['id']!),
+            kind: PlaceKind.byName(state.uri.queryParameters['kind'] ?? 'home'),
+            isNew: state.uri.queryParameters['new'] == '1',
+          ),
+        ),
+        GoRoute(path: '/album', builder: (_, _) => const AlbumScreen()),
+        // Only reached through the parent gate.
         GoRoute(path: '/parent', builder: (_, _) => const ParentScreen()),
+        GoRoute(path: '/parent/privacy', builder: (_, _) => const PrivacyScreen()),
       ],
     );

@@ -40,7 +40,7 @@ class ArtworkService {
   }) async {
     final folder = ArtworkStore.newFolderName();
     final files = await _store.create(folder);
-    await files.photo.writeAsBytes(photo);
+    await files.photo.writeAsBytes(await Isolate.run(() => withoutMetadata(photo)));
     final (w, h, lines) = (page.width, page.height, page.lines);
     await files.lines.writeAsBytes(await Isolate.run(() => encodeGrayPng(lines, w, h)));
     await files.regions.writeAsBytes(page.regions.encode());
@@ -77,10 +77,26 @@ class ArtworkService {
     await _repo.touch(page.artwork.id, completed: doc.ops.isNotEmpty);
   }
 
+  /// Finishes the page and puts it on the map at [place].
+  Future<void> send(LoadedPage page, Place place) async {
+    await saveFinished(page);
+    await _repo.send(page.artwork.id, place.id);
+  }
+
   Future<void> delete(Artwork artwork) async {
     await _store.delete(artwork.folder);
     await _repo.delete(artwork.id);
   }
+}
+
+/// The photo re-encoded without EXIF (GPS, time taken, phone model), turned
+/// upright first so dropping the orientation tag changes nothing. Photos
+/// that cannot be decoded are kept as they are.
+Uint8List withoutMetadata(Uint8List photo) {
+  final image = img.decodeImage(photo);
+  if (image == null) return photo;
+  final upright = img.bakeOrientation(image)..exif = img.ExifData();
+  return img.encodeJpg(upright, quality: 90);
 }
 
 Uint8List encodeGrayPng(Uint8List gray, int width, int height) {

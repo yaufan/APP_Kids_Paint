@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
+import '../places.dart';
+
 part 'database.g.dart';
 
 /// A child using the app. Siblings share a device, so there is no login:
@@ -8,21 +10,23 @@ part 'database.g.dart';
 @DataClassName('Child')
 class Children extends Table {
   IntColumn get id => integer().autoIncrement()();
+
+  /// One of [animals].
   TextColumn get avatar => text()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-/// Where artworks were made. Only a coarse location is ever stored: the
-/// district and a ~1 km geohash, never exact coordinates.
+/// A place in a child's town. Children pick it when they send a postcard;
+/// the app never uses location (docs/town-map.md).
 class Places extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get childId => integer().references(Children, #id)();
 
-  /// auto | home | school | park | grandparents | custom
-  TextColumn get type => text()();
+  /// A [PlaceKind] name.
+  TextColumn get kind => text()();
+
+  /// A parent's name for it, e.g. "大安森林公園"; null for the kind's default.
   TextColumn get label => text().nullable()();
-  TextColumn get district => text().nullable()();
-  TextColumn get geohash6 => text().withLength(min: 6, max: 6).nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
@@ -44,6 +48,9 @@ class Artworks extends Table {
   TextColumn get tags => text().withDefault(const Constant(''))();
   BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
   BoolColumn get isCompleted => boolean().withDefault(const Constant(false))();
+
+  /// When it was sent to its place on the map; null while it is a draft.
+  DateTimeColumn get sentAt => dateTime().nullable()();
   DateTimeColumn get sharedAt => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
@@ -64,10 +71,29 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'kids_paint'));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            // Version 1 never wrote places (they were meant to hold a coarse
+            // location); rebuild the table for the town's place kinds.
+            await m.deleteTable('places');
+            await m.createTable(places);
+            await m.addColumn(artworks, artworks.sentAt);
+            for (final MapEntry(key: emoji, value: name) in legacyAvatars.entries) {
+              await customUpdate('UPDATE children SET avatar = ? WHERE avatar = ?',
+                  variables: [Variable(name), Variable(emoji)], updates: {children});
+            }
+            // Finished pictures from before the town existed live at home.
+            await customStatement("INSERT INTO places (child_id, kind) "
+                "SELECT DISTINCT child_id, 'home' FROM artworks WHERE is_completed = 1");
+            await customStatement('UPDATE artworks SET sent_at = updated_at, place_id = '
+                "(SELECT id FROM places p WHERE p.child_id = artworks.child_id AND p.kind = 'home') "
+                'WHERE is_completed = 1');
+          }
+        },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
         },
