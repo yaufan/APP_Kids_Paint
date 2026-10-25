@@ -36,7 +36,7 @@ abstract final class Strings {
   static const deleted = '已刪除所有資料';
   static const privacy = '隱私說明';
   static const privacyBody = '所有照片和作品都只存在這支手機裡，不會上傳。'
-      '位置只記錄到大約 1 公里的範圍，不會記錄精確位置。';
+      '這個 APP 不使用定位，地點由小朋友自己選。';
   static const licenses = '開放原始碼授權';
   static const mapComingSoon = '地圖日誌即將推出：作品會記錄在哪裡畫的，之後可以在可愛的城市地圖上看到。';
   static const convertFailed = '這張照片轉不出來，換一張試試看';

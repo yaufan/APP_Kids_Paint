@@ -400,6 +400,77 @@ def duck(x, y, s=1.0, flip=False):
             f'<path d="M9 -6 l4 1 -4 1 z" fill="#FFB020"/><circle cx="7" cy="-7" r="0.9" fill="#2A211D"/></g>')
 
 
+PLACE_TYPES = [("home", "家"), ("grandma", "阿公阿嬤家"), ("school", "幼兒園"), ("park", "公園"),
+               ("food", "好吃的店"), ("shop", "商店"), ("zoo", "動物園"), ("water", "河邊海邊"),
+               ("mountain", "山上"), ("temple", "廟"), ("station", "車站"), ("travel", "去旅行")]
+PLACE_NAMES = dict(PLACE_TYPES)
+
+
+def place_icon(kind, size=64):
+    """A tiny picture of each kind of place, recognizable without reading."""
+    g = '<ellipse cx="32" cy="56" rx="24" ry="4" fill="rgba(30,60,40,.15)"/>'
+    art = {
+        "home": g + '<rect x="15" y="30" width="34" height="24" rx="3" fill="#FFF4E2" stroke="#C9A06B" stroke-width="1.6"/>'
+                '<path d="M10 33 L32 13 L54 33 Z" fill="#FF5E5B" stroke="#C9423F" stroke-width="1.6" stroke-linejoin="round"/>'
+                '<rect x="27" y="40" width="10" height="14" rx="4" fill="#C98B5E"/><rect x="18" y="36" width="7" height="7" rx="2" fill="#A9E0FF"/>'
+                '<rect x="39" y="36" width="7" height="7" rx="2" fill="#A9E0FF"/><path d="M32 24 c-2-3-6-1-4 2 l4 3 4-3 c2-3-2-5-4-2z" fill="#fff"/>',
+        "grandma": g + '<rect x="12" y="30" width="40" height="24" rx="2" fill="#E8836B" stroke="#B85A44" stroke-width="1.6"/>'
+                   '<path d="M8 32 Q 32 16 56 32 L52 34 L12 34 Z" fill="#5E7290" stroke="#43546E" stroke-width="1.6"/>'
+                   '<path d="M16 38 h32 M16 44 h32 M16 50 h32" stroke="#C96A54" stroke-width="1"/>'
+                   '<rect x="27" y="40" width="10" height="14" rx="2" fill="#7A4A2A"/>'
+                   '<path d="M20 40 c-2-3-6-1-4 2 l4 3 4-3 c2-3-2-5-4-2z" fill="#FF8FB1"/><path d="M44 40 c-2-3-6-1-4 2 l4 3 4-3 c2-3-2-5-4-2z" fill="#FF8FB1"/>',
+        "school": g + '<rect x="10" y="30" width="44" height="24" rx="2" fill="#FFE7A3" stroke="#C29A4A" stroke-width="1.6"/>'
+                  '<rect x="8" y="27" width="48" height="5" rx="2" fill="#6F86FF"/><rect x="25" y="16" width="14" height="14" fill="#FFE7A3" stroke="#C29A4A" stroke-width="1.4"/>'
+                  '<path d="M22 17 L32 8 L42 17 Z" fill="#6F86FF"/><circle cx="32" cy="23" r="3.6" fill="#fff" stroke="#C29A4A"/>'
+                  '<rect x="28" y="42" width="8" height="12" rx="3" fill="#E8A24A"/><rect x="14" y="36" width="8" height="7" rx="2" fill="#A9E0FF"/><rect x="42" y="36" width="8" height="7" rx="2" fill="#A9E0FF"/>'
+                  '<path d="M32 8 V1" stroke="#8A6A4A" stroke-width="1.6"/><path d="M32 1 l8 2.5 -8 2.5z" fill="#FF5E5B"/>',
+        "park": g + '<rect x="16" y="34" width="4" height="20" rx="2" fill="#A86E43"/><circle cx="18" cy="26" r="13" fill="#4DB860" stroke="#3A9A4C" stroke-width="1.4"/>'
+                '<circle cx="14" cy="21" r="4.5" fill="#78D383"/><path d="M36 54 L40 32 H50 L50 54" stroke="#FF8FB1" stroke-width="3" fill="none" stroke-linejoin="round"/>'
+                '<path d="M50 32 Q 60 40 60 54" stroke="#FFC94A" stroke-width="5" fill="none" stroke-linecap="round"/>',
+        "food": g + '<rect x="12" y="34" width="40" height="20" rx="3" fill="#FFF4E2" stroke="#C9A06B" stroke-width="1.6"/>'
+                '<rect x="9" y="24" width="46" height="11" rx="3" fill="#FF5E5B"/>' + "".join(f'<rect x="{12 + k * 11}" y="24" width="5" height="11" fill="#fff" opacity=".8"/>' for k in range(4)) +
+                '<path d="M22 44 h20 a10 7 0 0 1 -20 0z" fill="#FFC94A" stroke="#D9A21C" stroke-width="1.2"/><path d="M27 40 q-2 -3 0 -6 M32 40 q-2 -3 0 -6 M37 40 q-2 -3 0 -6" stroke="#B9B2A4" stroke-width="1.6" fill="none" stroke-linecap="round"/>'
+                '<ellipse cx="14" cy="16" rx="4" ry="5" fill="#FF5E5B"/><ellipse cx="50" cy="16" rx="4" ry="5" fill="#FFC94A"/><path d="M14 11 Q 32 4 50 11" stroke="#8A6A4A" stroke-width="1.2" fill="none"/>',
+        "shop": g + '<rect x="12" y="30" width="40" height="24" rx="2" fill="#E8EEFF" stroke="#9FB3C8" stroke-width="1.6"/>'
+                '<rect x="10" y="24" width="44" height="7" fill="#FF8A3D"/><rect x="10" y="30" width="44" height="4" fill="#3FB37A"/>'
+                '<rect x="16" y="38" width="16" height="12" rx="2" fill="#A9E0FF"/><rect x="36" y="38" width="10" height="16" rx="2" fill="#9FB3C8"/>'
+                '<path d="M20 44 h8 v6 h-8z" fill="#FF8FB1"/><path d="M22 44 q2 -4 4 0" stroke="#E0668C" stroke-width="1.4" fill="none"/>',
+        "zoo": g + '<path d="M26 56 V26 q0 -12 8 -14" stroke="#F7C35C" stroke-width="10" stroke-linecap="round" fill="none"/>'
+               '<circle cx="30" cy="34" r="2.6" fill="#C98536"/><circle cx="26" cy="46" r="3" fill="#C98536"/>'
+               '<ellipse cx="40" cy="14" rx="11" ry="7.5" fill="#F7C35C" stroke="#C98536" stroke-width="1.4"/>'
+               '<path d="M35 7 v-6 M43 7 v-6" stroke="#C98536" stroke-width="2.4" stroke-linecap="round"/><circle cx="43" cy="12" r="1.8" fill="#2A211D"/>'
+               + "".join(f'<rect x="{8 + k * 10}" y="44" width="5" height="12" rx="2" fill="#E8C79A" stroke="#B9935E" stroke-width="1"/>' for k in range(5)),
+        "water": g + '<rect x="6" y="36" width="52" height="18" rx="9" fill="#7CCFFF"/><path d="M10 44 q5 -4 10 0 t10 0 t10 0 t10 0" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/>'
+                 '<path d="M22 34 h22 l-4 6 h-14 z" fill="#fff" stroke="#9FB3C8" stroke-width="1.4"/><path d="M33 34 V12 L46 30 Z" fill="#FFC94A" stroke="#D9A21C" stroke-width="1.2"/>',
+        "mountain": g + '<path d="M4 54 L24 18 L36 36 L44 26 L60 54 Z" fill="#6BCB77" stroke="#3FA052" stroke-width="1.6" stroke-linejoin="round"/>'
+                    '<path d="M20 25 L24 18 L28 25 Z" fill="#fff"/><path d="M6 14 L58 6" stroke="#5E6F86" stroke-width="1.4"/>'
+                    '<path d="M38 8 v4" stroke="#5E6F86" stroke-width="1.4"/><rect x="33" y="12" width="10" height="9" rx="3" fill="#FF5E5B"/><rect x="35" y="14" width="6" height="3" rx="1" fill="#E8F6FF"/>',
+        "temple": g + '<rect x="14" y="34" width="36" height="20" fill="#FFE3C4" stroke="#B83A26" stroke-width="1.4"/><rect x="18" y="34" width="4" height="20" fill="#E0503A"/><rect x="42" y="34" width="4" height="20" fill="#E0503A"/>'
+                  '<rect x="27" y="40" width="10" height="14" rx="1" fill="#C9452E"/>'
+                  '<path d="M4 30 Q 12 34 16 26 L48 26 Q 52 34 60 30 L54 36 L10 36 Z" fill="#F0583E" stroke="#B83A26" stroke-width="1.4"/>'
+                  '<path d="M16 26 Q 32 14 48 26 Z" fill="#FF7A54" stroke="#B83A26" stroke-width="1.4"/><circle cx="32" cy="16" r="3" fill="#FFC94A"/>',
+        "station": g + '<rect x="14" y="14" width="36" height="38" rx="10" fill="#fff" stroke="#9FB3C8" stroke-width="1.8"/>'
+                   '<rect x="18" y="19" width="28" height="14" rx="4" fill="#A9E0FF"/><rect x="14" y="36" width="36" height="5" fill="#4DA8FF"/>'
+                   '<circle cx="22" cy="46" r="3" fill="#FFD23F"/><circle cx="42" cy="46" r="3" fill="#FFD23F"/><path d="M18 56 L14 60 M46 56 L50 60" stroke="#9FB3C8" stroke-width="2.4" stroke-linecap="round"/>',
+        "travel": g + '<rect x="12" y="22" width="40" height="32" rx="7" fill="#FF8A3D" stroke="#D9692A" stroke-width="1.6"/>'
+                  '<path d="M24 22 v-6 a3 3 0 0 1 3 -3 h10 a3 3 0 0 1 3 3 v6" stroke="#8A5A3A" stroke-width="3" fill="none"/>'
+                  '<rect x="18" y="30" width="10" height="8" rx="2" fill="#fff" transform="rotate(-8 23 34)"/><circle cx="42" cy="40" r="5" fill="#4DA8FF"/>'
+                  '<path d="M17 46 h14" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><circle cx="18" cy="56" r="2.6" fill="#5A3A20"/><circle cx="46" cy="56" r="2.6" fill="#5A3A20"/>',
+    }[kind]
+    return f'<svg width="{size}" height="{size}" viewBox="0 0 64 64" aria-hidden="true">{art}</svg>'
+
+
+def empty_lot(x, y, w, h, kind):
+    """An empty plot waiting for its building, with a sign showing what goes there."""
+    cx = x + w / 2
+    sy = y + h / 2 - 6
+    return (f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="18" fill="#EED9AF" stroke="#D2B47C" stroke-width="2" stroke-dasharray="8 7"/>'
+            + "".join(f'<circle cx="{x + 14 + (i * 37) % (w - 24)}" cy="{y + 12 + (i * 23) % (h - 20)}" r="2" fill="#D9BF8C"/>' for i in range(9))
+            + f'<rect x="{cx - 2}" y="{sy + 8}" width="4" height="26" fill="#A47A4F"/>'
+            + f'<rect x="{cx - 24}" y="{sy - 30}" width="48" height="40" rx="8" fill="#FFFFFF" stroke="#C9A06B" stroke-width="2"/>'
+            + f'<g transform="translate({cx - 18} {sy - 28}) scale(0.56)" opacity=".5">{place_icon(kind, 64)[place_icon(kind, 64).index(">") + 1:-6]}</g>')
+
+
 def tower101(tx, ty, k=1.0):
     """Taipei 101 as a stack of flared tiers; (tx, ty) is the base's bottom-left."""
     s = [f'<g transform="translate({tx} {ty}) scale({k}) translate({-tx} {-ty})">',
@@ -417,8 +488,12 @@ def tower101(tx, ty, k=1.0):
     return "".join(s)
 
 
-def town_map(dim=False):
-    """The child's town, top-down with front facades, 390 x 844."""
+def town_map(dim=False, built=None):
+    """The child's town, top-down with front facades, 390 x 844.
+
+    [built] lists the place kinds that have a building yet (None: all of them).
+    """
+    B = lambda kind: built is None or kind in built
     s = []
     W, H = 390, 844
     s.append('<defs>'
@@ -477,13 +552,16 @@ def town_map(dim=False):
             s.append(f'<rect x="{cx - 14 + i * 6}" y="{cy + 17}" width="3.4" height="13" fill="#FFFFFF"/>')
     # plaza by the tower
     s.append('<rect x="232" y="474" width="150" height="160" rx="18" fill="url(#tiles)"/>')
-    # park (大安森林公園)
-    s.append('<rect x="10" y="470" width="180" height="164" rx="26" fill="#8CD27D"/><rect x="10" y="470" width="180" height="164" rx="26" fill="url(#grassdots)"/>')
-    s.append('<path d="M20 520 C 60 530, 90 560, 120 600" stroke="#F4E4C8" stroke-width="9" fill="none" stroke-linecap="round"/>')
-    s.append('<path d="M90 584 C 100 556, 152 552, 172 572 C 188 592, 156 616, 122 612 C 98 610, 84 602, 90 584 Z" fill="#7CCFFF" stroke="#43A9E0" stroke-width="1.5"/>')
-    s.append('<path d="M108 590 q6 -3 12 0 M140 598 q6 -3 12 0" stroke="#D8F3FF" stroke-width="2" fill="none" stroke-linecap="round"/>')
-    s.append(duck(124, 584, 0.9) + duck(148, 592, 0.8, True))
-    s.append('<g transform="translate(140 516)"><path d="M0 26 L8 -4 H22 L22 26" stroke="#FF8FB1" stroke-width="4" fill="none" stroke-linejoin="round"/><path d="M22 -4 Q 44 4 46 26" stroke="#FFC94A" stroke-width="7" fill="none" stroke-linecap="round"/></g>')
+    if B("park"):
+        # park (大安森林公園)
+        s.append('<rect x="10" y="470" width="180" height="164" rx="26" fill="#8CD27D"/><rect x="10" y="470" width="180" height="164" rx="26" fill="url(#grassdots)"/>')
+        s.append('<path d="M20 520 C 60 530, 90 560, 120 600" stroke="#F4E4C8" stroke-width="9" fill="none" stroke-linecap="round"/>')
+        s.append('<path d="M90 584 C 100 556, 152 552, 172 572 C 188 592, 156 616, 122 612 C 98 610, 84 602, 90 584 Z" fill="#7CCFFF" stroke="#43A9E0" stroke-width="1.5"/>')
+        s.append('<path d="M108 590 q6 -3 12 0 M140 598 q6 -3 12 0" stroke="#D8F3FF" stroke-width="2" fill="none" stroke-linecap="round"/>')
+        s.append(duck(124, 584, 0.9) + duck(148, 592, 0.8, True))
+        s.append('<g transform="translate(140 516)"><path d="M0 26 L8 -4 H22 L22 26" stroke="#FF8FB1" stroke-width="4" fill="none" stroke-linejoin="round"/><path d="M22 -4 Q 44 4 46 26" stroke="#FFC94A" stroke-width="7" fill="none" stroke-linecap="round"/></g>')
+    else:
+        s.append(empty_lot(14, 478, 172, 150, "park"))
 
     # MRT elevated line across (drawn before the buildings in front of it)
     s.append('<rect x="-10" y="318" width="410" height="12" rx="3" fill="#D5DEE9" stroke="#A9B6C6" stroke-width="1.4"/>')
@@ -508,48 +586,61 @@ def town_map(dim=False):
     s.append('<path d="M78 368 c-3-4-9-1-6 3 l6 5 6-5 c3-4-3-7-6-3z" fill="#FFFFFF" opacity=".9" transform="translate(-1 -4)"/>')
     # mailbox by the home
     s.append('<rect x="124" y="402" width="4" height="18" fill="#8A6A4A"/><rect x="116" y="390" width="20" height="14" rx="5" fill="#3FB37A" stroke="#2A8A57" stroke-width="1.2"/><rect x="134" y="386" width="3" height="8" fill="#FF5E5B"/>')
-    # school
-    s.append(box(236, 424, 104, 58, 8, "#FFE7A3", roof="flat",
-                 windows=[(8, 14, 13, 12), (26, 14, 13, 12), (64, 14, 13, 12), (82, 14, 13, 12), (8, 34, 13, 12), (82, 34, 13, 12)],
-                 door=(44, 16, 26, "#E8A24A")))
-    s.append('<rect x="273" y="344" width="30" height="24" fill="#FFE7A3" stroke="#C29A4A" stroke-width="1.4"/><path d="M268 346 L288 328 L308 346 Z" fill="#6F86FF" stroke="#4A5FC4" stroke-width="1.4"/>'
-             '<circle cx="288" cy="357" r="7" fill="#FFFFFF" stroke="#C29A4A" stroke-width="1.2"/><path d="M288 357 V352 M288 357 L291 359" stroke="#4A3B47" stroke-width="1.4" stroke-linecap="round"/>')
-    s.append('<path d="M352 424 V380" stroke="#8A6A4A" stroke-width="2"/><path d="M352 380 L370 385 L352 390 Z" fill="#FF5E5B"/>')
+    if B("school"):
+        # school
+        s.append(box(236, 424, 104, 58, 8, "#FFE7A3", roof="flat",
+                     windows=[(8, 14, 13, 12), (26, 14, 13, 12), (64, 14, 13, 12), (82, 14, 13, 12), (8, 34, 13, 12), (82, 34, 13, 12)],
+                     door=(44, 16, 26, "#E8A24A")))
+        s.append('<rect x="273" y="344" width="30" height="24" fill="#FFE7A3" stroke="#C29A4A" stroke-width="1.4"/><path d="M268 346 L288 328 L308 346 Z" fill="#6F86FF" stroke="#4A5FC4" stroke-width="1.4"/>'
+                 '<circle cx="288" cy="357" r="7" fill="#FFFFFF" stroke="#C29A4A" stroke-width="1.2"/><path d="M288 357 V352 M288 357 L291 359" stroke="#4A3B47" stroke-width="1.4" stroke-linecap="round"/>')
+        s.append('<path d="M352 424 V380" stroke="#8A6A4A" stroke-width="2"/><path d="M352 380 L370 385 L352 390 Z" fill="#FF5E5B"/>')
+    else:
+        s.append(empty_lot(234, 342, 130, 86, "school"))
     s.append(tree(372, 430, 11))
 
     # ---- row 2: park trees on the left, 101 and a shop on the right
-    s.append(tree(30, 512, 13) + tree(62, 500, 11, "#58C46B") + tree(178, 640, 10, "#58C46B", "pine") + tree(28, 628, 12, "#4DB860", "palm"))
-    s.append(flower_patch(40, 586) + flower_patch(166, 488, ("#FFFFFF", "#FF8FB1", "#FFD166")))
+    if B("park"):
+        s.append(tree(30, 512, 13) + tree(62, 500, 11, "#58C46B") + tree(178, 640, 10, "#58C46B", "pine") + tree(28, 628, 12, "#4DB860", "palm"))
+        s.append(flower_patch(40, 586) + flower_patch(166, 488, ("#FFFFFF", "#FF8FB1", "#FFD166")))
     # convenience store
-    s.append(box(240, 600, 66, 36, 6, "#E8EEFF", roof="flat", windows=[(6, 14, 24, 16)], door=(38, 18, 24, "#9FB3C8")))
-    s.append('<rect x="240" y="566" width="66" height="7" fill="#FF8A3D"/><rect x="240" y="573" width="66" height="5" fill="#3FB37A"/>')
+    if B("shop"):
+        s.append(box(240, 600, 66, 36, 6, "#E8EEFF", roof="flat", windows=[(6, 14, 24, 16)], door=(38, 18, 24, "#9FB3C8")))
+        s.append('<rect x="240" y="566" width="66" height="7" fill="#FF8A3D"/><rect x="240" y="573" width="66" height="5" fill="#3FB37A"/>')
+    else:
+        s.append(empty_lot(238, 556, 72, 62, "shop"))
     # 101-style tower
     s.append(tower101(320, 626))
 
-    # ---- row 3 (mostly under the dock): night market, temple, zoo
-    s.append('<path d="M14 684 Q 94 704 180 684" stroke="#8A6A4A" stroke-width="1.5" fill="none"/>')
-    for i, lx in enumerate([30, 58, 86, 114, 142, 168]):
-        ly = 684 + 16 * math.sin(math.pi * (lx - 14) / 166) - 4
-        c = "#FF5E5B" if i % 2 == 0 else "#FFC94A"
-        s.append(f'<ellipse cx="{lx}" cy="{ly + 6}" rx="6" ry="7" fill="{c}" stroke="{shade(c, -0.3)}" stroke-width="1.2"/><rect x="{lx - 3}" y="{ly - 2}" width="6" height="3" fill="#8A6A4A"/>')
-    for i, (sx, aw) in enumerate([(14, "#FF5E5B"), (70, "#FFC94A"), (126, "#3FB37A")]):
-        s.append(box(sx, 754, 48, 26, 5, "#FFF4E2"))
-        s.append(f'<rect x="{sx - 4}" y="722" width="56" height="12" rx="4" fill="{aw}" stroke="{shade(aw, -0.3)}" stroke-width="1.2"/>')
-        s.append("".join(f'<rect x="{sx + 2 + k * 13}" y="722" width="6" height="12" fill="#FFFFFF" opacity=".75"/>' for k in range(4)))
-    # temple, its swallowtail roof peeking over the dock
-    tx0 = 230
-    s.append(box(tx0 + 10, 800, 96, 34, 6, "#FFE3C4", door=(36, 24, 26, "#C9452E")))
-    s.append(f'<path d="M{tx0} 760 Q {tx0 + 12} 766 {tx0 + 22} 752 L{tx0 + 96} 752 Q {tx0 + 106} 766 {tx0 + 118} 760 L {tx0 + 108} 770 L {tx0 + 10} 770 Z" fill="#F0583E" stroke="#B83A26" stroke-width="1.4"/>'
-             f'<path d="M{tx0 + 16} 752 Q {tx0 + 59} 732 {tx0 + 102} 752 Z" fill="#FF7A54" stroke="#B83A26" stroke-width="1.4"/>'
-             f'<path d="M{tx0 + 4} 758 q-6 -8 -2 -12 M{tx0 + 114} 758 q6 -8 2 -12" stroke="#FFC94A" stroke-width="3" fill="none" stroke-linecap="round"/>'
-             f'<circle cx="{tx0 + 59}" cy="728" r="5" fill="#FFC94A" stroke="#D9A21C"/>')
-    # zoo corner: a giraffe looks over the fence
-    s.append('<g transform="translate(330 690)">'
-             '<path d="M26 88 V20 q0 -14 10 -16" stroke="#F7C35C" stroke-width="12" stroke-linecap="round" fill="none"/>'
-             '<circle cx="31" cy="44" r="3" fill="#C98536"/><circle cx="27" cy="62" r="3.4" fill="#C98536"/><circle cx="32" cy="28" r="2.6" fill="#C98536"/>'
-             '<ellipse cx="42" cy="6" rx="12" ry="8" fill="#F7C35C" stroke="#C98536" stroke-width="1.4"/>'
-             '<path d="M36 -2 v-7 M44 -2 v-7" stroke="#C98536" stroke-width="2.4" stroke-linecap="round"/><circle cx="45" cy="4" r="1.8" fill="#2A211D"/></g>')
-
+    if B("food"):
+        # ---- row 3 (mostly under the dock): night market, temple, zoo
+        s.append('<path d="M14 684 Q 94 704 180 684" stroke="#8A6A4A" stroke-width="1.5" fill="none"/>')
+        for i, lx in enumerate([30, 58, 86, 114, 142, 168]):
+            ly = 684 + 16 * math.sin(math.pi * (lx - 14) / 166) - 4
+            c = "#FF5E5B" if i % 2 == 0 else "#FFC94A"
+            s.append(f'<ellipse cx="{lx}" cy="{ly + 6}" rx="6" ry="7" fill="{c}" stroke="{shade(c, -0.3)}" stroke-width="1.2"/><rect x="{lx - 3}" y="{ly - 2}" width="6" height="3" fill="#8A6A4A"/>')
+        for i, (sx, aw) in enumerate([(14, "#FF5E5B"), (70, "#FFC94A"), (126, "#3FB37A")]):
+            s.append(box(sx, 754, 48, 26, 5, "#FFF4E2"))
+            s.append(f'<rect x="{sx - 4}" y="722" width="56" height="12" rx="4" fill="{aw}" stroke="{shade(aw, -0.3)}" stroke-width="1.2"/>')
+            s.append("".join(f'<rect x="{sx + 2 + k * 13}" y="722" width="6" height="12" fill="#FFFFFF" opacity=".75"/>' for k in range(4)))
+    else:
+        s.append(empty_lot(12, 680, 172, 120, "food"))
+    if B("temple"):
+        # temple, its swallowtail roof peeking over the dock
+        tx0 = 230
+        s.append(box(tx0 + 10, 800, 96, 34, 6, "#FFE3C4", door=(36, 24, 26, "#C9452E")))
+        s.append(f'<path d="M{tx0} 760 Q {tx0 + 12} 766 {tx0 + 22} 752 L{tx0 + 96} 752 Q {tx0 + 106} 766 {tx0 + 118} 760 L {tx0 + 108} 770 L {tx0 + 10} 770 Z" fill="#F0583E" stroke="#B83A26" stroke-width="1.4"/>'
+                 f'<path d="M{tx0 + 16} 752 Q {tx0 + 59} 732 {tx0 + 102} 752 Z" fill="#FF7A54" stroke="#B83A26" stroke-width="1.4"/>'
+                 f'<path d="M{tx0 + 4} 758 q-6 -8 -2 -12 M{tx0 + 114} 758 q6 -8 2 -12" stroke="#FFC94A" stroke-width="3" fill="none" stroke-linecap="round"/>'
+                 f'<circle cx="{tx0 + 59}" cy="728" r="5" fill="#FFC94A" stroke="#D9A21C"/>')
+    else:
+        s.append(empty_lot(232, 676, 96, 120, "temple"))
+    if B("zoo"):
+        # zoo corner: a giraffe looks over the fence
+        s.append('<g transform="translate(330 690)">'
+                 '<path d="M26 88 V20 q0 -14 10 -16" stroke="#F7C35C" stroke-width="12" stroke-linecap="round" fill="none"/>'
+                 '<circle cx="31" cy="44" r="3" fill="#C98536"/><circle cx="27" cy="62" r="3.4" fill="#C98536"/><circle cx="32" cy="28" r="2.6" fill="#C98536"/>'
+                 '<ellipse cx="42" cy="6" rx="12" ry="8" fill="#F7C35C" stroke="#C98536" stroke-width="1.4"/>'
+                 '<path d="M36 -2 v-7 M44 -2 v-7" stroke="#C98536" stroke-width="2.4" stroke-linecap="round"/><circle cx="45" cy="4" r="1.8" fill="#2A211D"/></g>')
     # traffic
     s.append(car(60, 452, "#FFD23F") + car(300, 446, CORAL, flip=True) + car(150, 658, "#4DA8FF", "scooter")
              + car(206, 560, "#7BD389", "bus") + car(330, 658, "#FF8FB1", "scooter", flip=True))

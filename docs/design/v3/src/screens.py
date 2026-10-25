@@ -1,5 +1,6 @@
 """The v3 "畫畫小鎮" screens. Run this to write html/*.html, then render.js."""
 import pathlib
+import re
 
 from kit import *  # noqa: F401,F403
 
@@ -395,30 +396,38 @@ def logo(size=40):
 
 @screen("10_share")
 def share():
-    card = f'''<div class="abs" style="left:35px;top:84px;width:320px;height:400px;border-radius:24px;overflow:hidden;background:linear-gradient(180deg,#DDF2FF 0%,#FFF6E8 58%);box-shadow:0 14px 34px rgba(40,50,60,.22)">
-<svg class="abs" style="left:0;bottom:0" width="320" height="120" viewBox="0 0 320 120" aria-hidden="true">
-<path d="M0 70 C 60 40, 110 44, 160 66 C 210 40, 270 38, 320 62 L320 120 L0 120 Z" fill="#A6DE97"/>
-<path d="M0 92 C 80 76, 160 84, 320 80 L320 120 L0 120 Z" fill="#8CD27D"/>
-{tree(40, 100, 9) + tree(62, 104, 7, "#58C46B") + tree(150, 96, 8, "#4DB860", "pine")}</svg>
-<div class="abs" style="left:28px;top:26px;width:230px;height:230px;border-radius:16px;background:#fff;padding:8px;transform:rotate(-4deg);box-shadow:0 10px 20px rgba(40,50,60,.2)">
-<img src="{A}art_coffee.jpg" alt="畫好的咖啡杯" style="display:block;width:214px;height:214px;border-radius:10px;object-fit:cover"></div>
-<div class="abs" style="left:222px;top:150px">{stamp(A + "photo_coffee.jpg", 70, 82, 8)}</div>
-<div class="abs center" style="left:20px;top:278px;gap:8px;justify-content:flex-start">{animal("bear", 40)}<span style="font-size:18px;font-weight:700">小熊 4 歲</span></div>
-<div class="abs center" style="left:24px;top:322px;gap:5px;font-size:14px;color:{INK_SOFT}">{icon("pin", 15, INK_SOFT)}<span>大安森林公園 · 2026/10/24</span></div>
-<div class="abs center" style="right:14px;bottom:14px;gap:6px;height:38px;padding:0 10px 0 4px;border-radius:19px;background:rgba(255,255,255,.9)">{logo(30)}<span style="font-size:14px;font-weight:700">畫畫小鎮</span></div>
-</div>'''
-    row = lambda ic, t, on: (f'<div class="center" style="justify-content:space-between;height:56px;padding:0 4px;border-bottom:1px solid #EFEAE0">'
-                             f'<span class="center" style="gap:10px;font-size:17px">{ic}<span>{t}</span></span>{toggle(on)}</div>')
-    body = f'''<div class="abs" style="inset:0;background:#F7F5F0"></div>
+    card = f"""<div class="abs" style="left:45px;top:78px;width:300px;height:360px;border-radius:24px;overflow:hidden;background:linear-gradient(180deg,#DDF2FF 0%,#FFF6E8 58%);box-shadow:0 14px 34px rgba(40,50,60,.22)">
+<svg class="abs" style="left:0;bottom:0" width="300" height="110" viewBox="0 0 300 110" aria-hidden="true">
+<path d="M0 64 C 60 36, 110 40, 150 60 C 200 36, 250 34, 300 56 L300 110 L0 110 Z" fill="#A6DE97"/>
+<path d="M0 84 C 80 70, 160 76, 300 72 L300 110 L0 110 Z" fill="#8CD27D"/>
+{tree(36, 96, 9) + tree(58, 100, 7, "#58C46B") + tree(140, 90, 8, "#4DB860", "pine")}</svg>
+<div class="abs" style="left:34px;top:24px;width:232px;height:232px;border-radius:16px;background:#fff;padding:8px;transform:rotate(-3deg);box-shadow:0 10px 20px rgba(40,50,60,.2)">
+<img src="{A}art_coffee.jpg" alt="畫好的咖啡杯" style="display:block;width:216px;height:216px;border-radius:10px;object-fit:cover"></div>
+<span class="abs" style="left:226px;top:196px;transform:rotate(14deg)">{sticker_art("star", 56)}</span>
+<div class="abs center" style="left:18px;top:274px;gap:8px">{animal("bear", 38)}<span class="center" style="gap:4px;font-size:15px;color:{INK_SOFT}">{place_icon("park", 26)}公園 · 2026/10/24</span></div>
+<div class="abs center" style="right:12px;bottom:12px;gap:6px;height:36px;padding:0 10px 0 4px;border-radius:18px;background:rgba(255,255,255,.92)">{logo(28)}<span style="font-size:13px;font-weight:700">畫畫小鎮</span></div>
+</div>"""
+    def row(ic, title, right, note=""):
+        n = f'<div style="font-size:13px;color:{note[0]};margin:-4px 0 8px 32px">{note[1]}</div>' if note else ""
+        return (f'<div style="border-bottom:1px solid #EFEAE0"><div class="center" style="justify-content:space-between;min-height:52px;padding:0 2px">'
+                f'<span class="center" style="gap:10px;font-size:16px">{ic}<span>{title}</span></span>{right}</div>{n}</div>')
+    seg = ('<span style="display:grid;grid-template-columns:repeat(3,auto);gap:4px;padding:3px;border-radius:12px;background:#F0ECE4">'
+           + "".join(f'<span class="center" style="height:32px;padding:0 9px;border-radius:9px;font-size:13px;{"background:#fff;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.12)" if o == "只說公園" else "color:" + INK_SOFT}">{o}</span>' for o in ["不顯示", "只說公園", "地點名稱"])
+           + "</span>")
+    body = f"""<div class="abs" style="inset:0;background:#F7F5F0"></div>
 <button aria-label="返回" class="abs center" style="left:10px;top:16px;width:48px;height:48px">{icon("back", 28, INK, 2.4)}</button>
 <div class="abs" style="left:0;right:0;top:26px;text-align:center;font-size:20px;font-weight:700">分享這張畫</div>
 {card}
-<div class="abs" style="left:24px;right:24px;top:504px">
-{row(icon("pin", 22, INK_SOFT), "顯示地點", True)}{row(icon("camera", 22, INK_SOFT), "放上原本的照片", True)}{row(icon("users", 22, INK_SOFT), "顯示名字和年紀", True)}</div>
-<div class="abs" style="left:24px;right:24px;top:688px;display:grid;grid-template-columns:1fr 1.4fr;gap:12px">
-<button class="center" style="height:64px;border-radius:20px;gap:8px;background:#fff;border:2px solid #E3DED3;font-size:17px;font-weight:700">{icon("download", 24, INK)}<span>存到相簿</span></button>
-<button class="center" style="height:64px;border-radius:20px;gap:8px;background:{CORAL};color:#fff;font-size:17px;font-weight:700;box-shadow:0 5px 0 {CORAL_DARK}">{icon("share", 24, "#fff")}<span>分享到 LINE、IG…</span></button></div>
-<div class="abs center" style="left:24px;right:24px;top:772px;gap:6px;font-size:13px;color:{INK_SOFT}">{icon("shield", 16, INK_SOFT)}<span>這個畫面在家長鎖後面，小朋友不會自己分享</span></div>'''
+<div class="abs" style="left:22px;right:22px;top:452px">
+{row(icon("users", 22, INK_SOFT), "名字和年紀", toggle(False))}
+{row(icon("pin", 22, INK_SOFT), "地點", seg)}
+{row(icon("camera", 22, INK_SOFT), "放上原本的照片", toggle(False), ("#C2410C", "照片裡有人的臉，建議不要放"))}</div>
+<div class="abs" style="left:22px;right:22px;top:654px;display:grid;grid-template-columns:1fr 1.4fr;gap:12px">
+<button class="center" style="height:62px;border-radius:20px;gap:8px;background:#fff;border:2px solid #E3DED3;font-size:17px;font-weight:700">{icon("download", 24, INK)}<span>存到相簿</span></button>
+<button class="center" style="height:62px;border-radius:20px;gap:8px;background:{CORAL};color:#fff;font-size:17px;font-weight:700;box-shadow:0 5px 0 {CORAL_DARK}">{icon("share", 24, "#fff")}<span>分享到 LINE、IG…</span></button></div>
+<div class="abs" style="left:22px;right:22px;top:736px;font-size:13px;color:{INK_SOFT};line-height:1.7">
+<div class="center" style="justify-content:flex-start;gap:6px">{icon("shield", 16, GRASS_DARK)}分享的圖片已經拿掉 GPS、拍攝時間和手機資訊</div>
+<div class="center" style="justify-content:flex-start;gap:6px">{icon("lock", 16, INK_SOFT)}在家長鎖後面，小朋友不會自己分享</div></div>"""
     return page("分享", body, bg="#F7F5F0")
 
 
@@ -467,8 +476,8 @@ def parent():
 <div class="abs" style="left:0;right:0;top:80px">
 {card("小朋友", kid("bear", "小熊", "4 歲") + '<div style="height:1px;background:#F0EBE2"></div>' + kid("rabbit", "小兔", "2 歲") + f'<div class="center" style="justify-content:flex-start;gap:8px;height:46px;color:{SKY_DARK};font-size:16px;font-weight:700">{icon("plus", 20, SKY_DARK, 2.6)}新增小朋友</div>')}
 {card("每天可以玩多久", f'<div class="center" style="justify-content:space-between;margin-bottom:10px"><span class="center" style="gap:8px;font-size:17px">{icon("clock", 22, INK_SOFT)}時間到了，小熊會說晚安</span></div>' + seg(["15 分", "30 分", "45 分", "60 分"], "30 分"))}
-{card("地點與隱私", f'<div style="font-size:16px;margin-bottom:8px">地圖記錄到多仔細</div>' + seg(["不記錄", "到行政區", "約 1 公里"], "約 1 公里") + f'<div class="center" style="justify-content:flex-start;gap:8px;margin-top:12px;font-size:14px;color:{INK_SOFT}">{icon("shield", 18, GRASS_DARK)}照片和畫都只存在這支手機，不會上傳</div>')}
-{card("其他", rowlink(icon("info", 22, INK_SOFT), "開放原始碼授權") + rowlink(icon("trash", 22, "#D9423F"), "刪除所有資料", "#D9423F"))}
+{card("我們的地方", '<div style="font-size:14px;color:' + INK_SOFT + ';margin-bottom:10px">不使用定位，小朋友寄出明信片時自己選地方</div>' + "".join(f'<span class="center" style="display:inline-flex;gap:4px;height:40px;padding:0 12px 0 6px;margin:0 8px 8px 0;border-radius:20px;background:#F6F2EA;font-size:15px">{place_icon(k, 30)}{t}</span>' for k, t in [("park", "大安森林公園"), ("park", "青年公園"), ("grandma", "台中阿嬤家"), ("school", "向日葵幼兒園")]) + f'<span class="center" style="display:inline-flex;gap:4px;height:40px;padding:0 12px;border-radius:20px;border:2px dashed #D6CFC2;color:{SKY_DARK};font-size:15px;font-weight:700">{icon("plus", 16, SKY_DARK, 2.6)}新增</span>')}
+{card("其他", rowlink(icon("shield", 22, GRASS_DARK), "隱私與安全") + rowlink(icon("info", 22, INK_SOFT), "開放原始碼授權"))}
 </div>'''
     return page("家長模式", body, bg="#F7F5F0")
 
@@ -504,6 +513,164 @@ def guide():
 {h("地圖圖釘與貼紙")}{pins}<div style="display:flex;gap:10px;margin-top:10px">{stickers_row}</div>
 </div>'''
     return page("設計規範", body).replace(".screen{width:390px;height:844px", ".screen{width:860px;height:1420px")
+
+
+
+def voice_bubble(text, left, top, width=None, size=17):
+    w = f"width:{width}px;" if width else ""
+    return (f'<div class="abs center" style="left:{left}px;top:{top}px;{w}min-height:50px;padding:10px 16px;gap:8px;border-radius:24px;background:#fff;'
+            f'box-shadow:0 6px 16px rgba(30,60,40,.2);font-size:{size}px;font-weight:700;line-height:1.35">{icon("sound", 20, SKY, 2.4)}<span>{text}</span></div>')
+
+
+@screen("13_day1")
+def day1():
+    body = (town_map(built={"home"}) + walker(152, 432)
+            + f'<span class="abs" style="left:226px;top:124px;transform:rotate(-8deg)">{pigeon(70, flying=True)}</span>'
+            + voice_bubble("小鎮還空空的，<br>去拍照把它蓋起來吧！", 150, 456, 228, 16)
+            + hud(count=0) + dock())
+    return page("第一天的小鎮", body)
+
+
+@screen("14_address")
+def address():
+    def card(kind, sel=False, tag=None):
+        ring = f"box-shadow:0 0 0 5px {SUN},0 10px 22px rgba(224,162,28,.35);" if sel else "box-shadow:0 6px 0 #E6DCCB;"
+        t = (f'<span class="abs center" style="left:10px;top:10px;height:28px;padding:0 10px;border-radius:14px;background:{SUN};font-size:14px;font-weight:700">{tag}</span>' if tag else "")
+        return (f'<button aria-label="寄到{PLACE_NAMES[kind]}" class="center" style="position:relative;flex-direction:column;gap:2px;height:168px;border-radius:30px;background:#fff;{ring}">'
+                f'{place_icon(kind, 104)}<span style="font-size:18px;font-weight:700">{PLACE_NAMES[kind]}</span>{t}</button>')
+    body = f'''{blurred_place()}<div class="abs" style="inset:0;background:rgba(40,60,50,.35)"></div>
+<div class="abs" style="left:0;right:0;bottom:0;height:640px;border-radius:38px 38px 0 0;background:{PAPER}"></div>
+<div class="abs" style="left:26px;top:96px;transform:rotate(-8deg)">
+<div style="width:150px;height:150px;border-radius:16px;background:#fff;padding:7px;box-shadow:0 12px 24px rgba(30,60,40,.3)"><img src="{A}art_coffee.jpg" alt="" style="display:block;width:136px;height:136px;border-radius:10px;object-fit:cover"></div></div>
+<div class="abs" style="left:126px;top:60px">{pigeon(130, letter=False)}</div>
+{voice_bubble("要寄到哪裡呢？", 196, 236, None, 19)}
+<div class="abs" style="left:22px;right:22px;top:316px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+{card("park", True, "上次")}{card("home")}{card("school")}{card("grandma")}</div>
+<button aria-label="更多地方" class="abs center" style="left:50%;margin-left:-110px;bottom:34px;width:220px;height:64px;border-radius:32px;gap:10px;background:#fff;box-shadow:0 5px 0 #E6DCCB;font-size:18px;font-weight:700">
+<span class="center" style="gap:2px">{place_icon("zoo", 30)}{place_icon("food", 30)}{place_icon("water", 30)}</span><span>更多地方</span></button>'''
+    return page("寄到哪裡", body, bg=PAPER)
+
+
+@screen("15_build")
+def build():
+    puffs = "".join(f'<span class="abs" style="left:{x}px;top:{y}px;width:{r}px;height:{r}px;border-radius:50%;background:#FFFFFF;opacity:{o}"></span>'
+                    for x, y, r, o in [(16, 600, 34, .85), (40, 618, 24, .8), (150, 610, 30, .85), (170, 590, 20, .7), (84, 626, 22, .75)])
+    crane = '''<svg class="abs" style="left:150px;top:400px" width="80" height="140" viewBox="0 0 80 140" aria-hidden="true">
+<path d="M20 136 V18 M30 136 V18 M20 18 H70 M20 30 L30 18 M20 50 L30 38 M20 70 L30 58 M20 90 L30 78 M20 110 L30 98" stroke="#FFC94A" stroke-width="4" stroke-linecap="round"/>
+<path d="M20 18 H74" stroke="#E0A21C" stroke-width="6" stroke-linecap="round"/><path d="M64 18 V46" stroke="#5E6F86" stroke-width="2"/><path d="M58 46 h12 v8 h-12z" fill="#FF5E5B"/></svg>'''
+    conf = "".join(f'<span class="abs" style="left:{x}px;top:{y}px;width:9px;height:6px;border-radius:2px;background:{c};transform:rotate({r}deg)"></span>'
+                   for x, y, c, r in [(30, 460, CORAL, 20), (90, 440, SUN, 60), (150, 470, SKY, -30), (60, 520, GRAPE, 10), (120, 500, PINK, 45), (180, 450, GRASS, -50), (10, 500, TEAL, 30)])
+    banner = (f'<div class="abs center" style="left:50%;transform:translateX(-50%);top:228px;height:64px;padding:0 22px 0 10px;gap:8px;border-radius:32px;background:{SUN};'
+              f'box-shadow:0 6px 0 {SUN_DARK},0 14px 24px rgba(224,162,28,.4);font-size:21px;font-weight:700;white-space:nowrap">{place_icon("park", 52)}<span>新地方：公園！</span></div>')
+    body = (town_map(built={"home", "park"}) + puffs + crane + conf
+            + art_pin(74, 566, A + "art_coffee.jpg", 74, "第一張公園的明信片", ring=SUN, today=True)
+            + sparkles([(40, 470, 28, 1), (150, 520, 22, .9), (12, 560, 18, .8), (176, 470, 16, .9)])
+            + banner + walker(152, 432) + hud(count=1) + dock())
+    return page("蓋好新地方", body)
+
+
+@screen("16_gate")
+def gate():
+    keys = "".join(f'<button class="center" style="height:70px;border-radius:22px;background:#fff;box-shadow:0 4px 0 #E3DCCF;font-size:30px;font-weight:700">{k}</button>'
+                   for k in ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫"])
+    keys = keys.replace('<button class="center" style="height:70px;border-radius:22px;background:#fff;box-shadow:0 4px 0 #E3DCCF;font-size:30px;font-weight:700"></button>', "<span></span>")
+    body = f'''<div class="abs" style="inset:0;background:#F7F5F0"></div>
+<button aria-label="關閉" class="abs center" style="right:14px;top:16px;width:48px;height:48px;border-radius:50%;background:#EFEAE0">{icon("close", 22, INK_SOFT, 2.6)}</button>
+<div class="abs" style="left:22px;top:28px">{animal("bear", 70)}</div>
+{voice_bubble("請找爸爸或媽媽來喔", 98, 40, None, 17)}
+<div class="abs" style="left:22px;right:22px;top:132px;border-radius:26px;background:#fff;padding:22px;box-shadow:0 2px 0 #ECE7DD">
+<div class="center" style="justify-content:flex-start;gap:8px;font-size:15px;color:{INK_SOFT}">{icon("lock", 18, INK_SOFT)}家長確認</div>
+<div style="margin-top:10px;font-size:24px;font-weight:700">「七」加「八」等於多少？</div>
+<div class="center" style="justify-content:flex-start;gap:12px;margin-top:18px">
+<span class="center" style="width:64px;height:72px;border-radius:18px;border:3px solid {SKY};font-size:34px;font-weight:700">1</span>
+<span class="center" style="width:64px;height:72px;border-radius:18px;border:3px dashed #D6CFC2;font-size:34px;color:#C9C1B3"></span></div>
+<div style="margin-top:14px;font-size:14px;color:{INK_SOFT}">題目每次都不一樣。答錯 3 次要等 1 分鐘。</div></div>
+<div class="abs" style="left:22px;right:22px;top:420px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px">{keys}</div>'''
+    return page("家長確認", body, bg="#F7F5F0")
+
+
+def promise(ic, title, sub, bg):
+    return (f'<div class="center" style="justify-content:flex-start;gap:14px;padding:12px 0">'
+            f'<span class="center" style="flex:none;width:52px;height:52px;border-radius:18px;background:{bg}">{ic}</span>'
+            f'<span><span style="display:block;font-size:17px;font-weight:700">{title}</span><span style="display:block;font-size:14px;color:{INK_SOFT};margin-top:2px">{sub}</span></span></div>')
+
+
+@screen("17_setup")
+def setup():
+    body = f'''<div class="abs" style="inset:0;background:#F7F5F0"></div>
+<div class="abs center" style="left:0;right:0;top:26px;gap:10px">{logo(44)}<span style="font-size:22px;font-weight:700">開始之前</span></div>
+<div class="abs" style="left:0;right:0;top:80px;text-align:center;font-size:15px;color:{INK_SOFT}">給爸爸媽媽：這個 APP 怎麼保護小朋友</div>
+<div class="abs" style="left:18px;right:18px;top:118px;border-radius:24px;background:#fff;padding:6px 18px;box-shadow:0 2px 0 #ECE7DD">
+{promise(icon("shield", 28, GRASS_DARK, 2.2), "照片和畫都只存在這支手機", "不用註冊帳號，不會上傳到任何地方", "#E3F6E6")}
+{promise(icon("close", 26, CORAL_DARK, 2.8), "沒有廣告、聊天或陌生人", "也沒有追蹤或分析工具", "#FFE6E5")}
+{promise(icon("pin", 28, SKY_DARK, 2.2), "不使用定位", "小朋友自己選「在哪裡畫的」", "#E3F0FF")}
+{promise(icon("lock", 28, GRAPE, 2.2), "分享和設定都要家長確認", "小朋友不會自己把畫傳出去", "#EFE9FF")}</div>
+<div class="abs" style="left:18px;right:18px;top:470px;border-radius:24px;background:#fff;padding:16px 18px;box-shadow:0 2px 0 #ECE7DD">
+<div class="center" style="justify-content:space-between"><span class="center" style="gap:10px;font-size:17px;font-weight:700">{icon("camera", 24, INK)}相機</span>
+<span class="center" style="height:40px;padding:0 16px;border-radius:20px;background:{SKY};color:#fff;font-size:15px;font-weight:700">允許</span></div>
+<div style="font-size:14px;color:{INK_SOFT};margin-top:6px">只有按下拍照鈕時才會打開。</div>
+<div style="height:1px;background:#F0EBE2;margin:14px 0"></div>
+<div style="font-size:17px;font-weight:700;margin-bottom:10px" class="center"><span class="center" style="gap:10px;margin-right:auto">{icon("clock", 24, INK)}每天可以玩多久</span></div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:4px;border-radius:14px;background:#F3F0EA">
+{"".join(f'<span class="center" style="height:38px;border-radius:11px;font-size:15px;{"background:#fff;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.12)" if o == "30 分" else "color:" + INK_SOFT}">{o}</span>' for o in ["15 分", "30 分", "45 分", "60 分"])}</div></div>
+<div class="abs center" style="left:18px;right:18px;top:720px;gap:6px;font-size:14px;color:{SKY_DARK}">{icon("info", 16, SKY_DARK)}<span>看完整的隱私權政策</span></div>
+<button class="abs center" style="left:18px;right:18px;bottom:30px;height:68px;border-radius:24px;gap:8px;background:{GRASS};color:#fff;font-size:19px;font-weight:700;box-shadow:0 6px 0 {GRASS_DARK}">我知道了，交給小朋友{icon("chevron", 24, "#fff", 3)}</button>'''
+    return page("給家長", body, bg="#F7F5F0")
+
+
+@screen("18_timeup")
+def timeup():
+    stars = "".join(f'<span class="abs" style="left:{x}px;top:{y}px">{solid("sparkle", s, "#FFE9A8")}</span>'
+                    for x, y, s in [(40, 110, 14), (300, 80, 18), (200, 150, 10), (80, 220, 10), (340, 230, 12), (150, 60, 12)])
+    bed = f'''<svg class="abs" style="left:45px;top:330px" width="300" height="230" viewBox="0 0 300 230" aria-hidden="true">
+<ellipse cx="150" cy="218" rx="140" ry="10" fill="rgba(0,0,0,.25)"/>
+<rect x="16" y="70" width="20" height="148" rx="8" fill="#C98B5E"/><rect x="264" y="110" width="20" height="108" rx="8" fill="#C98B5E"/>
+<rect x="24" y="150" width="252" height="46" rx="12" fill="#E8B07A"/>
+<rect x="40" y="112" width="90" height="46" rx="20" fill="#FFFFFF"/>
+<path d="M90 136 C 120 108, 250 108, 268 140 L268 170 L90 170 Z" fill="#7C6CFF"/>
+<path d="M110 150 h140 M120 160 h120" stroke="#A493FF" stroke-width="5" stroke-linecap="round"/>
+<circle cx="170" cy="134" r="6" fill="#FFD23F"/><circle cx="214" cy="128" r="5" fill="#FF8FB1"/></svg>'''
+    sleepy = re.sub(r'<circle cx="(2[34]\.5|4[01]\.5|24\.5|41\.5)" cy="3[23](\.9)?" r="(3\.1|1)" fill="#(2A211D|FFFFFF)"/>', "", animal("bear", 74))
+    sleepy = sleepy.replace("</svg>", '<path d="M20 33 q3.5 3 7 0 M37 33 q3.5 3 7 0" stroke="#2A211D" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>')
+    body = f'''<div class="abs" style="inset:0;background:linear-gradient(180deg,#26215E 0%,#4B3FA3 62%,#6C5BD0 100%)"></div>{stars}
+<svg class="abs" style="left:290px;top:170px" width="70" height="70" viewBox="0 0 70 70" aria-hidden="true"><path d="M46 8 A28 28 0 1 0 62 52 A22 22 0 1 1 46 8 Z" fill="#FFE27A"/></svg>
+<div class="abs" style="left:0;right:0;top:70px;text-align:center;color:#fff;font-size:26px;font-weight:700">晚安，小熊</div>
+<div class="abs center" style="left:0;right:0;top:112px;gap:6px;color:#D8D2FF;font-size:16px">{icon("sound", 18, "#D8D2FF")}<span>今天畫了好多，明天再來玩！</span></div>
+{bed}
+<div class="abs" style="left:76px;top:404px;transform:rotate(-14deg)">{sleepy}</div>
+<div class="abs" style="left:150px;top:380px;color:#fff;font-size:24px;font-weight:700;transform:rotate(-10deg)">z<span style="font-size:18px">z</span><span style="font-size:14px">z</span></div>
+<div class="abs center" style="left:0;right:0;top:590px;gap:12px">
+{"".join(f'<span style="display:block;width:86px;height:86px;border-radius:14px;background:#fff;padding:5px;transform:rotate({t}deg);box-shadow:0 8px 16px rgba(0,0,0,.3)"><img src="{A}{img}" alt="" style="display:block;width:76px;height:76px;border-radius:9px;object-fit:cover"></span>' for img, t in [("art_coffee.jpg", -6), ("art_coffee2.jpg", 3), ("art_cat2.jpg", -2)])}</div>
+<div class="abs" style="left:0;right:0;top:700px;text-align:center;color:#D8D2FF;font-size:15px">今天寄出 3 張明信片</div>
+<button class="abs center" style="left:50%;margin-left:-110px;bottom:34px;width:220px;height:52px;border-radius:26px;gap:8px;background:rgba(255,255,255,.14);color:#fff;font-size:15px">{icon("lock", 18, "#fff")}家長：再玩 10 分鐘</button>'''
+    return page("時間到了", body, bg="#26215E")
+
+
+
+@screen("19_privacy")
+def privacy():
+    no = lambda ic, t: (f'<div class="center" style="flex-direction:column;gap:6px"><span class="center" style="position:relative;width:58px;height:58px;border-radius:20px;background:#FFF0EF">{ic}'
+                        f'<span class="abs" style="left:8px;top:27px;width:42px;height:4px;border-radius:2px;background:{CORAL_DARK};transform:rotate(-40deg)"></span></span>'
+                        f'<span style="font-size:13px;color:{INK_SOFT}">{t}</span></div>')
+    perm = lambda ic, t, state, ok: (f'<div class="center" style="justify-content:space-between;height:50px;border-bottom:1px solid #F0EBE2">'
+                                     f'<span class="center" style="gap:10px;font-size:16px">{ic}{t}</span>'
+                                     f'<span style="font-size:14px;font-weight:700;color:{GRASS_DARK if ok else INK_SOFT}">{state}</span></div>')
+    act = lambda ic, t, color=INK: (f'<div class="center" style="justify-content:space-between;height:50px"><span class="center" style="gap:10px;font-size:16px;color:{color}">{ic}{t}</span>{icon("chevron", 20, "#B9B2A4", 2.4)}</div>')
+    body = f"""<div class="abs" style="inset:0;background:#F7F5F0"></div>
+<button aria-label="返回" class="abs center" style="left:10px;top:16px;width:48px;height:48px">{icon("back", 28, INK, 2.4)}</button>
+<div class="abs" style="left:0;right:0;top:26px;text-align:center;font-size:20px;font-weight:700">隱私與安全</div>
+<div class="abs" style="left:16px;right:16px;top:80px;border-radius:24px;background:#fff;padding:16px;box-shadow:0 2px 0 #ECE7DD">
+<div class="center" style="justify-content:flex-start;gap:14px"><span class="center" style="flex:none;width:64px;height:64px;border-radius:22px;background:#E3F6E6">{icon("shield", 36, GRASS_DARK, 2.2)}</span>
+<span><span style="display:block;font-size:18px;font-weight:700">所有資料都在這支手機</span><span style="display:block;font-size:14px;color:{INK_SOFT};margin-top:3px">照片、畫、名字都不會離開手機。<br>刪掉 APP 就全部刪除。</span></span></div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);margin-top:14px">{no(icon("share", 26, INK_SOFT), "不上傳")}{no(icon("star", 26, INK_SOFT), "沒廣告")}{no(icon("users", 26, INK_SOFT), "沒聊天")}{no(icon("pin", 26, INK_SOFT), "不定位")}</div></div>
+<div class="abs" style="left:16px;right:16px;top:318px;border-radius:24px;background:#fff;padding:6px 16px 4px;box-shadow:0 2px 0 #ECE7DD">
+<div style="font-size:14px;color:{INK_SOFT};margin:8px 0 2px">APP 用到的權限</div>
+{perm(icon("camera", 22, INK), "相機", "按拍照時才用", True)}{perm(icon("album", 22, INK), "相片", "只讀你選的那張", True)}
+{perm(icon("pin", 22, INK_SOFT), "位置", "不使用", False)}{perm(icon("sound", 22, INK_SOFT), "麥克風", "不使用", False)}
+<div class="center" style="justify-content:space-between;height:50px"><span class="center" style="gap:10px;font-size:16px">{icon("share", 22, INK_SOFT)}網路</span><span style="font-size:14px;font-weight:700;color:{INK_SOFT}">不使用</span></div></div>
+<div class="abs" style="left:16px;right:16px;top:640px;border-radius:24px;background:#fff;padding:4px 16px;box-shadow:0 2px 0 #ECE7DD">
+{act(icon("download", 22, INK), "把全部明信片存到相簿")}{act(icon("trash", 22, "#D9423F"), "刪除一位小朋友的資料", "#D9423F")}{act(icon("trash", 22, "#D9423F"), "刪除所有資料", "#D9423F")}</div>"""
+    return page("隱私與安全", body, bg="#F7F5F0")
 
 
 if __name__ == "__main__":

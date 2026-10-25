@@ -136,9 +136,9 @@ Python 原型與測試結果：[prototypes/lineart](../prototypes/lineart/README
 Child        小朋友檔案
   id, avatar, createdAt          （不存姓名與生日也能運作）
 
-Place        地點（模糊化）
-  id, childId, type(auto|home|school|park|grandparents|custom),
-  district, geohash6, createdAt
+Place        地點（小朋友自己選，不存座標）
+  id, childId, kind（家、阿公阿嬤家、幼兒園、公園、好吃的店、商店、
+  動物園、河邊海邊、山上、廟、車站、去旅行）, label?（家長取的名字）, createdAt
 
 Artwork      作品
   id, childId, placeId?, createdAt, updatedAt,
@@ -149,8 +149,9 @@ Artwork      作品
   isFavorite, isCompleted, sharedAt?
 ```
 
-- 位置只存 **geohash 前 6 碼**（約 1 公里內的範圍）與行政區名稱，**精確座標不寫入任何儲存**。
-- **行政區名稱離線查詢**：內建政府資料開放平臺的「鄉鎮市區界線」資料，在手機上直接判斷位置屬於哪個區，位置不必傳給任何服務。
+- **不使用定位**：Google Play 家庭政策不允許只給兒童用的 APP 要求位置權限。地點由小朋友自己選，見 [town-map.md](town-map.md)。
+- 目前程式裡的 `Places.district`、`Places.geohash6` 是舊設計，實作新地圖時拿掉。
+- 存照片時重新編碼，拿掉 EXIF（GPS、拍攝時間）。安全設計見 [safety-privacy.md](safety-privacy.md)。
 
 ---
 
@@ -244,4 +245,4 @@ docs/                 規劃文件
 - Flutter 3.47.8（Dart 3.13）
 - flutter_riverpod 3、go_router 18、drift 2.35、image_picker、image
 
-**尚未加入**：分享（share_plus）、定位、DexiNed 引擎移植、語音、使用時間提醒、內建著色圖庫。
+**尚未加入**：分享（share_plus）、DexiNed 引擎移植、語音、使用時間提醒、內建著色圖庫。
