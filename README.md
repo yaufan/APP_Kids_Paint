@@ -21,6 +21,7 @@
 - [視覺設計 v3：畫畫小鎮（完整版）](docs/design-v3.md)：選定方向 A 的所有畫面、流程、動畫與設計規範
 - [地圖怎麼運作](docs/town-map.md)：小朋友自己的小鎮、12 種地點、小鎮會長大、不使用定位
 - [安全與隱私設計](docs/safety-privacy.md)：資料只在手機、權限、家長關卡、安全分享、上架規定
+- [部署與安裝](docs/deployment.md)：Android 側載與 Google Play 上架、沒有 Mac 怎麼用 TestFlight 和上架 App Store
 
 ## 目前狀態
 - **第 0 階段（技術驗證）**：
