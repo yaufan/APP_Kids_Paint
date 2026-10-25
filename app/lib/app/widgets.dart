@@ -382,11 +382,14 @@ class PostcardFrame extends StatelessWidget {
       );
 }
 
-/// The original photo as a postage stamp with perforated edges.
+/// A postage stamp with perforated edges: the original photo, or a picture
+/// ([child]) for pages that were not made from a photo.
 class PhotoStamp extends StatelessWidget {
-  const PhotoStamp({super.key, required this.image, this.width = 76, this.height = 90, this.tilt = 7});
+  const PhotoStamp({super.key, this.image, this.child, this.width = 76, this.height = 90, this.tilt = 7})
+      : assert(image != null || child != null);
 
-  final ImageProvider image;
+  final ImageProvider? image;
+  final Widget? child;
   final double width;
   final double height;
   final double tilt;
@@ -404,7 +407,9 @@ class PhotoStamp extends StatelessWidget {
                 height: height,
                 color: Colors.white,
                 padding: const EdgeInsets.all(7),
-                child: Image(image: image, fit: BoxFit.cover, gaplessPlayback: true),
+                child: child == null
+                    ? Image(image: image!, fit: BoxFit.cover, gaplessPlayback: true)
+                    : ColoredBox(color: const Color(0xFFFFF1DA), child: Center(child: child)),
               ),
             ),
           ),

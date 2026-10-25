@@ -142,7 +142,7 @@ Place        地點（小朋友自己選，不存座標）
 
 Artwork      作品
   id, childId, placeId?, createdAt, updatedAt,
-  style(realistic|cute|template), detailLevel,
+  style(realistic|cute|template|blank), template?（節日著色圖）, detailLevel,
   originalPhotoPath?, lineArtPath, regionMapPath,
   coloredPath, thumbnailPath, strokesPath,
   voiceNotePath?, tags[], dominantColors[],

@@ -35,8 +35,11 @@ class Artworks extends Table {
   IntColumn get childId => integer().references(Children, #id)();
   IntColumn get placeId => integer().nullable().references(Places, #id)();
 
-  /// realistic | cute | template
+  /// realistic | cute (from a photo) | template (a built-in page) | blank (empty paper)
   TextColumn get style => text()();
+
+  /// The built-in page a template artwork was made from, e.g. a festival's name.
+  TextColumn get template => text().nullable()();
 
   /// simple | normal | detailed
   TextColumn get detail => text()();
@@ -71,7 +74,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'kids_paint'));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -92,6 +95,9 @@ class AppDatabase extends _$AppDatabase {
             await customStatement('UPDATE artworks SET sent_at = updated_at, place_id = '
                 "(SELECT id FROM places p WHERE p.child_id = artworks.child_id AND p.kind = 'home') "
                 'WHERE is_completed = 1');
+          }
+          if (from < 3) {
+            await m.addColumn(artworks, artworks.template);
           }
         },
         beforeOpen: (details) async {

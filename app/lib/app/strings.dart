@@ -9,11 +9,13 @@ abstract final class Strings {
   static String postcardsSent(int n) => '已經寄了 $n 張明信片';
   static const takePhoto = '拍照畫畫';
   static const album = '明信片冊';
-  static const templates = '主題著色本';
-  static const templatesSoon = '著色本快要做好了，先拍照畫畫吧！';
+  static const blankPaper = '白紙畫畫';
   static const switchChild = '切換小朋友';
   static const emptyTown = '小鎮還空空的，\n去拍照把它蓋起來吧！';
   static const emptyLot = '去拍照，寄到這裡就會蓋好喔！';
+  static const bedtime = '天黑了，小鎮要睡覺囉。\n畫完這張就說晚安吧！';
+  static String festivalLetter(String festival) => '$festival到了！\n咕咕送來一張著色畫';
+  static String openLetter(String festival) => '打開$festival的信';
   static String pinLabel(String place, int n) => '$place的明信片，$n 張';
   static String postcardsHere(int n) => '$n 張明信片';
   static String latest(String date) => '最近 $date';
@@ -39,6 +41,7 @@ abstract final class Strings {
   static const undo = '復原';
   static const bucket = '油漆桶';
   static const crayon = '魔法蠟筆';
+  static const paperColor = '換紙的顏色';
   static const done = '畫好了，寄出';
   static String colorName(String c) => '$c色';
 

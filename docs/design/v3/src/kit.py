@@ -177,12 +177,14 @@ ANIMAL_NAMES = {"bear": "小熊", "rabbit": "小兔", "cat": "小貓", "dog": "�
                 "fox": "狐狸", "frog": "青蛙", "penguin": "企鵝"}
 
 
-def pigeon(size=100, letter=True, flying=False, label="郵差鴿咕咕"):
+def pigeon(size=100, letter=True, flying=False, label="郵差鴿咕咕", asleep=False):
     """Gugu, the town's mail pigeon who carries finished postcards to the map."""
     wing = ('<path d="M48 54 C 38 36, 24 24, 4 22 C 9 28, 8 31, 13 34 C 8 37, 9 41, 17 43 C 13 46, 17 51, 26 52 C 24 56, 32 60, 40 60 Z" fill="#9AB0DE" stroke="#7F96C9" stroke-width="1.5" stroke-linejoin="round"/>'
             if flying else '<ellipse cx="40" cy="62" rx="17" ry="11" fill="#9AB0DE" transform="rotate(-18 40 62)"/>')
     env = ('<g transform="rotate(-10 66 76)"><rect x="54" y="68" width="26" height="18" rx="3" fill="#FFFFFF" stroke="#E6D3B3" stroke-width="1.5"/>'
            '<path d="M55 70 L67 79 L79 70" stroke="#FF5E5B" stroke-width="2" fill="none"/></g>') if letter else ""
+    eye = ('<path d="M58 36.5 Q62 40.5 66 36.5" stroke="#2A211D" stroke-width="2.4" fill="none" stroke-linecap="round"/>' if asleep
+           else '<circle cx="62" cy="37" r="3.4" fill="#2A211D"/><circle cx="63.2" cy="35.8" r="1.1" fill="#FFFFFF"/>')
     return f'''<svg width="{size}" height="{size}" viewBox="0 0 100 100" role="img" aria-label="{label}">
 <ellipse cx="50" cy="94" rx="22" ry="4" fill="#000" opacity="{0 if flying else 0.12}"/>
 <path d="M42 88 l-3 6 M48 88 l1 6 M58 88 l-1 6 M64 88 l3 6" stroke="#FF8FA8" stroke-width="3" stroke-linecap="round" opacity="{0 if flying else 1}"/>
@@ -195,7 +197,7 @@ def pigeon(size=100, letter=True, flying=False, label="郵差鴿咕咕"):
 <path d="M38 26 C 40 14, 70 12, 74 24 L 76 28 L 38 30 Z" fill="#FF5E5B"/>
 <rect x="37" y="27" width="40" height="5" rx="2.5" fill="#D9423F"/>
 <circle cx="57" cy="20" r="3" fill="#FFC94A"/>
-<circle cx="62" cy="37" r="3.4" fill="#2A211D"/><circle cx="63.2" cy="35.8" r="1.1" fill="#FFFFFF"/>
+{eye}
 <path d="M71 39 L82 42 L71 45 Z" fill="#FFB020"/>
 <ellipse cx="60" cy="45" rx="4" ry="2.4" fill="#FF9AA8" opacity="0.8"/>
 <path d="M34 56 L74 78" stroke="#FFC94A" stroke-width="5" stroke-linecap="round"/>

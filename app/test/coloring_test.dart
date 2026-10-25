@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kids_paint/features/canvas/coloring.dart';
 import 'package:kids_paint/features/lineart/region_map.dart';
@@ -44,5 +46,17 @@ void main() {
       ..add(CrayonOp(regions.labelAt(32, 32), red, 3, [(x: 30, y: 30), (x: 34, y: 34)]));
     final reloaded = ColoringDocument(regions, ColoringDocument.decodeOps(doc.encodeOps()));
     expect(reloaded.rgba, doc.rgba);
+  });
+
+  test('blank paper: the bucket colors the paper behind the drawing, and undo brings it back', () {
+    final blank = RegionMap(20, 20, Uint16List(400)..fillRange(0, 400, 1));
+    final doc = ColoringDocument(blank)..add(CrayonOp(1, red, 2, [(x: 5, y: 5), (x: 15, y: 5)]));
+    doc.add(const PaperOp(blue));
+    expect(doc.colorAt(10, 5), red, reason: 'the crayon stays on top');
+    expect(doc.colorAt(10, 15), blue);
+    final reloaded = ColoringDocument(blank, ColoringDocument.decodeOps(doc.encodeOps()));
+    expect(reloaded.rgba, doc.rgba);
+    doc.undo();
+    expect(doc.colorAt(10, 15), white);
   });
 }

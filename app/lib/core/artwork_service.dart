@@ -31,6 +31,10 @@ class ArtworkService {
 
   static const thumbnailSize = 320;
 
+  /// Size of a blank sheet of paper.
+  static const blankWidth = 600, blankHeight = 800;
+
+  /// A page made from a photo.
   Future<Artwork> saveNew({
     required int childId,
     required Uint8List photo,
@@ -41,10 +45,37 @@ class ArtworkService {
     final folder = ArtworkStore.newFolderName();
     final files = await _store.create(folder);
     await files.photo.writeAsBytes(await Isolate.run(() => withoutMetadata(photo)));
+    await _writePage(files, page);
+    return _repo.create(childId: childId, style: style.name, detail: detail.name, folder: folder);
+  }
+
+  /// A page made from a built-in drawing ([png]: black lines on white),
+  /// such as a festival page.
+  Future<Artwork> saveTemplate({required int childId, required String template, required Uint8List png}) async {
+    final page = await Isolate.run(() => lineArtFromPng(png));
+    final folder = ArtworkStore.newFolderName();
+    await _writePage(await _store.create(folder), page);
+    return _repo.create(childId: childId, style: 'template', detail: DetailLevel.simple.name, folder: folder, template: template);
+  }
+
+  /// An empty sheet: no lines, one region, so the crayon goes anywhere.
+  Future<Artwork> saveBlank({required int childId}) async {
+    const n = blankWidth * blankHeight;
+    final page = LineArt(
+      width: blankWidth,
+      height: blankHeight,
+      lines: Uint8List(n)..fillRange(0, n, 255),
+      regions: RegionMap(blankWidth, blankHeight, Uint16List(n)..fillRange(0, n, 1)),
+    );
+    final folder = ArtworkStore.newFolderName();
+    await _writePage(await _store.create(folder), page);
+    return _repo.create(childId: childId, style: 'blank', detail: DetailLevel.simple.name, folder: folder);
+  }
+
+  Future<void> _writePage(ArtworkFiles files, LineArt page) async {
     final (w, h, lines) = (page.width, page.height, page.lines);
     await files.lines.writeAsBytes(await Isolate.run(() => encodeGrayPng(lines, w, h)));
     await files.regions.writeAsBytes(page.regions.encode());
-    return _repo.create(childId: childId, style: style.name, detail: detail.name, folder: folder);
   }
 
   Future<LoadedPage> load(int artworkId) async {
@@ -97,6 +128,18 @@ Uint8List withoutMetadata(Uint8List photo) {
   if (image == null) return photo;
   final upright = img.bakeOrientation(image)..exif = img.ExifData();
   return img.encodeJpg(upright, quality: 90);
+}
+
+/// A coloring page from a PNG drawing: its gray lines and fill regions.
+LineArt lineArtFromPng(Uint8List png) {
+  final image = img.decodePng(png)!;
+  final lines = decodeGrayPng(png);
+  return LineArt(
+    width: image.width,
+    height: image.height,
+    lines: lines,
+    regions: RegionMap.fromLines(lines, image.width, image.height),
+  );
 }
 
 Uint8List encodeGrayPng(Uint8List gray, int width, int height) {

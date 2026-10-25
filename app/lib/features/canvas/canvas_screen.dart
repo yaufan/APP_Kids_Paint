@@ -13,13 +13,16 @@ import '../../app/widgets.dart';
 import '../../core/artwork_service.dart';
 import '../../core/places.dart';
 import '../../core/providers.dart';
+import 'artwork_stamp.dart';
 import 'coloring.dart';
 import 'page_image.dart';
 
 enum Tool { bucket, crayon }
 
 /// Coloring a postcard: bucket fill (the default) and a crayon that never
-/// leaves the region it started in. Everything autosaves; "done" sends it.
+/// leaves the region it started in. On blank paper the crayon (the default
+/// there) goes anywhere and the bucket colors the paper behind the drawing.
+/// Everything autosaves; "done" sends it.
 class CanvasScreen extends ConsumerStatefulWidget {
   const CanvasScreen({super.key, required this.artworkId});
 
@@ -42,6 +45,8 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
 
   ArtworkService get _service => ref.read(artworkServiceProvider);
 
+  bool get _blank => _page?.artwork.style == 'blank';
+
   @override
   void initState() {
     super.initState();
@@ -56,6 +61,7 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
     setState(() {
       _page = page;
       _lines = lines;
+      if (_blank) _tool = Tool.crayon;
     });
     _refreshColors();
   }
@@ -123,7 +129,6 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
         final doc = page.document;
         final scale = math.min((box.maxWidth - 2 * pad - 24) / doc.width, (box.maxHeight - 2 * pad - 24) / doc.height);
         final w = doc.width * scale, h = doc.height * scale;
-        final photo = ref.read(artworkStoreProvider).open(page.artwork.folder).photo;
         final avatar = ref.watch(currentChildProvider).value?.avatar ?? animals.first;
         return Center(
           child: SizedBox(
@@ -143,6 +148,11 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
                     child: GestureDetector(
                       onTapUp: _tool == Tool.bucket
                           ? (d) {
+                              if (_blank) {
+                                doc.add(PaperOp(_color));
+                                _changed();
+                                return;
+                              }
                               final p = _toPage(d.localPosition, scale);
                               if (doc.fill(p.x, p.y, _color)) _changed();
                             }
@@ -180,7 +190,7 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
                   ),
                 ),
               ),
-              Positioned(right: -6, top: -10, child: PhotoStamp(image: FileImage(photo), width: 72, height: 86)),
+              Positioned(right: -6, top: -10, child: ArtworkStamp(artwork: page.artwork, width: 72, height: 86)),
               Positioned(right: 26, top: 38, child: Postmark(shortDate(page.artwork.createdAt).replaceAll('/', '.'), size: 52)),
               Positioned(left: -6, bottom: -14, child: Transform.rotate(angle: -0.14, child: AnimalArt(avatar, size: 58))),
             ]),
@@ -207,7 +217,7 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
           : null,
     );
     final tools = Row(mainAxisSize: MainAxisSize.min, children: [
-      _ToolTile(label: Strings.bucket, selected: _tool == Tool.bucket, tint: const Color(0xFFFFE6E5),
+      _ToolTile(label: _blank ? Strings.paperColor : Strings.bucket, selected: _tool == Tool.bucket, tint: const Color(0xFFFFE6E5),
           onTap: () => setState(() => _tool = Tool.bucket), child: ToolArt(Art.bucket, color: color)),
       const SizedBox(width: 12),
       _ToolTile(label: Strings.crayon, selected: _tool == Tool.crayon, tint: const Color(0xFFFFF1D9),

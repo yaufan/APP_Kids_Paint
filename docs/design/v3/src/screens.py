@@ -32,6 +32,16 @@ def mini_book(size=46):
 <rect x="20" y="33" width="14" height="3" rx="1.5" fill="#FFFFFF" opacity=".8"/></svg>'''
 
 
+def mini_paper(size=46):
+    """A blank sheet with a scribble and a crayon: draw on empty paper."""
+    return f'''<svg width="{size}" height="{size}" viewBox="0 0 46 46" aria-hidden="true">
+<g transform="rotate(-8 23 23)"><rect x="8" y="6" width="28" height="34" rx="3.5" fill="#FFFFFF" stroke="#C9D6E3" stroke-width="1.6"/>
+<path d="M13 30 C 16 20, 20 34, 24 22 S 30 26, 31 18" stroke="#FF5E5B" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+<path d="M13 14 q4 -4 8 0" stroke="#4DA8FF" stroke-width="2.4" fill="none" stroke-linecap="round"/></g>
+<g transform="rotate(38 35 28)"><rect x="31.5" y="14" width="7" height="20" rx="2" fill="#FFC94A" stroke="#E0A21C" stroke-width="1"/>
+<path d="M31.5 34 L35 41 L38.5 34 Z" fill="#F3C9A0"/><path d="M34 39 L35 41 L36 39 Z" fill="#E0A21C"/></g></svg>'''
+
+
 def hud(child="bear", name="小熊", count=12, dark=False):
     return f'''<button aria-label="切換小朋友" class="abs center" style="left:14px;top:14px;height:56px;padding:0 16px 0 5px;gap:8px;border-radius:28px;background:#FFFFFF;box-shadow:0 6px 14px rgba(30,60,40,.22)">
 <span class="center" style="width:46px;height:46px;border-radius:50%;background:#FFF1DA">{animal(child, 40)}</span>

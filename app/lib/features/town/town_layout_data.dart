@@ -25,3 +25,9 @@ const townSlots = <String, ({Offset pin, Rect? lot, bool building})>{
 
 /// Back to front.
 const townLayerOrder = ['home', 'school', 'park', 'shop', 'food', 'temple', 'zoo', 'grandma', 'travel'];
+
+/// Festivals with a decoration layer (`festival_<name>_<phase>.svg`).
+const townFestivalLayers = {'lunarNewYear', 'lantern', 'childrensDay', 'dragonBoat', 'midAutumn', 'christmas', 'newYearsEve'};
+
+/// The tip of Taipei 101, where the New Year's Eve fireworks go up.
+const townTowerTop = Offset(537, 396);

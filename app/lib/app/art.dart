@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../core/festivals.dart';
 import '../core/places.dart';
+import '../core/town_time.dart';
 
 /// The app's drawings (design v3), all vector art made for this app in
 /// docs/design/v3/src and exported with `export_art.py`.
@@ -12,14 +14,20 @@ abstract final class Art {
   static String icon(String name, {bool solid = false}) => '$_dir/icons/$name${solid ? '_solid' : ''}.svg';
   static String place(PlaceKind kind) => '$_dir/places/${kind.name}.svg';
   static String animal(String kind) => '$_dir/animals/${animals.contains(kind) ? kind : animals.first}.svg';
-  static String town(String layer) => '$_dir/town/$layer.svg';
+  static String town(String layer, DayPhase phase) => '$_dir/town/${layer}_${phase.name}.svg';
+  static String festival(Festival f) => '$_dir/festivals/${f.name}.svg';
+
+  /// A festival's coloring page: black lines on white.
+  static String page(Festival f) => 'assets/pages/${f.name}.png';
 
   static const pigeon = '$_dir/pigeon.svg';
   static const pigeonFlying = '$_dir/pigeon_flying.svg';
   static const pigeonFlyingLetter = '$_dir/pigeon_flying_letter.svg';
+  static const pigeonAsleep = '$_dir/pigeon_asleep.svg';
   static const logo = '$_dir/logo.svg';
   static const miniAlbum = '$_dir/ui/mini_album.svg';
   static const miniBook = '$_dir/ui/mini_book.svg';
+  static const miniPaper = '$_dir/ui/mini_paper.svg';
   static const bucket = '$_dir/tools/bucket.svg';
   static const crayon = '$_dir/tools/crayon.svg';
 }

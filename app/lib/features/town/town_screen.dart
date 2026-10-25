@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -10,15 +11,19 @@ import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../core/db/database.dart';
+import '../../core/festivals.dart';
 import '../../core/places.dart';
 import '../../core/providers.dart';
 import '../../core/repositories.dart';
+import '../../core/town_time.dart';
 import '../parent/parent_gate.dart';
 import 'place_sheet.dart';
 import 'town_map.dart';
 
 /// Home: the child's town. Postcards are pinned where they were sent; the
-/// big camera button starts a new picture.
+/// big camera button starts a new picture, the paper a free drawing. The
+/// town follows the clock (day, dusk, night) and Taiwan's festivals, when
+/// Gugu brings a festival's coloring page.
 class TownScreen extends ConsumerStatefulWidget {
   const TownScreen({super.key, this.focus, this.grow});
 
@@ -36,11 +41,59 @@ class _TownScreenState extends ConsumerState<TownScreen> {
   String? _bubble;
   Timer? _bubbleTimer;
 
+  /// Redraws when the time of day changes while the town is open.
+  Timer? _tick;
+  bool _opening = false;
+
+  /// The evening Gugu last said good night, once per evening.
+  static DateTime? _saidGoodnight;
+
+  @override
+  void initState() {
+    super.initState();
+    _tick = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) setState(() {});
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final now = ref.read(clockProvider)();
+      final today = DateTime(now.year, now.month, now.day);
+      if (mounted && widget.focus == null && dayPhaseAt(now) == DayPhase.night && _saidGoodnight != today) {
+        _saidGoodnight = today;
+        _say(Strings.bedtime);
+      }
+    });
+  }
+
   @override
   void dispose() {
     _bubbleTimer?.cancel();
+    _tick?.cancel();
     super.dispose();
   }
+
+  /// Opens a new page ([make] saves it) on the canvas; one at a time.
+  Future<void> _open(Future<Artwork> Function() make) async {
+    if (_opening) return;
+    setState(() => _opening = true);
+    try {
+      final artwork = await make();
+      // Not awaited: the canvas leaves with go('/'), which never completes a push.
+      if (mounted) unawaited(context.push('/canvas/${artwork.id}'));
+    } finally {
+      if (mounted) setState(() => _opening = false);
+    }
+  }
+
+  Future<void> _openBlank(int childId) => _open(() => ref.read(artworkServiceProvider).saveBlank(childId: childId));
+
+  Future<void> _openFestivalPage(int childId, Festival festival) => _open(() async {
+        final png = await rootBundle.load(Art.page(festival));
+        return ref.read(artworkServiceProvider).saveTemplate(
+              childId: childId,
+              template: festival.name,
+              png: png.buffer.asUint8List(png.offsetInBytes, png.lengthInBytes),
+            );
+      });
 
   void _say(String text) {
     _bubbleTimer?.cancel();
@@ -76,10 +129,20 @@ class _TownScreenState extends ConsumerState<TownScreen> {
   Widget build(BuildContext context) {
     final child = ref.watch(currentChildProvider).value;
     final postcards = child == null ? const <Postcard>[] : ref.watch(postcardsProvider(child.id)).value ?? const [];
-    final spots = townSpots(postcards, DateTime.now());
+    final now = ref.watch(clockProvider)();
+    final spots = townSpots(postcards, now);
     final store = ref.watch(artworkStoreProvider);
     final avatar = child?.avatar ?? animals.first;
     final name = animalNames[avatar] ?? '';
+    final festival = festivalOn(now);
+    // Gugu brings the festival's page until the child opens it.
+    final letter = child != null &&
+            festival != null &&
+            festival.festival.hasPage &&
+            ref.watch(festivalPageOpenedProvider((childId: child.id, festival: festival.festival, since: festival.first))).value == false
+        ? festival.festival
+        : null;
+    final bubble = _bubble ?? (letter != null ? Strings.festivalLetter(letter.label) : (child != null && postcards.isEmpty ? Strings.emptyTown : null));
 
     return Scaffold(
       body: Stack(children: [
@@ -90,6 +153,8 @@ class _TownScreenState extends ConsumerState<TownScreen> {
             avatar: avatar,
             focus: widget.focus,
             grow: widget.grow,
+            phase: dayPhaseAt(now),
+            festival: festival?.festival,
             onPin: (kind) => _openPlace(kind, postcards),
             onLot: (_) => _say(Strings.emptyLot),
           ),
@@ -113,12 +178,21 @@ class _TownScreenState extends ConsumerState<TownScreen> {
                 top: 88,
                 child: Center(child: PopIn(delay: const Duration(milliseconds: 500), child: _NewPlaceBanner(kind: widget.grow!))),
               ),
-            if (_bubble != null || (child != null && postcards.isEmpty))
+            if (bubble != null)
               Positioned(
                 left: 24,
                 right: 24,
                 bottom: 190,
-                child: Center(child: PopIn(child: VoiceBubble(_bubble ?? Strings.emptyTown))),
+                child: Center(child: PopIn(key: ValueKey(bubble), child: VoiceBubble(bubble))),
+              ),
+            if (letter != null)
+              Positioned(
+                right: 18,
+                bottom: 284,
+                child: PopIn(
+                  delay: const Duration(milliseconds: 400),
+                  child: _FestivalLetter(festival: letter, onTap: () => _openFestivalPage(child!.id, letter)),
+                ),
               ),
             Positioned(
               left: 14,
@@ -127,7 +201,7 @@ class _TownScreenState extends ConsumerState<TownScreen> {
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 520),
-                  child: _Dock(onTemplates: () => _say(Strings.templatesSoon)),
+                  child: _Dock(onPaper: child == null ? null : () => _openBlank(child.id)),
                 ),
               ),
             ),
@@ -251,11 +325,49 @@ class _NewPlaceBanner extends StatelessWidget {
   }
 }
 
-/// The album, the big camera button and the coloring book.
-class _Dock extends StatelessWidget {
-  const _Dock({required this.onTemplates});
+/// Gugu with a festival's letter: tap it to color that festival's page.
+class _FestivalLetter extends StatelessWidget {
+  const _FestivalLetter({required this.festival, required this.onTap});
 
-  final VoidCallback onTemplates;
+  final Festival festival;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        button: true,
+        label: Strings.openLetter(festival.label),
+        excludeSemantics: true,
+        child: Pressable(
+          onTap: onTap,
+          child: Breathing(
+            child: SizedBox(
+              width: 104,
+              height: 104,
+              child: Stack(clipBehavior: Clip.none, children: [
+                const ArtSvg(Art.pigeon, size: 96),
+                Positioned(
+                  right: -6,
+                  top: -6,
+                  child: Container(
+                    width: 50,
+                    height: 50,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: KidShadows.soft()),
+                    child: ArtSvg(Art.festival(festival), size: 38),
+                  ),
+                ),
+              ]),
+            ),
+          ),
+        ),
+      );
+}
+
+/// The album, the big camera button and blank paper.
+class _Dock extends StatelessWidget {
+  const _Dock({required this.onPaper});
+
+  final VoidCallback? onPaper;
 
   @override
   Widget build(BuildContext context) {
@@ -269,7 +381,7 @@ class _Dock extends StatelessWidget {
           child: Row(children: [
             _DockTile(label: Strings.album, art: Art.miniAlbum, color: const Color(0xFFE8F3FF), onTap: () => context.push('/album')),
             const Spacer(),
-            _DockTile(label: Strings.templates, art: Art.miniBook, color: const Color(0xFFFFEAF1), onTap: onTemplates),
+            _DockTile(label: Strings.blankPaper, art: Art.miniPaper, color: const Color(0xFFFFF3D6), onTap: onPaper),
           ]),
         ),
         Positioned(
@@ -312,7 +424,7 @@ class _DockTile extends StatelessWidget {
   final String label;
   final String art;
   final Color color;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) => Semantics(

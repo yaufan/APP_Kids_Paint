@@ -12,6 +12,7 @@ import '../../app/widgets.dart';
 import '../../core/db/database.dart';
 import '../../core/places.dart';
 import '../../core/providers.dart';
+import '../canvas/artwork_stamp.dart';
 
 /// "Sent!": the postcard gets its postmark, confetti flies and Gugu takes it
 /// to the map. Goes back to the town by itself.
@@ -96,7 +97,7 @@ class _SentScreenState extends ConsumerState<SentScreen> with SingleTickerProvid
                               ),
                             ),
                           ),
-                          Positioned(right: -6, top: 10, child: PhotoStamp(image: FileImage(store.open(art.folder).photo), width: 62, height: 74)),
+                          Positioned(right: -6, top: 10, child: ArtworkStamp(artwork: art, width: 62, height: 74)),
                           Positioned(left: -14, bottom: 0, child: _SentStamp(date: art.sentAt ?? DateTime.now())),
                         ]),
                       ),

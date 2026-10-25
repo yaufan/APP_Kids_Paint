@@ -10,6 +10,7 @@ import 'package:image/image.dart' as img;
 import 'package:kids_paint/app/app.dart';
 import 'package:kids_paint/app/strings.dart';
 import 'package:kids_paint/core/db/database.dart';
+import 'package:kids_paint/core/festivals.dart';
 import 'package:kids_paint/core/places.dart';
 import 'package:kids_paint/core/providers.dart';
 import 'package:kids_paint/core/storage/artwork_store.dart';
@@ -22,6 +23,10 @@ typedef Shot = Future<void> Function(String name);
 
 /// Wraps the app so a screenshot can be taken from the widget tree.
 final walkthroughKey = GlobalKey();
+
+/// The app's clock during the walk-through: a weekday morning, later
+/// Christmas Eve night and an autumn dusk.
+var walkthroughNow = DateTime(2026, 10, 26, 10, 30);
 
 /// The whole app as a child (and then a parent) uses it, with a screenshot
 /// of every step. Shared by `test/flow_test.dart` (headless phone and tablet)
@@ -38,6 +43,7 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
         databaseProvider.overrideWithValue(db),
         artworkStoreProvider.overrideWithValue(ArtworkStore(storeDir!)),
         lineArtEngineProvider.overrideWithValue(const SimpleLineArtEngine(size: 768)),
+        clockProvider.overrideWithValue(() => walkthroughNow),
       ],
       child: const KidsPaintApp(),
     ),
@@ -142,6 +148,66 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   await waitFor(tester, find.text(Strings.allOnPhone));
   await idle(tester, 500);
   await shot('13_privacy');
+
+  // 10. Christmas Eve night: the town is lit, Gugu says good night and brings
+  //     a letter with the Christmas page.
+  walkthroughNow = DateTime(2026, 12, 24, 19, 30);
+  GoRouter.of(tester.element(find.text(Strings.allOnPhone))).go('/');
+  final letter = find.bySemanticsLabel(Strings.openLetter(Festival.christmas.label));
+  await waitFor(tester, letter);
+  await idle(tester, 1200);
+  await shot('14_town_night');
+  await tester.tap(letter);
+  await waitFor(tester, find.byKey(const ValueKey('page')));
+  await idle(tester, 600);
+  final page = tester.getRect(find.byKey(const ValueKey('page')));
+  for (final (color, dx, dy) in [(kidPalette[3], 0.5, 0.45), (kidPalette[2], 0.5, 0.1), (kidPalette[0], 0.25, 0.9)]) {
+    await tester.tap(find.byKey(ValueKey('swatch-$color')));
+    await tester.pump();
+    await tester.tapAt(page.topLeft + Offset(page.width * dx, page.height * dy));
+    await idle(tester, 500);
+  }
+  await idle(tester);
+  await shot('15_festival_page');
+
+  // 11. Blank paper at dusk: scribble with the crayon, then color the paper.
+  walkthroughNow = DateTime(2026, 10, 26, 17, 30);
+  await tester.tap(find.bySemanticsLabel(Strings.backToMap));
+  await waitFor(tester, find.bySemanticsLabel(Strings.blankPaper));
+  await idle(tester, 800);
+  await tester.tap(find.bySemanticsLabel(Strings.blankPaper));
+  await waitFor(tester, find.bySemanticsLabel(Strings.paperColor));
+  await waitFor(tester, find.byKey(const ValueKey('page')));
+  await idle(tester, 600);
+  final paper = tester.getRect(find.byKey(const ValueKey('page')));
+  for (final (color, y) in [(kidPalette[5], 0.3), (kidPalette[0], 0.5), (kidPalette[3], 0.7)]) {
+    await tester.tap(find.byKey(ValueKey('swatch-$color')));
+    await tester.pump();
+    final from = paper.topLeft + Offset(paper.width * 0.15, paper.height * y);
+    final stroke = await tester.startGesture(from);
+    for (var i = 1; i <= 14; i++) {
+      await stroke.moveTo(from + Offset(i * paper.width * 0.05, (i.isEven ? -1 : 1) * paper.height * 0.04));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await stroke.up();
+    await tester.pump();
+  }
+  await tester.tap(find.bySemanticsLabel(Strings.paperColor));
+  await tester.tap(find.byKey(ValueKey('swatch-${kidPalette[2]}')));
+  await tester.pump();
+  await tester.tapAt(paper.center);
+  await idle(tester);
+  await shot('16_blank_paper');
+
+  // 12. Send it home; back in town at dusk.
+  await tester.tap(find.bySemanticsLabel(Strings.done));
+  final home = find.bySemanticsLabel(Strings.sendTo(PlaceKind.home.label));
+  await waitFor(tester, home);
+  await idle(tester, 600);
+  await tester.tap(home);
+  await waitFor(tester, find.bySemanticsLabel(Strings.pinLabel(PlaceKind.home.label, 1)));
+  await idle(tester, 2000);
+  await shot('17_town_dusk');
 
   // Unmount so drift's stream queries shut down before the test ends.
   await tester.pumpWidget(const SizedBox());

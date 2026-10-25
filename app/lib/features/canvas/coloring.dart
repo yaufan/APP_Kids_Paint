@@ -40,6 +40,7 @@ sealed class PaintOp {
             (json['radius'] as num).toDouble(),
             [for (final p in json['points'] as List) (x: (p[0] as num).toDouble(), y: (p[1] as num).toDouble())],
           ),
+        'paper' => PaperOp(json['color'] as int),
         _ => throw FormatException('unknown paint op ${json['type']}'),
       };
 }
@@ -52,6 +53,15 @@ class FillOp extends PaintOp {
 
   @override
   Map<String, Object> toJson() => {'type': 'fill', 'region': region, 'color': color};
+}
+
+/// Blank paper's bucket: the paper itself changes color, behind everything
+/// already drawn on it.
+class PaperOp extends PaintOp {
+  const PaperOp(super.color);
+
+  @override
+  Map<String, Object> toJson() => {'type': 'paper', 'color': color};
 }
 
 typedef PagePoint = ({double x, double y});
@@ -102,8 +112,15 @@ class ColoringDocument {
 
   void add(PaintOp op) {
     ops.add(op);
-    _apply(op);
+    if (op is PaperOp) {
+      rebuild();
+    } else {
+      _apply(op);
+    }
   }
+
+  /// The paper's color: white unless blank paper was recolored.
+  int get paper => ops.whereType<PaperOp>().lastOrNull?.color ?? 0xFFFFFFFF;
 
   void undo() {
     if (ops.isEmpty) return;
@@ -112,7 +129,10 @@ class ColoringDocument {
   }
 
   void rebuild() {
-    rgba.fillRange(0, rgba.length, 255);
+    final paper = this.paper;
+    for (var i = 0; i < rgba.length ~/ 4; i++) {
+      _set(i, paper);
+    }
     for (final op in ops) {
       _apply(op);
     }
@@ -133,6 +153,8 @@ class ColoringDocument {
         }
       case CrayonOp():
         applyStroke(op, 0);
+      case PaperOp():
+        break; // drawn first, by rebuild()
     }
   }
 

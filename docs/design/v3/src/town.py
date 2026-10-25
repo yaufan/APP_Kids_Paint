@@ -7,9 +7,9 @@ first postcard arrives), so the app can stack only what a child has built.
 
     python3 town.py export   # writes app/assets/art/town/*.svg and town_layout_data.dart
 """
-import json
 import math
 import pathlib
+import re
 import sys
 
 from kit import (CORAL, box, car, cloud, duck, empty_lot, flower_patch, ROOF, shade, tower101, tree, _poly)
@@ -18,7 +18,6 @@ W, H = 780, 1060
 OX = 195  # left edge of the designed column
 
 DEFS = ('<defs>'
-        '<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7CCBFF"/><stop offset="1" stop-color="#D4F0FF"/></linearGradient>'
         '<linearGradient id="mtB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8FD49D"/><stop offset="1" stop-color="#B5E5B6"/></linearGradient>'
         '<linearGradient id="mtF" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5FBF72"/><stop offset="1" stop-color="#8ED48E"/></linearGradient>'
         '<linearGradient id="river" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5CC0F5"/><stop offset="1" stop-color="#8ED8FF"/></linearGradient>'
@@ -28,6 +27,51 @@ DEFS = ('<defs>'
 
 ROOF.update({"#FFF4E2": CORAL, "#FFE7A3": "#6F86FF", "#E3F6E8": "#3FB37A", "#FFE3EA": "#FF8FB1",
              "#E8EEFF": "#7C6CFF", "#E8836B": "#5E7290", "#F3F6FA": "#4DA8FF"})
+
+
+# ---------------------------------------------------------------- time of day
+
+PHASES = ("day", "dusk", "night")
+PHASE = "day"  # the time of day being drawn; places add their lights at night
+
+# At dusk and night every color is recolored, channel by channel, to
+# c * scale + offset. Windows light up instead, and LIGHTS (lamps, the moon,
+# lanterns) keep their color so they glow.
+TINT = {"dusk": ((0.95, 0.82, 0.74), (14, 6, 16)), "night": ((0.27, 0.34, 0.47), (16, 24, 58))}
+WINDOWS = {"#A9E0FF", "#E8F6FF"}
+LIT_WINDOW = {"dusk": "#FFEDC2", "night": "#FFD86B"}
+MOON = "#FFF3C2"
+LANTERN, LANTERN_GOLD = "#FF4B4B", "#FFCF3F"
+BULB_GREEN, BULB_BLUE = "#6BE38A", "#6FC3FF"
+LIGHTS = {"#FFD86B", "#FFEDC2", MOON, LANTERN, LANTERN_GOLD, BULB_GREEN, BULB_BLUE}
+
+
+def tint(svg_text, phase):
+    """The drawing as it looks at [phase]."""
+    if phase not in TINT:
+        return svg_text
+    (kr, kg, kb), (cr, cg, cb) = TINT[phase]
+
+    def recolor(m):
+        h = m.group(0).upper()
+        if len(h) == 4:
+            h = "#" + "".join(ch * 2 for ch in h[1:])
+        if h in LIGHTS:
+            return h
+        if h in WINDOWS:
+            return LIT_WINDOW[phase]
+        r, g, b = (int(h[i:i + 2], 16) for i in (1, 3, 5))
+        return "#%02X%02X%02X" % tuple(min(255, round(v * k + c)) for v, k, c in ((r, kr, cr), (g, kg, cg), (b, kb, cb)))
+
+    return re.sub(r"#[0-9A-Fa-f]{6}\b|#[0-9A-Fa-f]{3}\b", recolor, svg_text)
+
+
+def glow(cx, cy, r=12, color=MOON):
+    """A soft halo, drawn only at night."""
+    if PHASE != "night":
+        return ""
+    return (f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{color}" opacity=".16"/>'
+            f'<circle cx="{cx}" cy="{cy}" r="{r * 0.55:.1f}" fill="{color}" opacity=".26"/>')
 
 
 def mid(*parts):
@@ -72,16 +116,47 @@ def house(x, y, color, w=34, h=30):
 # ---------------------------------------------------------------- layers
 
 def base():
-    s = [DEFS, f'<rect width="{W}" height="230" fill="url(#sky)"/>']
+    """Sky and land together, as the mockups draw them."""
+    return sky("day") + land()
+
+
+def sky(phase="day"):
+    """The sky with the sun (or the moon and stars) and clouds; one per time of day."""
+    stops = {
+        "day": [(0, "#7CCBFF"), (1, "#D4F0FF")],
+        "dusk": [(0, "#8C84D4"), (0.55, "#FF9F8A"), (1, "#FFD9A3")],
+        "night": [(0, "#141E46"), (1, "#3B4C8A")],
+    }[phase]
+    s = ['<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">'
+         + "".join(f'<stop offset="{o}" stop-color="{c}"/>' for o, c in stops) + '</linearGradient></defs>',
+         f'<rect width="{W}" height="236" fill="url(#sky)"/>']
+    if phase == "day":
+        s.append(mid('<g transform="translate(316 92)"><circle r="34" fill="#FFE27A" opacity=".35"/><circle r="22" fill="#FFD23F"/></g>'))
+    elif phase == "dusk":
+        s.append(mid('<g transform="translate(300 116)"><circle r="46" fill="#FFB47A" opacity=".45"/><circle r="28" fill="#FF8A4C"/></g>'))
+    else:
+        for i in range(46):  # stars, scattered the same way every time
+            x = (i * 137.5) % W
+            y = 14 + (i * 71.3) % 176
+            r = 1.1 + (i % 3) * 0.55
+            s.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r:.2f}" fill="{MOON}" opacity="{0.55 + (i % 4) * 0.12:.2f}"/>')
+        s.append(mid(f'<g transform="translate(316 92)"><circle r="40" fill="{MOON}" opacity=".12"/><circle r="28" fill="{MOON}" opacity=".16"/>'
+                     f'<circle r="20" fill="{MOON}"/><circle cx="9" cy="-7" r="17" fill="#22305F"/></g>'))
+    clouds = (cloud(40, 110, 0.8) + cloud(640, 70, 0.9) + cloud(700, 140, 0.6, 0.9)
+              + mid(cloud(30, 86, 0.9), cloud(196, 118, 0.7, 0.9)))
+    s.append(f'<g opacity="{0.55 if phase == "night" else 1}">{tint(clouds, phase)}</g>')
+    return "".join(s)
+
+
+def land():
+    """Everything below the sky: mountains, river, roads, the MRT, scenery."""
+    s = [DEFS]
     # mountains: wings first, then the designed column
     s.append('<path d="M0 176 C 50 128, 120 128, 188 196 L188 232 L0 232 Z" fill="url(#mtB)"/>')
     s.append('<path d="M592 160 C 650 116, 720 120, 780 158 L780 232 L592 232 Z" fill="url(#mtB)"/>')
     s.append('<path d="M0 204 C 60 172, 130 178, 188 214 L188 236 L0 236 Z" fill="url(#mtF)"/>')
     s.append('<path d="M592 186 C 650 166, 720 160, 780 182 L780 236 L592 236 Z" fill="url(#mtF)"/>')
-    s.append(cloud(40, 110, 0.8) + cloud(640, 70, 0.9) + cloud(700, 140, 0.6, 0.9))
     s.append(mid(
-        '<g transform="translate(316 92)"><circle r="34" fill="#FFE27A" opacity=".35"/><circle r="22" fill="#FFD23F"/></g>',
-        cloud(30, 86, 0.9), cloud(196, 118, 0.7, 0.9),
         '<path d="M-10 196 C 30 150, 60 140, 96 168 C 120 128, 168 112, 214 158 C 250 130, 300 118, 400 160 L400 230 L-10 230 Z" fill="url(#mtB)"/>',
         '<path d="M-10 214 C 40 176, 90 172, 130 196 C 170 168, 220 166, 262 192 C 300 170, 350 164, 400 186 L400 236 L-10 236 Z" fill="url(#mtF)"/>',
         '<path d="M150 182 L 286 132 L 400 120" stroke="#5E6F86" stroke-width="1.6" fill="none"/>',
@@ -132,9 +207,23 @@ def base():
                  '<path d="M244 290 Q298 262 352 290 Z" fill="#7CC6FF" stroke="#4E9AD6" stroke-width="1.4"/>'
                  '<circle cx="298" cy="303" r="7" fill="#FFFFFF" stroke="#4DA8FF" stroke-width="2.2"/><path d="M294 303 h8" stroke="#4DA8FF" stroke-width="2.2"/>'))
     # trees that belong to no place, the tower, and the wings' own houses
-    s.append(mid(tree(26, 414, 12), tree(178, 400, 11, "#58C46B"), tree(372, 430, 11), tower101(320, 626),
+    s.append(mid(tree(26, 414, 12), tree(178, 400, 11, "#58C46B"), tree(372, 430, 11), tower101(320, 626), tower_lights(320, 626), glow(298, 303, 18),
                  tree(30, 1030, 12), tree(200, 1040, 10, "#58C46B", "pine"), tree(380, 1030, 12)))
     s.append(wings())
+    return "".join(s)
+
+
+def tower_lights(tx, ty):
+    """Taipei 101 lit up at night (same geometry as kit.tower101)."""
+    if PHASE != "night":
+        return ""
+    s = []
+    for i in range(6):
+        yb = ty - 26 - i * 26
+        s.append(f'<path d="M{tx + 6} {yb - 9} H{tx + 38}" stroke="{MOON}" stroke-width="2.4"/>')
+        s.append(f'<path d="M{tx + 8} {yb - 18} H{tx + 37}" stroke="{MOON}" stroke-width="1.4" opacity=".55"/>')
+    top = ty - 26 - 6 * 26
+    s.append(glow(tx + 22, top - 48, 16) + f'<circle cx="{tx + 22}" cy="{top - 48}" r="4" fill="{MOON}"/>')
     return "".join(s)
 
 
@@ -165,10 +254,27 @@ def wings():
     return "".join(s)
 
 
+# (x, y, color, kind, facing left, in the designed column)
+CARS = [(60, 452, "#FFD23F", "car", False, True), (300, 446, CORAL, "car", True, True),
+        (150, 658, "#4DA8FF", "scooter", False, True), (206, 560, "#7BD389", "bus", False, True),
+        (330, 658, "#FF8FB1", "scooter", True, True), (110, 864, "#7C6CFF", "car", False, True),
+        (80, 452, "#FF8A3D", "car", False, False), (700, 656, "#4DA8FF", "car", True, False),
+        (640, 864, "#FFD23F", "scooter", False, False)]
+
+
+def headlight(x, y, kind, flip):
+    if PHASE != "night":
+        return ""
+    d = -1 if flip else 1
+    fx = x + d * {"car": 20, "bus": 28, "scooter": 12}[kind]
+    return f'<path d="M{fx} {y - 7} L{fx + d * 30} {y - 14} Q{fx + d * 36} {y - 5.5} {fx + d * 30} {y + 3} Z" fill="{MOON}" opacity=".22"/>'
+
+
 def traffic():
-    return mid(car(60, 452, "#FFD23F"), car(300, 446, CORAL, flip=True), car(150, 658, "#4DA8FF", "scooter"),
-               car(206, 560, "#7BD389", "bus"), car(330, 658, "#FF8FB1", "scooter", flip=True), car(110, 864, "#7C6CFF")) \
-        + car(80, 452, "#FF8A3D") + car(700, 656, "#4DA8FF", flip=True) + car(640, 864, "#FFD23F", "scooter")
+    designed, wing = [], []
+    for x, y, color, kind, flip, column in CARS:
+        (designed if column else wing).append(car(x, y, color, kind, flip) + headlight(x, y, kind, flip))
+    return mid(*designed) + "".join(wing)
 
 
 def home():
@@ -208,6 +314,8 @@ def food():
         ly = 684 + 16 * math.sin(math.pi * (lx - 14) / 166) - 4
         c = "#FF5E5B" if i % 2 == 0 else "#FFC94A"
         s.append(f'<ellipse cx="{lx}" cy="{ly + 6}" rx="6" ry="7" fill="{c}" stroke="{shade(c, -0.3)}" stroke-width="1.2"/><rect x="{lx - 3}" y="{ly - 2}" width="6" height="3" fill="#8A6A4A"/>')
+        if PHASE == "night":
+            s.append(glow(lx, ly + 6, 14, LANTERN_GOLD) + f'<ellipse cx="{lx}" cy="{ly + 6}" rx="6" ry="7" fill="{LANTERN if i % 2 == 0 else LANTERN_GOLD}"/>')
     for i, (sx, aw) in enumerate([(14, "#FF5E5B"), (70, "#FFC94A"), (126, "#3FB37A")]):
         s.append(box(sx, 754, 48, 26, 5, "#FFF4E2"))
         s.append(f'<rect x="{sx - 4}" y="722" width="56" height="12" rx="4" fill="{aw}" stroke="{shade(aw, -0.3)}" stroke-width="1.2"/>')
@@ -225,7 +333,9 @@ def temple():
                f'<path d="M{tx0 + 16} 752 Q {tx0 + 59} 732 {tx0 + 102} 752 Z" fill="#FF7A54" stroke="#B83A26" stroke-width="1.4"/>'
                f'<path d="M{tx0 + 4} 758 q-6 -8 -2 -12 M{tx0 + 114} 758 q6 -8 2 -12" stroke="#FFC94A" stroke-width="3" fill="none" stroke-linecap="round"/>'
                f'<circle cx="{tx0 + 59}" cy="728" r="5" fill="#FFC94A" stroke="#D9A21C"/>'
-               f'<circle cx="{tx0 + 30}" cy="782" r="5" fill="#FF5E5B" stroke="#B83A26"/><circle cx="{tx0 + 88}" cy="782" r="5" fill="#FF5E5B" stroke="#B83A26"/>')
+               f'<circle cx="{tx0 + 30}" cy="782" r="5" fill="#FF5E5B" stroke="#B83A26"/><circle cx="{tx0 + 88}" cy="782" r="5" fill="#FF5E5B" stroke="#B83A26"/>',
+               "".join(glow(tx0 + lx, 782, 14, LANTERN_GOLD) + (f'<circle cx="{tx0 + lx}" cy="782" r="5" fill="{LANTERN}"/>' if PHASE == "night" else "")
+                       for lx in (30, 88)))
 
 
 def zoo():
@@ -303,15 +413,46 @@ def town_map(dim=False, built=None):
     return svg("".join(parts), view=f"{OX} 0 390 844", width=390, height=844, extra='class="abs" style="left:0;top:0" aria-hidden="true"')
 
 
+def world(phase="day", built=None, festival=None):
+    """The whole world at [phase], as the app stacks it (for previews)."""
+    import festivals
+    global PHASE
+    PHASE = phase
+    parts = [sky(phase), tint(land(), phase)]
+    for kind in ORDER:
+        layer = SLOTS[kind][0]() if built is None or kind in built or SLOTS[kind][1] is None else lot(kind)
+        parts.append(tint(layer, phase))
+    parts.append(tint(traffic(), phase))
+    if festival:
+        parts.append(tint(festivals.DECOR[festival](), phase))
+    PHASE = "day"
+    return svg("".join(parts))
+
+
 def export(app_dir):
+    """Every layer at every time of day: <layer>_<phase>.svg."""
+    import festivals
+    global PHASE
     out = pathlib.Path(app_dir) / "assets" / "art" / "town"
     out.mkdir(parents=True, exist_ok=True)
-    (out / "base.svg").write_text(svg(base()))
-    (out / "traffic.svg").write_text(svg(traffic()))
-    for kind in ORDER:
-        (out / f"{kind}.svg").write_text(svg(DEFS + SLOTS[kind][0]()))
-        if SLOTS[kind][1]:
-            (out / f"{kind}_lot.svg").write_text(svg(lot(kind)))
+    for old in out.glob("*.svg"):
+        old.unlink()
+    for phase in PHASES:
+        PHASE = phase
+
+        def put(name, content):
+            (out / f"{name}_{phase}.svg").write_text(tint(svg(content), phase))
+
+        (out / f"sky_{phase}.svg").write_text(svg(sky(phase)))
+        put("land", land())
+        put("traffic", traffic())
+        for kind in ORDER:
+            put(kind, DEFS + SLOTS[kind][0]())
+            if SLOTS[kind][1]:
+                put(f"{kind}_lot", lot(kind))
+        for name, decor in festivals.DECOR.items():
+            put(f"festival_{name}", DEFS + decor())
+    PHASE = "day"
     lines = ["// Generated by docs/design/v3/src/town.py; do not edit.", "", "import 'dart:ui';", "",
              f"const townSize = Size({W}, {H});", "", "/// Left edge of the column a phone shows first.",
              f"const townColumnLeft = {OX}.0;", "",
@@ -320,7 +461,11 @@ def export(app_dir):
     for kind, (layer, lotr, pin) in SLOTS.items():
         lr = f"Rect.fromLTWH({lotr[0]}, {lotr[1]}, {lotr[2]}, {lotr[3]})" if lotr else "null"
         lines.append(f"  '{kind}': (pin: Offset({pin[0]}, {pin[1]}), lot: {lr}, building: {'true' if layer else 'false'}),")
-    lines += ["};", "", "/// Back to front.", "const townLayerOrder = [" + ", ".join(f"'{k}'" for k in ORDER) + "];", ""]
+    lines += ["};", "", "/// Back to front.", "const townLayerOrder = [" + ", ".join(f"'{k}'" for k in ORDER) + "];", "",
+              "/// Festivals with a decoration layer (`festival_<name>_<phase>.svg`).",
+              "const townFestivalLayers = {" + ", ".join(f"'{k}'" for k in festivals.DECOR) + "};", "",
+              "/// The tip of Taipei 101, where the New Year's Eve fireworks go up.",
+              f"const townTowerTop = Offset({OX + 342}, 396);", ""]
     dart = pathlib.Path(app_dir) / "lib" / "features" / "town" / "town_layout_data.dart"
     dart.parent.mkdir(parents=True, exist_ok=True)
     dart.write_text("\n".join(lines))
@@ -328,9 +473,12 @@ def export(app_dir):
 
 
 if __name__ == "__main__":
+    import town  # the same module festivals.py sees, so PHASE is shared
+
     if sys.argv[1:] == ["export"]:
-        export(pathlib.Path(__file__).resolve().parents[4] / "app")
+        town.export(pathlib.Path(__file__).resolve().parents[4] / "app")
     elif sys.argv[1:2] == ["preview"]:
-        built = set(sys.argv[2:]) or None
-        parts = [base()] + [SLOTS[k][0]() if built is None or k in built else lot(k) for k in ORDER] + [traffic()]
-        pathlib.Path(sys.argv[0]).with_name("world_preview.svg").write_text(svg("".join(parts)))
+        # python3 town.py preview night [festival]  -> world_preview.svg
+        phase = sys.argv[2] if len(sys.argv) > 2 else "day"
+        fest = sys.argv[3] if len(sys.argv) > 3 else None
+        pathlib.Path(sys.argv[0]).with_name("world_preview.svg").write_text(town.world(phase, festival=fest))

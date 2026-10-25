@@ -74,6 +74,7 @@ class ArtworkRepository {
     required String style,
     required String detail,
     required String folder,
+    String? template,
     int? placeId,
   }) async {
     final id = await _db.into(_db.artworks).insert(ArtworksCompanion.insert(
@@ -81,10 +82,20 @@ class ArtworkRepository {
           style: style,
           detail: detail,
           folder: folder,
+          template: Value(template),
           placeId: Value(placeId),
         ));
     return get(id);
   }
+
+  /// Whether the child has started a page from [template] since [since]:
+  /// once they have, Gugu stops bringing that festival's letter.
+  Stream<bool> watchHasTemplate(int childId, String template, DateTime since) => (_db.select(_db.artworks)
+        ..where((a) =>
+            a.childId.equals(childId) & a.template.equals(template) & a.createdAt.isBiggerOrEqualValue(since))
+        ..limit(1))
+      .watch()
+      .map((rows) => rows.isNotEmpty);
 
   Future<Artwork> get(int id) =>
       (_db.select(_db.artworks)..where((a) => a.id.equals(id))).getSingle();

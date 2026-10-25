@@ -652,6 +652,17 @@ class $ArtworksTable extends Artworks with TableInfo<$ArtworksTable, Artwork> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _templateMeta = const VerificationMeta(
+    'template',
+  );
+  @override
+  late final GeneratedColumn<String> template = GeneratedColumn<String>(
+    'template',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _detailMeta = const VerificationMeta('detail');
   @override
   late final GeneratedColumn<String> detail = GeneratedColumn<String>(
@@ -761,6 +772,7 @@ class $ArtworksTable extends Artworks with TableInfo<$ArtworksTable, Artwork> {
     childId,
     placeId,
     style,
+    template,
     detail,
     folder,
     tags,
@@ -807,6 +819,12 @@ class $ArtworksTable extends Artworks with TableInfo<$ArtworksTable, Artwork> {
       );
     } else if (isInserting) {
       context.missing(_styleMeta);
+    }
+    if (data.containsKey('template')) {
+      context.handle(
+        _templateMeta,
+        template.isAcceptableOrUnknown(data['template']!, _templateMeta),
+      );
     }
     if (data.containsKey('detail')) {
       context.handle(
@@ -894,6 +912,10 @@ class $ArtworksTable extends Artworks with TableInfo<$ArtworksTable, Artwork> {
         DriftSqlType.string,
         data['${effectivePrefix}style'],
       )!,
+      template: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}template'],
+      ),
       detail: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}detail'],
@@ -944,8 +966,11 @@ class Artwork extends DataClass implements Insertable<Artwork> {
   final int childId;
   final int? placeId;
 
-  /// realistic | cute | template
+  /// realistic | cute (from a photo) | template (a built-in page) | blank (empty paper)
   final String style;
+
+  /// The built-in page a template artwork was made from, e.g. a festival's name.
+  final String? template;
 
   /// simple | normal | detailed
   final String detail;
@@ -968,6 +993,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
     required this.childId,
     this.placeId,
     required this.style,
+    this.template,
     required this.detail,
     required this.folder,
     required this.tags,
@@ -987,6 +1013,9 @@ class Artwork extends DataClass implements Insertable<Artwork> {
       map['place_id'] = Variable<int>(placeId);
     }
     map['style'] = Variable<String>(style);
+    if (!nullToAbsent || template != null) {
+      map['template'] = Variable<String>(template);
+    }
     map['detail'] = Variable<String>(detail);
     map['folder'] = Variable<String>(folder);
     map['tags'] = Variable<String>(tags);
@@ -1011,6 +1040,9 @@ class Artwork extends DataClass implements Insertable<Artwork> {
           ? const Value.absent()
           : Value(placeId),
       style: Value(style),
+      template: template == null && nullToAbsent
+          ? const Value.absent()
+          : Value(template),
       detail: Value(detail),
       folder: Value(folder),
       tags: Value(tags),
@@ -1037,6 +1069,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
       childId: serializer.fromJson<int>(json['childId']),
       placeId: serializer.fromJson<int?>(json['placeId']),
       style: serializer.fromJson<String>(json['style']),
+      template: serializer.fromJson<String?>(json['template']),
       detail: serializer.fromJson<String>(json['detail']),
       folder: serializer.fromJson<String>(json['folder']),
       tags: serializer.fromJson<String>(json['tags']),
@@ -1056,6 +1089,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
       'childId': serializer.toJson<int>(childId),
       'placeId': serializer.toJson<int?>(placeId),
       'style': serializer.toJson<String>(style),
+      'template': serializer.toJson<String?>(template),
       'detail': serializer.toJson<String>(detail),
       'folder': serializer.toJson<String>(folder),
       'tags': serializer.toJson<String>(tags),
@@ -1073,6 +1107,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
     int? childId,
     Value<int?> placeId = const Value.absent(),
     String? style,
+    Value<String?> template = const Value.absent(),
     String? detail,
     String? folder,
     String? tags,
@@ -1087,6 +1122,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
     childId: childId ?? this.childId,
     placeId: placeId.present ? placeId.value : this.placeId,
     style: style ?? this.style,
+    template: template.present ? template.value : this.template,
     detail: detail ?? this.detail,
     folder: folder ?? this.folder,
     tags: tags ?? this.tags,
@@ -1103,6 +1139,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
       childId: data.childId.present ? data.childId.value : this.childId,
       placeId: data.placeId.present ? data.placeId.value : this.placeId,
       style: data.style.present ? data.style.value : this.style,
+      template: data.template.present ? data.template.value : this.template,
       detail: data.detail.present ? data.detail.value : this.detail,
       folder: data.folder.present ? data.folder.value : this.folder,
       tags: data.tags.present ? data.tags.value : this.tags,
@@ -1126,6 +1163,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
           ..write('childId: $childId, ')
           ..write('placeId: $placeId, ')
           ..write('style: $style, ')
+          ..write('template: $template, ')
           ..write('detail: $detail, ')
           ..write('folder: $folder, ')
           ..write('tags: $tags, ')
@@ -1145,6 +1183,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
     childId,
     placeId,
     style,
+    template,
     detail,
     folder,
     tags,
@@ -1163,6 +1202,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
           other.childId == this.childId &&
           other.placeId == this.placeId &&
           other.style == this.style &&
+          other.template == this.template &&
           other.detail == this.detail &&
           other.folder == this.folder &&
           other.tags == this.tags &&
@@ -1179,6 +1219,7 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
   final Value<int> childId;
   final Value<int?> placeId;
   final Value<String> style;
+  final Value<String?> template;
   final Value<String> detail;
   final Value<String> folder;
   final Value<String> tags;
@@ -1193,6 +1234,7 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
     this.childId = const Value.absent(),
     this.placeId = const Value.absent(),
     this.style = const Value.absent(),
+    this.template = const Value.absent(),
     this.detail = const Value.absent(),
     this.folder = const Value.absent(),
     this.tags = const Value.absent(),
@@ -1208,6 +1250,7 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
     required int childId,
     this.placeId = const Value.absent(),
     required String style,
+    this.template = const Value.absent(),
     required String detail,
     required String folder,
     this.tags = const Value.absent(),
@@ -1226,6 +1269,7 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
     Expression<int>? childId,
     Expression<int>? placeId,
     Expression<String>? style,
+    Expression<String>? template,
     Expression<String>? detail,
     Expression<String>? folder,
     Expression<String>? tags,
@@ -1241,6 +1285,7 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
       if (childId != null) 'child_id': childId,
       if (placeId != null) 'place_id': placeId,
       if (style != null) 'style': style,
+      if (template != null) 'template': template,
       if (detail != null) 'detail': detail,
       if (folder != null) 'folder': folder,
       if (tags != null) 'tags': tags,
@@ -1258,6 +1303,7 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
     Value<int>? childId,
     Value<int?>? placeId,
     Value<String>? style,
+    Value<String?>? template,
     Value<String>? detail,
     Value<String>? folder,
     Value<String>? tags,
@@ -1273,6 +1319,7 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
       childId: childId ?? this.childId,
       placeId: placeId ?? this.placeId,
       style: style ?? this.style,
+      template: template ?? this.template,
       detail: detail ?? this.detail,
       folder: folder ?? this.folder,
       tags: tags ?? this.tags,
@@ -1299,6 +1346,9 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
     }
     if (style.present) {
       map['style'] = Variable<String>(style.value);
+    }
+    if (template.present) {
+      map['template'] = Variable<String>(template.value);
     }
     if (detail.present) {
       map['detail'] = Variable<String>(detail.value);
@@ -1337,6 +1387,7 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
           ..write('childId: $childId, ')
           ..write('placeId: $placeId, ')
           ..write('style: $style, ')
+          ..write('template: $template, ')
           ..write('detail: $detail, ')
           ..write('folder: $folder, ')
           ..write('tags: $tags, ')
@@ -2310,6 +2361,7 @@ typedef $$ArtworksTableCreateCompanionBuilder = ArtworksCompanion Function({
   required int childId,
   Value<int?> placeId,
   required String style,
+  Value<String?> template,
   required String detail,
   required String folder,
   Value<String> tags,
@@ -2325,6 +2377,7 @@ typedef $$ArtworksTableUpdateCompanionBuilder = ArtworksCompanion Function({
   Value<int> childId,
   Value<int?> placeId,
   Value<String> style,
+  Value<String?> template,
   Value<String> detail,
   Value<String> folder,
   Value<String> tags,
@@ -2391,6 +2444,11 @@ class $$ArtworksTableFilterComposer
 
   ColumnFilters<String> get style => $composableBuilder(
     column: $table.style,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get template => $composableBuilder(
+    column: $table.template,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2505,6 +2563,11 @@ class $$ArtworksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get template => $composableBuilder(
+    column: $table.template,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get detail => $composableBuilder(
     column: $table.detail,
     builder: (column) => ColumnOrderings(column),
@@ -2611,6 +2674,9 @@ class $$ArtworksTableAnnotationComposer
 
   GeneratedColumn<String> get style =>
       $composableBuilder(column: $table.style, builder: (column) => column);
+
+  GeneratedColumn<String> get template =>
+      $composableBuilder(column: $table.template, builder: (column) => column);
 
   GeneratedColumn<String> get detail =>
       $composableBuilder(column: $table.detail, builder: (column) => column);
@@ -2722,6 +2788,7 @@ class $$ArtworksTableTableManager
                 Value<int> childId = const Value.absent(),
                 Value<int?> placeId = const Value.absent(),
                 Value<String> style = const Value.absent(),
+                Value<String?> template = const Value.absent(),
                 Value<String> detail = const Value.absent(),
                 Value<String> folder = const Value.absent(),
                 Value<String> tags = const Value.absent(),
@@ -2736,6 +2803,7 @@ class $$ArtworksTableTableManager
                 childId: childId,
                 placeId: placeId,
                 style: style,
+                template: template,
                 detail: detail,
                 folder: folder,
                 tags: tags,
@@ -2752,6 +2820,7 @@ class $$ArtworksTableTableManager
                 required int childId,
                 Value<int?> placeId = const Value.absent(),
                 required String style,
+                Value<String?> template = const Value.absent(),
                 required String detail,
                 required String folder,
                 Value<String> tags = const Value.absent(),
@@ -2766,6 +2835,7 @@ class $$ArtworksTableTableManager
                 childId: childId,
                 placeId: placeId,
                 style: style,
+                template: template,
                 detail: detail,
                 folder: folder,
                 tags: tags,

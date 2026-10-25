@@ -4,9 +4,13 @@ import '../features/lineart/line_art.dart';
 import '../features/lineart/simple_engine.dart';
 import 'artwork_service.dart';
 import 'db/database.dart';
+import 'festivals.dart';
 import 'places.dart';
 import 'repositories.dart';
 import 'storage/artwork_store.dart';
+
+/// The time. Tests set it to see the town at night or on a festival.
+final clockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
 
 /// Overridden in `main.dart` (and in tests) with the real instances.
 final databaseProvider = Provider<AppDatabase>((ref) => throw UnimplementedError('database'));
@@ -66,3 +70,8 @@ class PreferredPlace extends Notifier<PlaceKind?> {
 
   void choose(PlaceKind? kind) => state = kind;
 }
+
+/// Whether a child already opened this year's letter for a festival.
+final festivalPageOpenedProvider = StreamProvider.family<bool, ({int childId, Festival festival, DateTime since})>(
+  (ref, q) => ref.watch(artworkRepositoryProvider).watchHasTemplate(q.childId, q.festival.name, q.since),
+);

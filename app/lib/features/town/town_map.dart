@@ -8,8 +8,10 @@ import '../../app/art.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../core/db/database.dart';
+import '../../core/festivals.dart';
 import '../../core/places.dart';
 import '../../core/repositories.dart';
+import '../../core/town_time.dart';
 import 'town_layout_data.dart';
 
 /// What the map shows at one kind of place: how many postcards, the newest.
@@ -44,8 +46,9 @@ Map<PlaceKind, TownSpot> townSpots(List<Postcard> postcards, DateTime now) {
   };
 }
 
-/// The child's town: drawn layers (scenery, one building or empty lot per
-/// kind of place) with the child's postcards pinned on top. Pans with a
+/// The child's town: drawn layers (sky, scenery, one building or empty lot
+/// per kind of place, a festival's decorations) with the child's postcards
+/// pinned on top. Every layer is drawn for day, dusk and night. Pans with a
 /// finger; phones first see the middle column, wide screens see more.
 class TownMap extends StatefulWidget {
   const TownMap({
@@ -57,6 +60,8 @@ class TownMap extends StatefulWidget {
     this.onLot,
     this.grow,
     this.focus,
+    this.phase = DayPhase.day,
+    this.festival,
     this.interactive = true,
   });
 
@@ -73,6 +78,10 @@ class TownMap extends StatefulWidget {
 
   /// A place to scroll to and bounce (a postcard just arrived there).
   final PlaceKind? focus;
+  final DayPhase phase;
+
+  /// Decorations up (and fireworks over 101 on New Year's Eve).
+  final Festival? festival;
   final bool interactive;
 
   /// How many world points a screen of [width] shows across.
@@ -135,7 +144,7 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
       _place(viewport, s);
       final size = townSize * s;
 
-      final layers = <Widget>[_layer('base')];
+      final layers = <Widget>[_layer('sky'), _layer('land')];
       for (final name in townLayerOrder) {
         final kind = PlaceKind.byName(name);
         final slot = townSlots[name]!;
@@ -170,6 +179,9 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
         }
       }
       layers.add(_layer('traffic'));
+      final festival = widget.festival;
+      if (festival != null && townFestivalLayers.contains(festival.name)) layers.add(_layer('festival_${festival.name}'));
+      final night = widget.phase == DayPhase.night;
 
       final lots = [
         for (final MapEntry(key: name, value: slot) in townSlots.entries)
@@ -206,7 +218,12 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
           ...layers,
           ...lots,
           _Walker(life: _life, at: Offset((home.dx + 64) * s, (home.dy + 88) * s), avatar: widget.avatar),
-          _FlyingPigeon(life: _life, mapWidth: size.width, y: 96 * s),
+          // Gugu sleeps on the MRT viaduct at night, away from every pin.
+          if (night)
+            _SleepingPigeon(life: _life, perch: Offset((townColumnLeft + 24) * s, 318 * s))
+          else
+            _FlyingPigeon(life: _life, mapWidth: size.width, y: 96 * s),
+          if (festival == Festival.newYearsEve && widget.phase != DayPhase.day) _Fireworks(at: townTowerTop * s),
           ...pins,
         ]),
       );
@@ -221,7 +238,7 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
     });
   }
 
-  Widget _svg(String name) => ExcludeSemantics(child: SvgPicture.asset(Art.town(name), fit: BoxFit.fill));
+  Widget _svg(String name) => ExcludeSemantics(child: SvgPicture.asset(Art.town(name, widget.phase), fit: BoxFit.fill));
 
   Widget _layer(String name) => Positioned.fill(child: _svg(name));
 }
@@ -447,4 +464,133 @@ class _FlyingPigeon extends StatelessWidget {
       child: const ArtSvg(Art.pigeonFlyingLetter, size: 70),
     );
   }
+}
+
+/// Gugu asleep, little z's floating up.
+class _SleepingPigeon extends StatelessWidget {
+  const _SleepingPigeon({required this.life, required this.perch});
+
+  final Animation<double> life;
+
+  /// Where Gugu's feet are.
+  final Offset perch;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: perch.dx - 22,
+      top: perch.dy - 70,
+      width: 70,
+      height: 72,
+      child: Stack(clipBehavior: Clip.none, children: [
+        const Positioned(left: 0, top: 28, child: ArtSvg(Art.pigeonAsleep, size: 44)),
+        Positioned.fill(
+          child: AnimatedBuilder(
+            animation: life,
+            builder: (context, _) => CustomPaint(painter: _ZzzPainter((life.value * 8) % 1)),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+class _ZzzPainter extends CustomPainter {
+  _ZzzPainter(this.t);
+
+  /// 0..1 through one rise.
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (var k = 0; k < 3; k++) {
+      final p = (t + k / 3) % 1;
+      final z = 5.0 + 3 * p;
+      final origin = Offset(40 + 14 * p, 30 - 30 * p);
+      final paint = Paint()
+        ..color = const Color(0xFFFFF3C2).withValues(alpha: math.sin(p * math.pi))
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round;
+      canvas.drawPath(
+        Path()
+          ..moveTo(origin.dx - z, origin.dy - z)
+          ..lineTo(origin.dx + z, origin.dy - z)
+          ..lineTo(origin.dx - z, origin.dy + z)
+          ..lineTo(origin.dx + z, origin.dy + z),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ZzzPainter old) => old.t != t;
+}
+
+/// New Year's Eve over 101: slow bursts, one at a time and never flashing
+/// (well under three flashes a second, for children sensitive to light).
+class _Fireworks extends StatefulWidget {
+  const _Fireworks({required this.at});
+
+  final Offset at;
+
+  @override
+  State<_Fireworks> createState() => _FireworksState();
+}
+
+class _FireworksState extends State<_Fireworks> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 4800))..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const box = 240.0;
+    return Positioned(
+      left: widget.at.dx - box / 2,
+      top: widget.at.dy - box * 0.8,
+      width: box,
+      height: box,
+      child: IgnorePointer(
+        child: AnimatedBuilder(animation: _c, builder: (context, _) => CustomPaint(painter: _FireworksPainter(_c.value))),
+      ),
+    );
+  }
+}
+
+class _FireworksPainter extends CustomPainter {
+  _FireworksPainter(this.t);
+
+  final double t;
+
+  static const _bursts = [
+    (x: 0.5, y: 0.32, color: Color(0xFFFFCF3F), start: 0.0),
+    (x: 0.26, y: 0.44, color: Color(0xFFFF8FB1), start: 0.33),
+    (x: 0.74, y: 0.4, color: Color(0xFF6FC3FF), start: 0.66),
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final b in _bursts) {
+      final p = (t - b.start) % 1 / 0.45; // each burst lives for 45% of the loop
+      if (p > 1) continue;
+      final center = Offset(b.x * size.width, b.y * size.height);
+      final r = size.width * 0.2 * Curves.easeOutCubic.transform(p);
+      final paint = Paint()..color = b.color.withValues(alpha: (1 - p) * 0.95);
+      for (var k = 0; k < 12; k++) {
+        final a = k * math.pi / 6;
+        canvas.drawCircle(center + Offset(math.cos(a), math.sin(a)) * r, 3.2 * (1 - p * 0.5), paint);
+        canvas.drawLine(center + Offset(math.cos(a), math.sin(a)) * r * 0.55, center + Offset(math.cos(a), math.sin(a)) * r * 0.85,
+            paint..strokeWidth = 2);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_FireworksPainter old) => old.t != t;
 }
