@@ -18,6 +18,7 @@
 - [視覺設計](docs/design.md)：3D 玩具風的設計原則、配色、元件與截圖
 - [參考 APP 研究](docs/design-references.md)：Pok Pok、Toca Boca、Crayola 等上架 APP 的設計做法
 - [介面方向提案](docs/design-directions.md)：畫畫小鎮、畫畫桌、蠟筆怪獸三個方向
+- [視覺設計 v3：畫畫小鎮（完整版）](docs/design-v3.md)：選定方向 A 的所有畫面、流程、動畫與設計規範
 
 ## 目前狀態
 - **第 0 階段（技術驗證）**：
