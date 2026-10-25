@@ -23,6 +23,7 @@
 - [安全與隱私設計](docs/safety-privacy.md)：資料只在手機、權限、家長關卡、安全分享、上架規定
 - [部署與安裝](docs/deployment.md)：Android 側載與 Google Play 上架、沒有 Mac 怎麼用 TestFlight 和上架 App Store
 - [功能點子與優先順序](docs/feature-ideas.md)：還有什麼值得加、建議順序、不建議做的
+- [怎麼賺錢](docs/business-model.md)：兒童 APP 的收費限制、別人怎麼做、建議的「小鎮通行證」、其他收入
 - [版本管理](docs/versioning.md)：版本號、怎麼發新版本；[版本紀錄](CHANGELOG.md)
 
 ## 目前狀態

@@ -77,6 +77,8 @@ dart run build_runner build   # 改了 lib/core/db/database.dart 之後要重新
 flutter analyze
 flutter test
 flutter run                   # 接上 Android 手機或模擬器
+# 錄一段操作示範影片（需要 ffmpeg），輸出 build/demo/demo.mp4
+flutter test test/demo/demo_video_test.dart --dart-define=DEMO=true
 ```
 
 每次推送到 GitHub，**Actions** 會自動：
