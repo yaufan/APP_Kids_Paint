@@ -1,5 +1,5 @@
-/// The twelve kinds of places in a child's town (docs/town-map.md). Their
-/// names match the town art (`assets/art/town/`, `town_layout_data.dart`).
+/// The kinds of places in a child's town (docs/town-map.md). Their names
+/// match the town art (`assets/art/town/`, `town_layout_data.dart`).
 enum PlaceKind {
   home('家'),
   grandma('阿公阿嬤家'),
@@ -12,7 +12,8 @@ enum PlaceKind {
   mountain('山上'),
   temple('廟'),
   station('車站'),
-  travel('去旅行');
+  travel('去旅行'),
+  aquarium('海洋館');
 
   const PlaceKind(this.label);
 

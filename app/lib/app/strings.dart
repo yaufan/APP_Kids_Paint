@@ -20,6 +20,17 @@ abstract final class Strings {
   static String postcardsHere(int n) => '$n 張明信片';
   static String latest(String date) => '最近 $date';
   static const drawHere = '在這裡再畫一張';
+  static String goTo(String place) => '去$place';
+  static String enter(String place) => '進去$place';
+
+  // The zoo and the aquarium.
+  static String sceneEmpty(String place) => '選一隻來畫，\n畫好牠就會住進$place喔！';
+  static String movedIn(String creature, String place) => '$creature住進$place了！';
+  static String drawNew(String place) => '畫一隻新的，住進$place';
+  static String drawCreature(String creature) => '畫$creature';
+  static String resident(String creature) => '你畫的$creature';
+  static String backTo(String place) => '回到$place';
+  static String postcardsAt(String place, int n) => '寄到$place的明信片，$n 張';
   static const close = '關閉';
 
   // Taking or picking a photo.

@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image/image.dart' as img;
 import 'package:kids_paint/app/app.dart';
 import 'package:kids_paint/app/strings.dart';
+import 'package:kids_paint/core/creatures.dart';
 import 'package:kids_paint/core/db/database.dart';
 import 'package:kids_paint/core/festivals.dart';
 import 'package:kids_paint/core/places.dart';
@@ -209,6 +210,33 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   await idle(tester, 2000);
   await shot('17_town_dusk');
 
+  // 13. The zoo: color an elephant and a monkey, and they move in.
+  walkthroughNow = DateTime(2026, 10, 27, 10);
+  await enterScene(tester, PlaceKind.zoo);
+  await idle(tester, 800);
+  await shot('18_zoo_empty');
+  for (final (i, creature) in [Creature.elephant, Creature.monkey].indexed) {
+    await colorCreature(tester, creature, [kidPalette[i == 0 ? 5 : 8], kidPalette[i == 0 ? 7 : 9], kidPalette[2]]);
+    if (i == 0) await shot('19_creature_page');
+    await tester.tap(find.bySemanticsLabel(Strings.done));
+    await waitFor(tester, find.bySemanticsLabel(Strings.resident(creature.label)));
+    await idle(tester, 1800);
+  }
+  await shot('20_zoo');
+
+  // 14. The aquarium: a whale and a jellyfish.
+  await tester.tap(find.bySemanticsLabel(Strings.backToTown));
+  await waitFor(tester, find.bySemanticsLabel(Strings.blankPaper));
+  await idle(tester, 800);
+  await enterScene(tester, PlaceKind.aquarium);
+  for (final (i, creature) in [Creature.whale, Creature.jellyfish].indexed) {
+    await colorCreature(tester, creature, [kidPalette[i == 0 ? 5 : 7], kidPalette[2], kidPalette[0]]);
+    await tester.tap(find.bySemanticsLabel(Strings.done));
+    await waitFor(tester, find.bySemanticsLabel(Strings.resident(creature.label)));
+    await idle(tester, 1800);
+  }
+  await shot('21_aquarium');
+
   // Unmount so drift's stream queries shut down before the test ends.
   await tester.pumpWidget(const SizedBox());
   await idle(tester, 200);
@@ -216,6 +244,37 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
     await db.close();
     await storeDir.delete(recursive: true);
   });
+}
+
+/// From the town into the zoo or the aquarium: on a phone it is off screen,
+/// so the sign at the edge slides the map there first.
+Future<void> enterScene(WidgetTester tester, PlaceKind place) async {
+  final sign = find.bySemanticsLabel(Strings.goTo(place.label));
+  if (sign.evaluate().isNotEmpty) {
+    await tester.tap(sign);
+    await idle(tester, 1000);
+  }
+  await tester.tap(find.bySemanticsLabel(Strings.enter(place.label)));
+  await waitFor(tester, find.bySemanticsLabel(Strings.drawNew(place.label)));
+}
+
+/// Picks [creature] in its scene and bucket-fills a few areas with [colors].
+Future<void> colorCreature(WidgetTester tester, Creature creature, List<int> colors) async {
+  await tester.tap(find.bySemanticsLabel(Strings.drawNew(creature.habitat.place.label)));
+  await waitFor(tester, find.byKey(ValueKey('creature-${creature.name}')));
+  await idle(tester, 500);
+  await tester.tap(find.byKey(ValueKey('creature-${creature.name}')));
+  await waitFor(tester, find.byKey(const ValueKey('page')));
+  await idle(tester, 600);
+  final page = tester.getRect(find.byKey(const ValueKey('page')));
+  final spots = [(0.5, 0.56), (0.75, 0.42), (0.3, 0.7)];
+  for (var i = 0; i < colors.length; i++) {
+    await tester.tap(find.byKey(ValueKey('swatch-${colors[i]}')));
+    await tester.pump();
+    await tester.tapAt(page.topLeft + Offset(page.width * spots[i].$1, page.height * spots[i].$2));
+    await idle(tester, 400);
+  }
+  await idle(tester, 600);
 }
 
 /// Lets real async work (isolates, files, image decoding) run until [until] shows up.

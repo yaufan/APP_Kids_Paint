@@ -6,8 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kids_paint/app/app.dart';
 import 'package:kids_paint/app/strings.dart';
+import 'package:kids_paint/core/creatures.dart';
 import 'package:kids_paint/core/db/database.dart';
 import 'package:kids_paint/core/festivals.dart';
+import 'package:kids_paint/core/places.dart';
 import 'package:kids_paint/core/providers.dart';
 import 'package:kids_paint/core/storage/artwork_store.dart';
 
@@ -35,6 +37,9 @@ void main() {
       expect(find.bySemanticsLabel(label), findsOneWidget);
     }
     expect(find.byTooltip(Strings.parentMode), findsOneWidget);
+    for (final place in [PlaceKind.zoo, PlaceKind.aquarium]) {
+      expect(find.bySemanticsLabel(Strings.enter(place.label)), findsOneWidget);
+    }
     // Children do not need to read: besides the town's name, the postcard
     // count and the character's speech bubble, there is no text.
     final words = RegExp(r'\p{L}', unicode: true);
@@ -55,6 +60,26 @@ void main() {
     expect(find.bySemanticsLabel(Strings.openLetter(Festival.christmas.label)), findsOneWidget);
     await tester.pump(const Duration(seconds: 3));
     expect(find.text(Strings.festivalLetter(Festival.christmas.label)), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(milliseconds: 10));
+  });
+
+  testWidgets('the zoo opens from the town and invites the child to color an animal', (tester) async {
+    await pumpApp(tester, DateTime(2026, 10, 25, 10));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.bySemanticsLabel(Strings.enter(PlaceKind.zoo.label)));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text(Strings.sceneEmpty(PlaceKind.zoo.label)), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel(Strings.drawNew(PlaceKind.zoo.label)));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    for (final c in Habitat.zoo.creatures) {
+      expect(find.bySemanticsLabel(Strings.drawCreature(c.label)), findsOneWidget);
+    }
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 10));

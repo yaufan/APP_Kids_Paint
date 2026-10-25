@@ -404,7 +404,7 @@ def duck(x, y, s=1.0, flip=False):
 
 PLACE_TYPES = [("home", "家"), ("grandma", "阿公阿嬤家"), ("school", "幼兒園"), ("park", "公園"),
                ("food", "好吃的店"), ("shop", "商店"), ("zoo", "動物園"), ("water", "河邊海邊"),
-               ("mountain", "山上"), ("temple", "廟"), ("station", "車站"), ("travel", "去旅行")]
+               ("mountain", "山上"), ("temple", "廟"), ("station", "車站"), ("travel", "去旅行"), ("aquarium", "海洋館")]
 PLACE_NAMES = dict(PLACE_TYPES)
 
 
@@ -454,6 +454,10 @@ def place_icon(kind, size=64):
         "station": g + '<rect x="14" y="14" width="36" height="38" rx="10" fill="#fff" stroke="#9FB3C8" stroke-width="1.8"/>'
                    '<rect x="18" y="19" width="28" height="14" rx="4" fill="#A9E0FF"/><rect x="14" y="36" width="36" height="5" fill="#4DA8FF"/>'
                    '<circle cx="22" cy="46" r="3" fill="#FFD23F"/><circle cx="42" cy="46" r="3" fill="#FFD23F"/><path d="M18 56 L14 60 M46 56 L50 60" stroke="#9FB3C8" stroke-width="2.4" stroke-linecap="round"/>',
+        "aquarium": g + '<path d="M8 54 V38 Q 32 10 56 38 V54 Z" fill="#7CCFFF" stroke="#43A9E0" stroke-width="1.6"/>'
+                    '<path d="M16 34 Q 24 22 36 20" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round" opacity=".85"/>'
+                    '<path d="M20 42 q4 -9 15 -7 q9 2 9 9 q-2 7 -13 7 q-9 0 -11 -9z" fill="#4DA8FF"/><path d="M21 42 l-7 -5 v10z" fill="#4DA8FF"/>'
+                    '<circle cx="38" cy="42" r="1.7" fill="#2A211D"/><path d="M8 50 q6 -3 12 0 t12 0 t12 0 t12 0 V54 H8z" fill="#2C7FD6"/>',
         "travel": g + '<rect x="12" y="22" width="40" height="32" rx="7" fill="#FF8A3D" stroke="#D9692A" stroke-width="1.6"/>'
                   '<path d="M24 22 v-6 a3 3 0 0 1 3 -3 h10 a3 3 0 0 1 3 3 v6" stroke="#8A5A3A" stroke-width="3" fill="none"/>'
                   '<rect x="18" y="30" width="10" height="8" rx="2" fill="#fff" transform="rotate(-8 23 34)"/><circle cx="42" cy="40" r="5" fill="#4DA8FF"/>'

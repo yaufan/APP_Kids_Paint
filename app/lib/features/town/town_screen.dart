@@ -10,6 +10,7 @@ import '../../app/celebration.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
+import '../../core/creatures.dart';
 import '../../core/db/database.dart';
 import '../../core/festivals.dart';
 import '../../core/places.dart';
@@ -84,10 +85,13 @@ class _TownScreenState extends ConsumerState<TownScreen> {
     }
   }
 
+  /// Into the zoo or the aquarium.
+  void _enter(PlaceKind kind) => context.push('/scene/${Habitat.of(kind)!.name}');
+
   Future<void> _openBlank(int childId) => _open(() => ref.read(artworkServiceProvider).saveBlank(childId: childId));
 
   Future<void> _openFestivalPage(int childId, Festival festival) => _open(() async {
-        final png = await rootBundle.load(Art.page(festival));
+        final png = await rootBundle.load(Art.page(festival.name));
         return ref.read(artworkServiceProvider).saveTemplate(
               childId: childId,
               template: festival.name,
@@ -155,8 +159,9 @@ class _TownScreenState extends ConsumerState<TownScreen> {
             grow: widget.grow,
             phase: dayPhaseAt(now),
             festival: festival?.festival,
-            onPin: (kind) => _openPlace(kind, postcards),
+            onPin: (kind) => Habitat.of(kind) != null ? _enter(kind) : _openPlace(kind, postcards),
             onLot: (_) => _say(Strings.emptyLot),
+            onAttraction: _enter,
           ),
         ),
         if (widget.grow != null) const Positioned.fill(child: Confetti()),

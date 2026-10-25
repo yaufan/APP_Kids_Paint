@@ -25,7 +25,7 @@ DEFS = ('<defs>'
         '<pattern id="tiles" width="14" height="14" patternUnits="userSpaceOnUse"><rect width="14" height="14" fill="#F6E7CC"/><path d="M0 0H14M0 0V14" stroke="#EAD5B0" stroke-width="1.2"/></pattern>'
         '</defs>')
 
-ROOF.update({"#FFF4E2": CORAL, "#FFE7A3": "#6F86FF", "#E3F6E8": "#3FB37A", "#FFE3EA": "#FF8FB1",
+ROOF.update({"#E3F4FB": "#2C7FD6", "#FFF4E2": CORAL, "#FFE7A3": "#6F86FF", "#E3F6E8": "#3FB37A", "#FFE3EA": "#FF8FB1",
              "#E8EEFF": "#7C6CFF", "#E8836B": "#5E7290", "#F3F6FA": "#4DA8FF"})
 
 
@@ -230,16 +230,14 @@ def tower_lights(tx, ty):
 def wings():
     """Scenery left and right of the designed column, seen on wide screens."""
     s = []
-    # left wing: neighbors' houses, rice paddies, an orchard
+    # left wing: neighbors' houses, rice paddies (the aquarium is its own layer)
     s.append(house(24, 420, "#E3F6E8") + house(76, 412, "#FFE3EA") + house(128, 424, "#E8EEFF"))
     s.append(tree(16, 380, 10) + tree(176, 396, 9, "#58C46B"))
     for i in range(3):
         y0 = 484 + i * 52
         s.append(f'<rect x="14" y="{y0}" width="164" height="42" rx="8" fill="#B9E58A" stroke="#8CC461" stroke-width="1.5"/>')
         s.append("".join(f'<path d="M{20 + k * 12} {y0 + 8} v26" stroke="#7DB84E" stroke-width="2.4" stroke-dasharray="3 4"/>' for k in range(14)))
-    s.append("".join(tree(20 + k * 38, 720 + (k % 2) * 16, 12, "#4DB860" if k % 2 else "#58C46B") for k in range(5)))
-    s.append("".join(f'<circle cx="{28 + k * 38}" cy="{705 + (k % 2) * 16}" r="3" fill="#FF5E5B"/>' for k in range(5)))
-    s.append(tree(30, 820, 13, "#4DB860", "pine") + tree(90, 830, 11, "#58C46B", "pine") + tree(150, 816, 12, "#4DB860", "pine"))
+    s.append(tree(30, 850, 12, "#4DB860", "pine") + tree(160, 846, 11, "#58C46B", "pine"))
     s.append(house(30, 960, "#FFE7A3") + house(100, 972, "#E3F6E8") + tree(160, 950, 11))
     # right wing: houses by the river, a lake, a windmill farm
     s.append(house(606, 418, "#FFE3EA") + house(660, 426, "#FFE7A3") + house(714, 414, "#E3F6E8"))
@@ -353,7 +351,34 @@ def zoo():
             '<circle cx="-24" cy="-8" r="13" fill="#B8C3D6" stroke="#8C99B0" stroke-width="1.4"/><ellipse cx="-14" cy="-10" rx="8" ry="10" fill="#A5B1C7"/>'
             '<path d="M-34 -4 q-8 10 -2 20" stroke="#B8C3D6" stroke-width="6" fill="none" stroke-linecap="round"/><circle cx="-28" cy="-11" r="1.8" fill="#2A211D"/>'
             '<rect x="-16" y="12" width="8" height="12" rx="3" fill="#B8C3D6"/><rect x="8" y="12" width="8" height="12" rx="3" fill="#B8C3D6"/></g>'
-            + tree(752, 724, 11) + fence + f'<rect x="{x0 - 2}" y="778" width="{12 * 14}" height="5" fill="#D9B27D"/>')
+            + tree(752, 724, 11) + fence + f'<rect x="{x0 - 2}" y="778" width="{12 * 14}" height="5" fill="#D9B27D"/>'
+            + zoo_gate(x0 + 4, 806))
+
+
+def zoo_gate(x, y):
+    """The zoo's entrance: two posts and a giraffe-spotted arch."""
+    spots = "".join(f'<circle cx="{x + dx}" cy="{y - 50 + dy}" r="2.6" fill="#C98536"/>' for dx, dy in [(8, 4), (20, 1), (32, 4), (44, 2)])
+    return (f'<rect x="{x - 4}" y="{y - 54}" width="9" height="54" rx="3" fill="#E8C79A" stroke="#B9935E" stroke-width="1.2"/>'
+            f'<rect x="{x + 47}" y="{y - 54}" width="9" height="54" rx="3" fill="#E8C79A" stroke="#B9935E" stroke-width="1.2"/>'
+            f'<path d="M{x - 8} {y - 46} Q {x + 26} {y - 72} {x + 60} {y - 46} L {x + 60} {y - 36} Q {x + 26} {y - 60} {x - 8} {y - 36} Z" fill="#F7C35C" stroke="#C98536" stroke-width="1.4"/>'
+            + spots)
+
+
+def aquarium():
+    """The aquarium in the left wing: a glass dome with a whale on top."""
+    x0, base = 22, 806
+    portholes = "".join(f'<circle cx="{x0 + dx}" cy="{base - 22}" r="8" fill="#A9E0FF" stroke="#2C7FD6" stroke-width="2"/>' for dx in (20, 46, 104, 130))
+    whale_top = (f'<g transform="translate({x0 + 74} 716)">'
+                 '<path d="M-18 0 q6 -14 22 -12 q14 2 14 12 q-3 10 -20 10 q-12 0 -16 -10z" fill="#4DA8FF" stroke="#2C7FD6" stroke-width="1.2"/>'
+                 '<path d="M-17 0 l-10 -7 v14z" fill="#4DA8FF" stroke="#2C7FD6" stroke-width="1.2"/><circle cx="8" cy="-1" r="1.8" fill="#2A211D"/>'
+                 '<path d="M2 -12 q0 -8 -4 -12 M2 -12 q2 -8 7 -10" stroke="#7CCFFF" stroke-width="2" fill="none" stroke-linecap="round"/></g>')
+    return ('<rect x="12" y="694" width="178" height="124" rx="20" fill="#CFEFF7"/>'
+            + f'<path d="M{x0 + 16} 764 Q {x0 + 75} 694 {x0 + 134} 764 Z" fill="#7CCFFF" stroke="#43A9E0" stroke-width="1.6"/>'
+            + f'<path d="M{x0 + 34} 752 Q {x0 + 54} 722 {x0 + 80} 716" stroke="#FFFFFF" stroke-width="3" fill="none" stroke-linecap="round" opacity=".8"/>'
+            + box(x0, base, 150, 42, 6, "#E3F4FB", roof="flat", door=(62, 26, 30, "#4DA8FF"))
+            + portholes
+            + f'<path d="M{x0} {base - 6} q9 -6 18 0 t18 0 t18 0 t18 0 t18 0 t18 0 t18 0 t18 0 t6 0 V{base} H{x0} Z" fill="#4DA8FF"/>'
+            + whale_top + duck(170, 806, 0.7, True))
 
 
 def grandma():
@@ -382,7 +407,8 @@ SLOTS = {
     "shop": (shop, (OX + 238, 556, 72, 62), (OX + 272, 560)),
     "food": (food, (OX + 12, 680, 172, 120), (OX + 96, 688)),
     "temple": (temple, (OX + 232, 704, 124, 100), (OX + 289, 730)),
-    "zoo": (zoo, (598, 692, 168, 116), (668, 700)),
+    "zoo": (zoo, None, (668, 700)),
+    "aquarium": (aquarium, None, (100, 700)),
     "grandma": (grandma, (OX + 24, 892, 164, 124), (OX + 84, 932)),
     "travel": (travel, (OX + 232, 892, 158, 136), (OX + 299, 896)),
     # scenery that is always there: only a pin anchor
@@ -390,7 +416,9 @@ SLOTS = {
     "mountain": (None, None, (OX + 60, 200)),
     "station": (None, None, (OX + 298, 286)),
 }
-ORDER = ["home", "school", "park", "shop", "food", "temple", "zoo", "grandma", "travel"]
+ORDER = ["home", "school", "park", "shop", "food", "temple", "zoo", "aquarium", "grandma", "travel"]
+# Places you can go into (scenes in the app), always built: kind -> tap area.
+ATTRACTIONS = {"zoo": (596, 690, 172, 124), "aquarium": (12, 690, 178, 128)}
 
 
 def lot(kind):
@@ -464,6 +492,10 @@ def export(app_dir):
     lines += ["};", "", "/// Back to front.", "const townLayerOrder = [" + ", ".join(f"'{k}'" for k in ORDER) + "];", "",
               "/// Festivals with a decoration layer (`festival_<name>_<phase>.svg`).",
               "const townFestivalLayers = {" + ", ".join(f"'{k}'" for k in festivals.DECOR) + "};", "",
+              "/// Places you can go into (the zoo, the aquarium): always built; tapping opens their scene.",
+              "const townAttractions = <String, Rect>{",
+              *[f"  '{k}': Rect.fromLTWH({x}, {y}, {w}, {h})," for k, (x, y, w, h) in ATTRACTIONS.items()],
+              "};", "",
               "/// The tip of Taipei 101, where the New Year's Eve fireworks go up.",
               f"const townTowerTop = Offset({OX + 342}, 396);", ""]
     dart = pathlib.Path(app_dir) / "lib" / "features" / "town" / "town_layout_data.dart"

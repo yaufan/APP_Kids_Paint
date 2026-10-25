@@ -4,7 +4,7 @@
 - [產品功能規劃](../docs/product-plan.md)
 - [技術架構](../docs/tech-architecture.md)
 
-## 目前可以做的事（0.5.0）
+## 目前可以做的事（0.6.0）
 
 畫面設計見 [design-v3.md](../docs/design-v3.md)，地圖規則見 [town-map.md](../docs/town-map.md)。
 
@@ -12,6 +12,7 @@
    - 跟著手機時間變成白天、黃昏、晚上（窗戶亮燈、咕咕睡覺）。
    - 節日有裝飾，咕咕會送來節日著色圖。
    - 右下角的白紙可以直接畫畫。
+   - 動物園和海洋館可以走進去：選一隻 APP 提供的動物來畫，畫好牠就住進去，自己走路、游泳。
 2. **拍照**：用相機拍或從相簿選一張照片。
 3. **魔法變身**：等待轉換時，小朋友的動物揮魔法棒，星星代替進度條。
 4. **選風格**：「真實」和「可愛」兩張明信片，點一張就開始畫。
@@ -45,6 +46,7 @@ lib/
     providers.dart          依賴注入（Riverpod）；時鐘也在這裡，測試可以換成晚上或節日
     town_time.dart          白天、黃昏、晚上（台北的日出日落表）
     festivals.dart          台灣節日和日期（農曆節日內建 2026～2037 年）
+    creatures.dart          動物園、海洋館和裡面的 12 隻動物
   features/                 各功能
     town/                   小鎮地圖（首頁）、圖釘、地點卡；town_layout_data.dart 由設計程式產生
     capture/                拍照、選相簿
@@ -52,12 +54,13 @@ lib/
     canvas/                 明信片著色畫面、油漆桶、魔法蠟筆、復原
     send/                   寄到哪裡、寄出慶祝
     album/                  明信片冊
+    scene/                  動物園、海洋館：背景、動物的動作（motion.dart）
     parent/                 家長確認、家長模式、隱私與安全
 test/                       自動測試（含手機／平板完整模擬操作與截圖）
 integration_test/           在模擬器或真機上跑的同一套模擬操作
 assets/fonts/               jf open 粉圓（OFL 授權）
 assets/art/                 自己畫的向量圖（由 docs/design/v3/src/export_art.py 產生；小鎮每一層有白天、黃昏、晚上三版）
-assets/pages/               節日著色圖（黑線白底 PNG，同一支程式產生）
+assets/pages/               節日和動物的著色圖（黑線白底 PNG，同一支程式產生）
 ```
 
 **重要設計**

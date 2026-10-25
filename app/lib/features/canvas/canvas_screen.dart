@@ -11,6 +11,7 @@ import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../core/artwork_service.dart';
+import '../../core/creatures.dart';
 import '../../core/places.dart';
 import '../../core/providers.dart';
 import 'artwork_stamp.dart';
@@ -46,6 +47,27 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
   ArtworkService get _service => ref.read(artworkServiceProvider);
 
   bool get _blank => _page?.artwork.style == 'blank';
+
+  /// A zoo or aquarium creature: it moves into its scene instead of being mailed.
+  Creature? get _creature => Creature.byName(_page?.artwork.template);
+
+  /// Where "back" goes: the creature's scene, or the town.
+  String get _home => _creature == null ? '/' : '/scene/${_creature!.habitat.name}';
+
+  /// Finishes a creature, puts it on the map at its scene's place, and
+  /// opens the scene, where it arrives.
+  Future<void> _moveIn(Creature creature) async {
+    final page = _page;
+    if (page == null || _leaving) return;
+    setState(() => _leaving = true);
+    final place = await ref.read(placeRepositoryProvider).defaultPlace(page.artwork.childId, creature.habitat.place);
+    await _service.send(page, place);
+    final files = ref.read(artworkStoreProvider).open(page.artwork.folder);
+    for (final file in [files.thumbnail, files.colored, files.sprite]) {
+      await FileImage(file).evict();
+    }
+    if (mounted) context.go('/scene/${creature.habitat.name}?new=${page.artwork.id}');
+  }
 
   @override
   void initState() {
@@ -204,7 +226,13 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
     final wide = MediaQuery.sizeOf(context).aspectRatio > 1;
     final color = Color(_color);
 
-    final back = NavButton(icon: 'map', label: Strings.backToMap, color: KidColors.grassDark, onPressed: () => _saveAnd('/'));
+    final creature = _creature;
+    final back = NavButton(
+      icon: 'map',
+      label: creature == null ? Strings.backToMap : Strings.backTo(creature.habitat.place.label),
+      color: KidColors.grassDark,
+      onPressed: () => _saveAnd(_home),
+    );
     final undo = NavButton(
       icon: 'undo',
       label: Strings.undo,
@@ -226,7 +254,9 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
     final palette = _Palette(selected: _color, columns: wide ? 4 : 6, onSelect: (c) => setState(() => _color = c));
     final done = ChunkyButton(
       label: Strings.done,
-      onPressed: page != null && page.document.ops.isNotEmpty ? () => _saveAnd('/send/${widget.artworkId}', push: true) : null,
+      onPressed: page != null && page.document.ops.isNotEmpty
+          ? () => creature != null ? _moveIn(creature) : _saveAnd('/send/${widget.artworkId}', push: true)
+          : null,
       color: KidColors.grass,
       edge: KidColors.grassDark,
       width: 220,
@@ -242,7 +272,7 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _saveAnd('/');
+        if (!didPop) _saveAnd(_home);
       },
       child: Scaffold(
         body: PaperBackground(

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/lineart/line_art.dart';
 import '../features/lineart/simple_engine.dart';
 import 'artwork_service.dart';
+import 'creatures.dart';
 import 'db/database.dart';
 import 'festivals.dart';
 import 'places.dart';
@@ -74,4 +75,9 @@ class PreferredPlace extends Notifier<PlaceKind?> {
 /// Whether a child already opened this year's letter for a festival.
 final festivalPageOpenedProvider = StreamProvider.family<bool, ({int childId, Festival festival, DateTime since})>(
   (ref, q) => ref.watch(artworkRepositoryProvider).watchHasTemplate(q.childId, q.festival.name, q.since),
+);
+
+/// The creatures a child colored for a scene, newest first: they live there.
+final residentsProvider = StreamProvider.family<List<Artwork>, ({int childId, Habitat habitat})>(
+  (ref, q) => ref.watch(artworkRepositoryProvider).watchMadeFrom(q.childId, [for (final c in q.habitat.creatures) c.name]),
 );

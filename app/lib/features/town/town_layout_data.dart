@@ -15,7 +15,8 @@ const townSlots = <String, ({Offset pin, Rect? lot, bool building})>{
   'shop': (pin: Offset(467, 560), lot: Rect.fromLTWH(433, 556, 72, 62), building: true),
   'food': (pin: Offset(291, 688), lot: Rect.fromLTWH(207, 680, 172, 120), building: true),
   'temple': (pin: Offset(484, 730), lot: Rect.fromLTWH(427, 704, 124, 100), building: true),
-  'zoo': (pin: Offset(668, 700), lot: Rect.fromLTWH(598, 692, 168, 116), building: true),
+  'zoo': (pin: Offset(668, 700), lot: null, building: true),
+  'aquarium': (pin: Offset(100, 700), lot: null, building: true),
   'grandma': (pin: Offset(279, 932), lot: Rect.fromLTWH(219, 892, 164, 124), building: true),
   'travel': (pin: Offset(494, 896), lot: Rect.fromLTWH(427, 892, 158, 136), building: true),
   'water': (pin: Offset(345, 300), lot: null, building: false),
@@ -24,10 +25,16 @@ const townSlots = <String, ({Offset pin, Rect? lot, bool building})>{
 };
 
 /// Back to front.
-const townLayerOrder = ['home', 'school', 'park', 'shop', 'food', 'temple', 'zoo', 'grandma', 'travel'];
+const townLayerOrder = ['home', 'school', 'park', 'shop', 'food', 'temple', 'zoo', 'aquarium', 'grandma', 'travel'];
 
 /// Festivals with a decoration layer (`festival_<name>_<phase>.svg`).
 const townFestivalLayers = {'lunarNewYear', 'lantern', 'childrensDay', 'dragonBoat', 'midAutumn', 'christmas', 'newYearsEve'};
+
+/// Places you can go into (the zoo, the aquarium): always built; tapping opens their scene.
+const townAttractions = <String, Rect>{
+  'zoo': Rect.fromLTWH(596, 690, 172, 124),
+  'aquarium': Rect.fromLTWH(12, 690, 178, 128),
+};
 
 /// The tip of Taipei 101, where the New Year's Eve fireworks go up.
 const townTowerTop = Offset(537, 396);

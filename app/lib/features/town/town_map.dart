@@ -7,6 +7,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../app/art.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
+import '../../app/widgets.dart';
 import '../../core/db/database.dart';
 import '../../core/festivals.dart';
 import '../../core/places.dart';
@@ -58,6 +59,7 @@ class TownMap extends StatefulWidget {
     required this.avatar,
     this.onPin,
     this.onLot,
+    this.onAttraction,
     this.grow,
     this.focus,
     this.phase = DayPhase.day,
@@ -72,6 +74,9 @@ class TownMap extends StatefulWidget {
   final String avatar;
   final ValueChanged<PlaceKind>? onPin;
   final ValueChanged<PlaceKind>? onLot;
+
+  /// The zoo or the aquarium was tapped: go inside.
+  final ValueChanged<PlaceKind>? onAttraction;
 
   /// A place that was just built: it grows out of its lot.
   final PlaceKind? grow;
@@ -96,6 +101,8 @@ class TownMap extends StatefulWidget {
 
 class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
   final _view = TransformationController();
+  late final AnimationController _pan = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
+  Animation<Matrix4>? _panning;
   Size? _laidOutFor;
   late final AnimationController _life =
       AnimationController(vsync: this, duration: const Duration(seconds: 24))..repeat();
@@ -110,13 +117,27 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _pan.dispose();
     _view.dispose();
     _life.dispose();
     _grow.dispose();
     super.dispose();
   }
 
-  bool _built(PlaceKind kind) => kind == PlaceKind.home || widget.spots.containsKey(kind);
+  /// Home, the zoo and the aquarium are always there; other places once a postcard arrives.
+  bool _built(PlaceKind kind) =>
+      kind == PlaceKind.home || townAttractions.containsKey(kind.name) || widget.spots.containsKey(kind);
+
+  /// Slides the map so [world] (a world point) is in the middle of [viewport].
+  void _panTo(Offset world, Size viewport, double s) {
+    final map = townSize * s;
+    final tx = (viewport.width / 2 - world.dx * s).clamp(math.min(0.0, viewport.width - map.width), 0.0).toDouble();
+    final ty = (viewport.height * 0.45 - world.dy * s).clamp(math.min(0.0, viewport.height - map.height), 0.0).toDouble();
+    _panning = Matrix4Tween(begin: _view.value.clone(), end: Matrix4.translationValues(tx, ty, 0))
+        .animate(CurvedAnimation(parent: _pan, curve: Curves.easeInOutCubic))
+      ..addListener(() => _view.value = _panning!.value);
+    _pan.forward(from: 0);
+  }
 
   void _place(Size viewport, double s) {
     if (_laidOutFor == viewport) return;
@@ -199,6 +220,21 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
             ),
       ];
 
+      final attractions = [
+        for (final MapEntry(key: name, value: rect) in townAttractions.entries)
+          Positioned.fromRect(
+            rect: Rect.fromLTWH(rect.left * s, rect.top * s, rect.width * s, rect.height * s),
+            child: Semantics(
+              button: true,
+              label: Strings.enter(PlaceKind.byName(name).label),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: widget.onAttraction == null ? null : () => widget.onAttraction!(PlaceKind.byName(name)),
+              ),
+            ),
+          ),
+      ];
+
       final home = townSlots['home']!.pin;
       final pins = [
         for (final spot in widget.spots.values)
@@ -217,6 +253,7 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
         child: Stack(clipBehavior: Clip.none, children: [
           ...layers,
           ...lots,
+          ...attractions,
           _Walker(life: _life, at: Offset((home.dx + 64) * s, (home.dy + 88) * s), avatar: widget.avatar),
           // Gugu sleeps on the MRT viaduct at night, away from every pin.
           if (night)
@@ -228,14 +265,71 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
         ]),
       );
 
-      return InteractiveViewer(
-        transformationController: _view,
-        constrained: false,
-        scaleEnabled: false,
-        panEnabled: widget.interactive,
-        child: map,
-      );
+      return Stack(children: [
+        InteractiveViewer(
+          transformationController: _view,
+          constrained: false,
+          scaleEnabled: false,
+          panEnabled: widget.interactive,
+          child: map,
+        ),
+        // A round sign at the screen's edge for the zoo or aquarium when it is
+        // off screen; tapping slides the map over to it.
+        if (widget.interactive)
+          AnimatedBuilder(
+            animation: _view,
+            builder: (context, _) {
+              final shift = _view.value.getTranslation();
+              return Stack(children: [
+                for (final MapEntry(key: name, value: rect) in townAttractions.entries)
+                  ?_edgeSign(name, rect, viewport, s, Offset(shift.x, shift.y)),
+              ]);
+            },
+          ),
+      ]);
     });
+  }
+
+  /// A sign at the screen's edge pointing to an attraction that is off
+  /// screen: left or right first, else top or bottom (clear of the dock).
+  Widget? _edgeSign(String name, Rect rect, Size viewport, double s, Offset shift) {
+    final center = rect.center * s + shift;
+    final left = center.dx < 0, right = center.dx > viewport.width;
+    final up = center.dy < 0, down = center.dy > viewport.height;
+    if (!left && !right && !up && !down) return null;
+    const size = 76.0;
+    final side = left || right;
+    final double x = side ? (left ? 8.0 : viewport.width - size - 8) : (center.dx - size / 2).clamp(8.0, viewport.width - size - 8);
+    final double y = side
+        ? (center.dy - size / 2).clamp(120.0, math.max(120.0, viewport.height - 300))
+        : (up ? 120.0 : viewport.height - 190 - size);
+    final angle = left ? math.pi : (right ? 0.0 : (up ? -math.pi / 2 : math.pi / 2));
+    final kind = PlaceKind.byName(name);
+    return Positioned(
+      key: ValueKey('edge-$name'),
+      left: x,
+      top: y,
+      child: Semantics(
+        button: true,
+        label: Strings.goTo(kind.label),
+        excludeSemantics: true,
+        child: Pressable(
+          onTap: () => _panTo(rect.center, viewport, s),
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: KidShadows.soft()),
+            child: Stack(alignment: Alignment.center, children: [
+              ArtSvg(Art.place(kind), size: 50),
+              Align(
+                alignment: Alignment(math.cos(angle), math.sin(angle)),
+                child: Transform.rotate(angle: angle, child: const KidIcon('chevron', size: 22, color: KidColors.inkSoft)),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _svg(String name) => ExcludeSemantics(child: SvgPicture.asset(Art.town(name, widget.phase), fit: BoxFit.fill));

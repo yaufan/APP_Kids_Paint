@@ -7,6 +7,7 @@ import 'package:image/image.dart' as img;
 import '../features/canvas/coloring.dart';
 import '../features/lineart/line_art.dart';
 import '../features/lineart/region_map.dart';
+import 'creatures.dart';
 import 'db/database.dart';
 import 'repositories.dart';
 import 'storage/artwork_store.dart';
@@ -105,6 +106,10 @@ class ArtworkService {
     final (colored, thumb) = await Isolate.run(() => renderColored(rgba, lines, w, h));
     await files.colored.writeAsBytes(colored);
     await files.thumbnail.writeAsBytes(thumb);
+    if (Creature.byName(page.artwork.template) != null) {
+      final labels = doc.regions.labels;
+      await files.sprite.writeAsBytes(await Isolate.run(() => renderSprite(rgba, lines, labels, w, h)));
+    }
     await _repo.touch(page.artwork.id, completed: doc.ops.isNotEmpty);
   }
 
@@ -113,6 +118,8 @@ class ArtworkService {
     await saveFinished(page);
     await _repo.send(page.artwork.id, place.id);
   }
+
+  ArtworkFiles filesOf(Artwork artwork) => _store.open(artwork.folder);
 
   Future<void> delete(Artwork artwork) async {
     await _store.delete(artwork.folder);
@@ -173,4 +180,41 @@ Uint8List decodeGrayPng(Uint8List png) {
   final thumb = img.copyResize(image,
       width: (width * scale).round(), height: (height * scale).round(), interpolation: img.Interpolation.average);
   return (img.encodePng(image), img.encodePng(thumb));
+}
+
+/// A colored creature cut out of its page, cropped, at most [maxSide] px.
+///
+/// Everything in the page's outside region (the one at the corner) is see-
+/// through except the ink, which keeps its softness, so the outline stays
+/// whole and smooth.
+Uint8List renderSprite(Uint8List rgba, Uint8List lines, Uint16List labels, int width, int height, {int maxSide = 360}) {
+  final outside = labels[0];
+  final out = Uint8List(width * height * 4);
+  var x0 = width, y0 = height, x1 = -1, y1 = -1;
+  for (var y = 0; y < height; y++) {
+    for (var x = 0; x < width; x++) {
+      final i = y * width + x;
+      final l = lines[i];
+      final alpha = labels[i] == outside ? 255 - l : 255;
+      if (alpha < 8) continue;
+      final o = i * 4;
+      out[o] = rgba[o] * l ~/ 255;
+      out[o + 1] = rgba[o + 1] * l ~/ 255;
+      out[o + 2] = rgba[o + 2] * l ~/ 255;
+      out[o + 3] = alpha;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+    }
+  }
+  final image = img.Image.fromBytes(width: width, height: height, bytes: out.buffer, numChannels: 4);
+  if (x1 < x0) return img.encodePng(img.Image(width: 1, height: 1, numChannels: 4));
+  var sprite = img.copyCrop(image, x: x0, y: y0, width: x1 - x0 + 1, height: y1 - y0 + 1);
+  final scale = maxSide / math.max(sprite.width, sprite.height);
+  if (scale < 1) {
+    sprite = img.copyResize(sprite,
+        width: (sprite.width * scale).round(), height: (sprite.height * scale).round(), interpolation: img.Interpolation.average);
+  }
+  return img.encodePng(sprite);
 }

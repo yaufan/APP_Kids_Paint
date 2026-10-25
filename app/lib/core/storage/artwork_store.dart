@@ -25,6 +25,9 @@ class ArtworkFiles {
 
   /// Small preview for the gallery.
   File get thumbnail => File(p.join(dir.path, 'thumb.png'));
+
+  /// A colored zoo or aquarium creature cut out of its page, to roam its scene.
+  File get sprite => File(p.join(dir.path, 'sprite.png'));
 }
 
 /// Keeps every artwork in the app's private documents folder.

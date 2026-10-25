@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../core/creatures.dart';
 import '../core/festivals.dart';
 import '../core/places.dart';
 import '../core/town_time.dart';
@@ -17,8 +18,10 @@ abstract final class Art {
   static String town(String layer, DayPhase phase) => '$_dir/town/${layer}_${phase.name}.svg';
   static String festival(Festival f) => '$_dir/festivals/${f.name}.svg';
 
-  /// A festival's coloring page: black lines on white.
-  static String page(Festival f) => 'assets/pages/${f.name}.png';
+  /// A built-in coloring page (a festival's, a creature's): black lines on white.
+  static String page(String name) => 'assets/pages/$name.png';
+  static String creature(Creature c) => '$_dir/creatures/${c.name}.svg';
+  static String scene(Habitat h) => '$_dir/scenes/${h.name}.svg';
 
   static const pigeon = '$_dir/pigeon.svg';
   static const pigeonFlying = '$_dir/pigeon_flying.svg';

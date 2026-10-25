@@ -10,6 +10,7 @@ import tempfile
 
 from PIL import Image
 
+import creatures
 import festivals
 import kit
 import screens
@@ -25,6 +26,8 @@ TOKEN, TOKEN_DARK, TOKEN_LIGHT = "#C0FFEE", "#C0FFE1", "#C0FFE2"
 def standalone(svg):
     svg = re.sub(r' (role|aria-label|aria-hidden)="[^"]*"', "", svg)
     svg = re.sub(r' style="[^"]*"', "", svg, count=1)
+    if "xmlns=" in svg.split(">", 1)[0]:
+        return svg
     return svg.replace("<svg ", '<svg xmlns="http://www.w3.org/2000/svg" ', 1)
 
 
@@ -52,6 +55,10 @@ def main():
     write("ui/mini_paper.svg", screens.mini_paper(46))
     for name in festivals.DECOR:
         write(f"festivals/{name}.svg", festivals.icon(name))
+    for cid in creatures.CREATURES:
+        write(f"creatures/{cid}.svg", creatures.outline(cid))
+    for habitat, scene in creatures.SCENES.items():
+        write(f"scenes/{habitat}.svg", scene())
     export_pages()
     # Tools in the chosen color: the generator's shades of a token color are
     # replaced by tokens the app fills in.
@@ -63,11 +70,12 @@ def main():
 
 
 def export_pages():
-    """Festival coloring pages as grayscale PNGs (app/assets/pages/<festival>.png)."""
+    """Coloring pages as grayscale PNGs: app/assets/pages/<festival or creature>.png."""
     out = APP / "assets" / "pages"
     out.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
-        for name, page in festivals.PAGES.items():
+        pages = {**festivals.PAGES, **{cid: draw for cid, (_, draw) in creatures.CREATURES.items()}}
+        for name, page in pages.items():
             src = pathlib.Path(tmp) / f"{name}.svg"
             png = pathlib.Path(tmp) / f"{name}.png"
             src.write_text(page())

@@ -88,6 +88,14 @@ class ArtworkRepository {
     return get(id);
   }
 
+  /// The child's finished pages made from any of [templates] (a scene's
+  /// creatures), newest first.
+  Stream<List<Artwork>> watchMadeFrom(int childId, Iterable<String> templates, {int limit = 12}) => (_db.select(_db.artworks)
+        ..where((a) => a.childId.equals(childId) & a.template.isIn(templates) & a.sentAt.isNotNull())
+        ..orderBy([(a) => OrderingTerm.desc(a.sentAt), (a) => OrderingTerm.desc(a.id)])
+        ..limit(limit))
+      .watch();
+
   /// Whether the child has started a page from [template] since [since]:
   /// once they have, Gugu stops bringing that festival's letter.
   Stream<bool> watchHasTemplate(int childId, String template, DateTime since) => (_db.select(_db.artworks)

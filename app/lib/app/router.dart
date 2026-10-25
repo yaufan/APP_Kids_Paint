@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:go_router/go_router.dart';
 
+import '../core/creatures.dart';
 import '../core/places.dart';
 import '../features/album/album_screen.dart';
 import '../features/canvas/canvas_screen.dart';
@@ -9,6 +10,7 @@ import '../features/capture/capture_screen.dart';
 import '../features/lineart/style_picker_screen.dart';
 import '../features/parent/parent_screen.dart';
 import '../features/parent/privacy_screen.dart';
+import '../features/scene/scene_screen.dart';
 import '../features/send/send_screen.dart';
 import '../features/send/sent_screen.dart';
 import '../features/town/town_screen.dart';
@@ -50,6 +52,16 @@ GoRouter buildRouter() => GoRouter(
           ),
         ),
         GoRoute(path: '/album', builder: (_, _) => const AlbumScreen()),
+        // Inside the zoo or the aquarium; ?new=<artwork id> welcomes a creature that just moved in.
+        GoRoute(
+          path: '/scene/:habitat',
+          redirect: (_, state) => Habitat.byName(state.pathParameters['habitat']) == null ? '/' : null,
+          builder: (_, state) => SceneScreen(
+            key: state.pageKey,
+            habitat: Habitat.byName(state.pathParameters['habitat'])!,
+            arrived: int.tryParse(state.uri.queryParameters['new'] ?? ''),
+          ),
+        ),
         // Only reached through the parent gate.
         GoRoute(path: '/parent', builder: (_, _) => const ParentScreen()),
         GoRoute(path: '/parent/privacy', builder: (_, _) => const PrivacyScreen()),
