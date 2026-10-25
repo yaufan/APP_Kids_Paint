@@ -68,13 +68,17 @@ class SceneView {
   Rect get visible => Rect.fromLTWH(-origin.dx / scale, -origin.dy / scale, screen.width / scale, screen.height / scale);
 
   Offset toScreen(Offset scene) => origin + scene * scale;
+
+  /// Creatures are drawn smaller when little of the scene fits across (a
+  /// phone), so a full zoo does not pile up.
+  double get creatureScale => (visible.width / 700).clamp(0.7, 1.0);
 }
 
 /// Where [creature] may go on [view] (the bottom middle of its picture),
 /// clear of the buttons at the top ([top] px) and bottom ([bottom] px).
 Rect roamArea(Creature creature, SceneView view, {double top = 110, double bottom = 30}) {
   final v = view.visible;
-  final half = creature.size / 2 + 12;
+  final half = creature.size * view.creatureScale / 2 + 12;
   final minY = v.top + top / view.scale;
   final maxY = v.bottom - bottom / view.scale;
   final (lo, hi) = switch (creature.motion) {
@@ -84,7 +88,7 @@ Rect roamArea(Creature creature, SceneView view, {double top = 110, double botto
     Motion.crawl => (930.0, 950.0),
   };
   // Swimmers and floaters are drawn up from their bottom, so leave room above.
-  final y0 = math.max(lo, minY + creature.size * 0.7);
+  final y0 = math.max(lo, minY + creature.size * view.creatureScale * 0.7);
   final y1 = math.max(y0, math.min(hi, maxY));
   final x0 = v.left + half, x1 = math.max(v.left + half, v.right - half);
   return Rect.fromLTRB(x0, y0, x1, y1);

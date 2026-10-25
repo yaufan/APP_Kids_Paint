@@ -322,7 +322,7 @@ class _ResidentState extends State<_Resident> with TickerProviderStateMixin {
     final pose = widget.pose;
     // Farther creatures (higher up) are a little smaller.
     final depth = 0.85 + 0.15 * ((pose.at.dy - 300) / 650).clamp(0.0, 1.0);
-    final width = widget.creature.size * view.scale * depth;
+    final width = widget.creature.size * view.creatureScale * view.scale * depth;
     final at = view.toScreen(pose.at);
     return Positioned(
       left: at.dx - width / 2,
