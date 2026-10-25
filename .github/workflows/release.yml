@@ -1,36 +1,70 @@
 name: Release
 
-# Press "Run workflow" (Actions -> Release) to publish the version in
-# app/pubspec.yaml: tag v<version>, a GitHub Release with the APK and the
-# CHANGELOG.md notes. Releases not made from main are marked pre-release.
-# See docs/versioning.md.
+# Publishes the version in app/pubspec.yaml: tag v<version>, a GitHub Release
+# with the APK and the CHANGELOG.md notes. Releases not made from main are
+# marked pre-release. See docs/versioning.md.
 on:
+  # Automatic: a push that changes the version releases it once the tests
+  # pass. A version that is already released is skipped.
+  push:
+    paths:
+      - app/pubspec.yaml
+      - CHANGELOG.md
+      - .github/workflows/release.yml
+  # By hand: Actions -> Release -> Run workflow. GitHub shows the button only
+  # once this file is on the default branch.
   workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+      release: ${{ steps.check.outputs.release }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: check
+        run: |
+          VERSION=$(sed -n 's/^version: *\([0-9.]*\).*/\1/p' app/pubspec.yaml)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null; then
+            if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+              echo "::error::v$VERSION is already released. Raise the version in app/pubspec.yaml and add it to CHANGELOG.md."
+              exit 1
+            fi
+            echo "::notice::v$VERSION is already released, nothing to do."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          fi
+
   android:
+    needs: version
+    if: needs.version.outputs.release == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     defaults:
       run:
         working-directory: app
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # the build number is the commit count
 
-      - name: Version
+      - name: Build number and release notes
         run: |
-          VERSION=$(sed -n 's/^version: *\([0-9.]*\).*/\1/p' pubspec.yaml)
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "BUILD=$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
-          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
-            echo "::error::v$VERSION is already released. Raise the version in app/pubspec.yaml and add it to CHANGELOG.md."
-            exit 1
-          fi
           # This version's section of the changelog becomes the release notes.
           awk -v v="$VERSION" '$0 ~ "^## " v " " {on=1; next} /^## / {on=0} on' ../CHANGELOG.md > ../release-notes.md
           if [ ! -s ../release-notes.md ]; then
@@ -53,11 +87,25 @@ jobs:
 
       - run: flutter analyze
 
+      # Includes test/version_test.dart: pubspec, CHANGELOG and the version
+      # shown in the app must agree.
+      - run: flutter test
+
       - name: Build Android APK
         run: |
           flutter build apk --release --build-name="$VERSION" --build-number="$BUILD" \
             --dart-define=APP_VERSION="$VERSION" --dart-define=APP_BUILD="$BUILD"
           mv build/app/outputs/flutter-apk/app-release.apk "build/kids-paint-$VERSION.apk"
+
+      # Same check as the App workflow: no network, location or advertising ID.
+      - name: Check Android permissions
+        run: |
+          AAPT2=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)
+          "$AAPT2" dump permissions "build/kids-paint-$VERSION.apk" | tee permissions.txt
+          if grep -E 'INTERNET|LOCATION|AD_ID' permissions.txt; then
+            echo "::error::The APK asks for a permission the app promises not to use"
+            exit 1
+          fi
 
       - name: Publish the release
         env:

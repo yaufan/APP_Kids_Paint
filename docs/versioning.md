@@ -17,11 +17,15 @@
 ## 發新版本的步驟
 1. 改 `app/pubspec.yaml` 的版本號，例如 `0.4.0` → `0.5.0`。
 2. 在 `CHANGELOG.md` 最上面加一段 `## 0.5.0 — 日期`，寫這版改了什麼。
-3. 推送。雲端會檢查：APP 裡的版本號、pubspec、CHANGELOG 三個要一致（`app/test/version_test.dart`）。
-4. 到 GitHub → **Actions** → **Release** → **Run workflow**，選要發行的分支，按綠色按鈕。
-   - 會自動打包 APK、建立標籤 `v0.5.0`，在 **Releases** 放上 APK 和這版的說明。
+3. 推送。雲端會自動：
+   - 檢查 APP 裡的版本號、pubspec、CHANGELOG 三個要一致（`app/test/version_test.dart`），跑完所有測試。
+   - 打包 APK、確認沒有網路／位置／廣告 ID 權限。
+   - 建立標籤 `v0.5.0`，在 **Releases** 放上 APK 和這版的說明。
    - 不是從 `main` 發行的版本會標成「預先發行版」（Pre-release）。
-   - 這個版本號已經發行過的話會停下來，提醒你先改版本號。
+   - 這個版本號已經發行過的話就跳過，不會重複發行。
+4. 進度看 GitHub → **Actions** → **Release**。
+
+也可以手動發行：合併到 `main` 之後，**Actions** → **Release** 會出現 **Run workflow** 按鈕（GitHub 只會替預設分支上的流程顯示這個按鈕）。
 
 ## 回到舊版本
 - 看舊版程式：GitHub → Tags → 選版本。
