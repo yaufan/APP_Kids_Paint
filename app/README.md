@@ -4,7 +4,7 @@
 - [產品功能規劃](../docs/product-plan.md)
 - [技術架構](../docs/tech-architecture.md)
 
-## 目前可以做的事（0.7.0）
+## 目前可以做的事（0.7.1）
 
 畫面設計見 [design-v3.md](../docs/design-v3.md)，地圖規則見 [town-map.md](../docs/town-map.md)。
 

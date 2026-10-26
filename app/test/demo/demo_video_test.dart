@@ -7,6 +7,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -44,6 +45,11 @@ const _residents = <Creature, List<(double, double, int)>>{
   Creature.turtle: [(310, 360, 0xFF5FCB79), (200, 390, 0xFF2EC4B6), (420, 390, 0xFF2EC4B6), (530, 410, 0xFFB6E08A)],
   Creature.jellyfish: [(300, 300, 0xFFFF8FB1), (190, 560, 0xFFFF8FB1), (300, 560, 0xFFFFD166), (410, 560, 0xFFFF8FB1)],
   Creature.crab: [(300, 540, 0xFFFF5E5B), (110, 250, 0xFFFF5E5B), (490, 250, 0xFFFF5E5B)],
+  Creature.triceratops: [(290, 440, 0xFF5FCB79), (430, 250, 0xFFFF9F45), (480, 390, 0xFF5FCB79)],
+  Creature.brachiosaurus: [(260, 500, 0xFF4DA3FF), (420, 300, 0xFF4DA3FF), (490, 130, 0xFF4DA3FF), (200, 470, 0xFFFFD166)],
+  Creature.stegosaurus: [(300, 460, 0xFFFF8FB1), (240, 300, 0xFFFFD166), (320, 290, 0xFFFFD166), (510, 460, 0xFFFF8FB1)],
+  Creature.pterosaur: [(310, 420, 0xFFFF9F45), (120, 300, 0xFF8C6CFF), (480, 300, 0xFF8C6CFF), (320, 300, 0xFFFF9F45)],
+  Creature.babyDino: [(300, 250, 0xFF5FCB79), (300, 420, 0xFF5FCB79), (300, 640, 0xFFFFF1DA)],
 };
 
 void main() {
@@ -185,7 +191,22 @@ void main() {
     await tap(find.byKey(ValueKey('swatch-${kidPalette[7]}')));
     final page = tester.getRect(find.byKey(const ValueKey('page')));
     await stroke([for (var i = 0; i <= 12; i++) page.topLeft + Offset(page.width * (0.3 + i * 0.03), page.height * 0.8 + (i.isEven ? -10 : 10))]);
-    await seconds(1);
+    await seconds(0.5);
+    caption.value = '新工具：彩虹筆、亮晶晶筆';
+    for (final (tool, y) in [(Strings.rainbow, 0.62), (Strings.glitter, 0.92)]) {
+      await tap(find.bySemanticsLabel(tool));
+      await stroke([for (var i = 0; i <= 14; i++) page.topLeft + Offset(page.width * (0.12 + i * 0.05), page.height * y + (i.isEven ? -10 : 10))]);
+    }
+    caption.value = '新工具：印章（星星、愛心、花朵、腳印）';
+    await tap(find.bySemanticsLabel(Strings.stamp));
+    await seconds(0.5);
+    final stamped = tester.getRect(find.byKey(const ValueKey('page')));
+    for (final (shape, color, dx, dy) in [('星星', kidPalette[2], 0.15, 0.12), ('花朵', kidPalette[6], 0.12, 0.42), ('腳印', kidPalette[8], 0.85, 0.5)]) {
+      await tap(find.bySemanticsLabel(Strings.stampOf(shape)));
+      await tap(find.byKey(ValueKey('swatch-$color')));
+      await touch(stamped.topLeft + Offset(stamped.width * dx, stamped.height * dy));
+    }
+    await seconds(1.5);
     caption.value = '畫好了，寄出：選要寄到哪裡';
     await tap(find.bySemanticsLabel(Strings.done));
     await until(find.bySemanticsLabel(Strings.sendTo(PlaceKind.park.label)));
@@ -200,7 +221,7 @@ void main() {
     await tap(find.bySemanticsLabel(Strings.goTo(PlaceKind.zoo.label)));
     await seconds(1.5);
     await tap(find.bySemanticsLabel(Strings.enter(PlaceKind.zoo.label)));
-    caption.value = '動物園：裡面住著小朋友畫的動物';
+    caption.value = '動物園：住著小朋友畫的動物\n角色會說話（手機上會念出來）';
     await until(find.bySemanticsLabel(Strings.drawNew(PlaceKind.zoo.label)));
     await seconds(3);
     caption.value = '點一下動物，牠會跳起來';
@@ -235,10 +256,58 @@ void main() {
     await until(find.bySemanticsLabel(Strings.drawNew(PlaceKind.aquarium.label)));
     await seconds(5);
 
-    // 5. Blank paper.
-    caption.value = '右下角的白紙：隨便畫';
+    // 4b. The dinosaur park.
+    caption.value = '新地方：恐龍樂園';
     await tap(find.bySemanticsLabel(Strings.backToTown));
     await until(find.bySemanticsLabel(Strings.blankPaper));
+    await seconds(1);
+    final dinoSign = find.bySemanticsLabel(Strings.goTo(PlaceKind.dinoPark.label));
+    if (dinoSign.evaluate().isNotEmpty) {
+      await tap(dinoSign);
+      await seconds(1.5);
+    }
+    await tap(find.bySemanticsLabel(Strings.enter(PlaceKind.dinoPark.label)));
+    await until(find.bySemanticsLabel(Strings.drawNew(PlaceKind.dinoPark.label)));
+    caption.value = '恐龍樂園：翼龍會飛、恐龍寶寶會跳';
+    await seconds(3);
+    caption.value = '點一下恐龍：牠會跳起來、說一句話';
+    await tap(find.bySemanticsLabel(Strings.resident(Creature.triceratops.label)));
+    await seconds(2.5);
+    await tap(find.bySemanticsLabel(Strings.resident(Creature.babyDino.label)));
+    await seconds(2.5);
+
+    // 4c. The album as one timeline.
+    caption.value = '明信片冊：右上角切換「依時間看」';
+    await tap(find.bySemanticsLabel(Strings.backToTown));
+    await until(find.bySemanticsLabel(Strings.album));
+    await seconds(1);
+    await tap(find.bySemanticsLabel(Strings.album));
+    await until(find.bySemanticsLabel(Strings.byTime));
+    await seconds(1.5);
+    await tap(find.bySemanticsLabel(Strings.byTime));
+    await until(find.byKey(const ValueKey('timeline')));
+    caption.value = '所有作品依日期排開，可以選新到舊、舊到新';
+    await seconds(2.5);
+    await tap(find.bySemanticsLabel(Strings.oldestFirst));
+    await seconds(1.5);
+    await tap(find.bySemanticsLabel(Strings.newestFirst));
+    await seconds(1);
+    caption.value = '右邊的時間軸可以上下拖動';
+    final rail = tester.getRect(find.byKey(const ValueKey('timeline-rail')));
+    // Slowly down to the oldest month, a pause, then back up a little.
+    Offset onRail(double f) => rail.topCenter + Offset(0, 10 + (rail.height - 20) * f);
+    await stroke([
+      for (var i = 0; i <= 60; i++) onRail(i / 60),
+      for (var i = 0; i < 20; i++) onRail(1),
+      for (var i = 0; i <= 40; i++) onRail(1 - 0.6 * i / 40),
+      for (var i = 0; i < 20; i++) onRail(0.4),
+    ]);
+    await seconds(1.5);
+    await tap(find.bySemanticsLabel(Strings.backToMap));
+    await until(find.bySemanticsLabel(Strings.blankPaper));
+
+    // 5. Blank paper.
+    caption.value = '右下角的白紙：隨便畫';
     await seconds(1);
     await tap(find.bySemanticsLabel(Strings.blankPaper));
     await until(find.bySemanticsLabel(Strings.paperColor));
@@ -294,13 +363,16 @@ Future<void> _colorResidents(File dbFile, Directory store) async {
   final db = AppDatabase(NativeDatabase(dbFile));
   final service = ArtworkService(ArtworkRepository(db), ArtworkStore(store));
   final child = await ChildRepository(db).ensureDefault();
-  for (final MapEntry(key: c, value: spots) in _residents.entries) {
+  for (final (i, MapEntry(key: c, value: spots)) in _residents.entries.indexed) {
     final art = await service.saveTemplate(childId: child.id, template: c.name, png: File('assets/pages/${c.name}.png').readAsBytesSync());
     final page = await service.load(art.id);
     for (final (x, y, color) in spots) {
       page.document.fill(x, y, color);
     }
     await service.send(page, await PlaceRepository(db).defaultPlace(child.id, c.habitat.place));
+    // Spread them over the last few months, so the timeline has months to drag through.
+    final when = DateTime(2026, 10, 24, 16).subtract(Duration(days: i * 9));
+    await (db.update(db.artworks)..where((a) => a.id.equals(art.id))).write(ArtworksCompanion(createdAt: Value(when), updatedAt: Value(when), sentAt: Value(when)));
   }
   await db.close();
 }

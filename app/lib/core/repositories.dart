@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import 'creatures.dart';
 import 'db/database.dart';
 import 'places.dart';
 
@@ -153,10 +154,15 @@ class ArtworkRepository {
   }
 
   /// Kinds of places to offer first when sending: the last one, then the
-  /// most used, then home and the usual everyday places.
+  /// most used, then home and the usual everyday places. Creatures that
+  /// moved into the zoo or the aquarium do not count: they say nothing
+  /// about where the child goes.
   Future<List<PlaceKind>> suggestedKinds(int childId, {int count = 4}) async {
+    final creatures = [for (final c in Creature.values) c.name];
     final rows = await (_db.select(_db.artworks).join([innerJoin(_db.places, _db.places.id.equalsExp(_db.artworks.placeId))])
-          ..where(_db.artworks.childId.equals(childId) & _db.artworks.sentAt.isNotNull())
+          ..where(_db.artworks.childId.equals(childId) &
+              _db.artworks.sentAt.isNotNull() &
+              (_db.artworks.template.isNull() | _db.artworks.template.isNotIn(creatures)))
           ..orderBy([OrderingTerm.desc(_db.artworks.sentAt), OrderingTerm.desc(_db.artworks.id)]))
         .get();
     final kinds = [for (final r in rows) PlaceKind.byName(r.readTable(_db.places).kind)];

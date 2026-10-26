@@ -61,4 +61,19 @@ void main() {
     await tester.pump();
     expect(find.text(Strings.dayLabel(DateTime(2026, 1, 3), DateTime.now())), findsOneWidget);
   });
+
+  testWidgets('the bubble names the month beside the finger, even on the last screen', (tester) async {
+    // One artwork every 9 days: the last screen holds two or three months.
+    final arts = [for (var i = 0; i < 15; i++) art(i + 1, DateTime(2026, 10, 24, 16).subtract(Duration(days: i * 9)))];
+    final thumb = File('${Directory.systemTemp.path}/kp_missing_thumb.png');
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(body: TimelineView(artworks: arts, thumbnailOf: (_) => thumb, onOpen: (_) {})),
+    ));
+    final rail = tester.getRect(find.byKey(const ValueKey('timeline-rail')));
+    final gesture = await tester.startGesture(rail.topCenter + const Offset(0, 4));
+    await gesture.moveTo(rail.bottomCenter - const Offset(0, 4));
+    await tester.pump();
+    expect(find.text(Strings.monthLong(DateTime(2026, 6))), findsOneWidget);
+    await gesture.up();
+  });
 }

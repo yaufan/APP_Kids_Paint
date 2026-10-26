@@ -73,6 +73,23 @@ void main() {
     expect((await artworks.suggestedKinds(kid.id)).first, PlaceKind.home);
   });
 
+  test('creatures that moved into the zoo do not crowd the places to send to', () async {
+    final kid = await children.ensureDefault();
+    final park = await places.defaultPlace(kid.id, PlaceKind.park);
+    final zoo = await places.defaultPlace(kid.id, PlaceKind.zoo);
+    final dinoPark = await places.defaultPlace(kid.id, PlaceKind.dinoPark);
+    final photo = await artworks.create(childId: kid.id, style: 'realistic', detail: 'simple', folder: 'a');
+    await artworks.send(photo.id, park.id);
+    for (final (i, (template, place)) in [('lion', zoo), ('panda', zoo), ('trex', dinoPark)].indexed) {
+      final c = await artworks.create(childId: kid.id, style: 'cute', detail: 'simple', folder: 'c$i', template: template);
+      await artworks.send(c.id, place.id);
+    }
+    final kinds = await artworks.suggestedKinds(kid.id);
+    expect(kinds.first, PlaceKind.park);
+    expect(kinds, isNot(contains(PlaceKind.zoo)));
+    expect(kinds, isNot(contains(PlaceKind.dinoPark)));
+  });
+
   test('daily limit has a default and can be changed', () async {
     expect(await settings.dailyMinutes(), SettingsRepository.defaultDailyMinutes);
     await settings.setDailyMinutes(45);

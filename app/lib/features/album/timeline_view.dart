@@ -90,16 +90,18 @@ class _TimelineViewState extends State<TimelineView> {
         total += extent(i);
       }
       total += 40; // bottom padding
-      final maxScroll = math.max(1.0, total - box.maxHeight);
 
-      // Where each month starts, as a fraction of the scroll.
+      // Where each month starts, as a fraction of all the rows. With the
+      // thumb at f the list is scrolled f of the way, so the row at f of
+      // the content is on screen next to the thumb: the bubble names what
+      // the child sees beside the finger, down to the last month.
       final months = <({DateTime month, double at})>[];
       for (var i = 0; i < rows.length; i++) {
         final m = DateTime(rows[i].day.year, rows[i].day.month);
-        if (months.isEmpty || months.last.month != m) months.add((month: m, at: (offsets[i] / maxScroll).clamp(0.0, 1.0)));
+        if (months.isEmpty || months.last.month != m) months.add((month: m, at: (offsets[i] / total).clamp(0.0, 1.0)));
       }
       DateTime monthAt(double f) {
-        final target = f * maxScroll;
+        final target = f * total;
         var i = 0;
         while (i + 1 < rows.length && offsets[i + 1] <= target) {
           i++;
