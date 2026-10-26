@@ -32,23 +32,30 @@ const _phone = Size(390, 844);
 const _captionHeight = 84.0;
 const _fps = 10;
 
-/// Creatures colored "before" the video starts, so the zoo and the aquarium
-/// are already lived in: (creature, [(x, y, color)] bucket fills on its page).
-const _residents = <Creature, List<(double, double, int)>>{
-  Creature.giraffe: [(260, 490, 0xFFFFD166), (220, 440, 0xFFA0673F), (300, 520, 0xFFA0673F), (440, 300, 0xFFFFD166), (530, 150, 0xFFFFD166)],
-  Creature.lion: [(260, 480, 0xFFFF9F45), (440, 200, 0xFFA0673F), (440, 300, 0xFFFFD166), (440, 385, 0xFFFFD2B8)],
-  Creature.panda: [(196, 186, 0xFF34413A), (404, 186, 0xFF34413A), (160, 470, 0xFF34413A), (446, 440, 0xFF34413A), (190, 665, 0xFF34413A), (410, 665, 0xFF34413A)],
-  Creature.monkey: [(300, 460, 0xFFA0673F), (300, 555, 0xFFFFD2B8), (300, 330, 0xFFFFD2B8), (300, 210, 0xFFA0673F), (540, 320, 0xFFFFD166)],
-  Creature.clownfish: [(260, 330, 0xFFFF9F45), (360, 480, 0xFFFF9F45), (90, 400, 0xFFFF9F45)],
-  Creature.octopus: [(300, 250, 0xFF8C6CFF), (180, 620, 0xFF8C6CFF), (260, 640, 0xFF8C6CFF), (340, 640, 0xFF8C6CFF), (420, 620, 0xFF8C6CFF)],
-  Creature.turtle: [(310, 360, 0xFF5FCB79), (200, 390, 0xFF2EC4B6), (420, 390, 0xFF2EC4B6), (530, 410, 0xFFB6E08A)],
-  Creature.jellyfish: [(300, 300, 0xFFFF8FB1), (190, 560, 0xFFFF8FB1), (300, 560, 0xFFFFD166), (410, 560, 0xFFFF8FB1)],
-  Creature.crab: [(300, 540, 0xFFFF5E5B), (110, 250, 0xFFFF5E5B), (490, 250, 0xFFFF5E5B)],
-  Creature.triceratops: [(290, 440, 0xFF5FCB79), (430, 250, 0xFFFF9F45), (480, 390, 0xFF5FCB79)],
-  Creature.brachiosaurus: [(260, 500, 0xFF4DA3FF), (420, 300, 0xFF4DA3FF), (490, 130, 0xFF4DA3FF), (200, 470, 0xFFFFD166)],
-  Creature.stegosaurus: [(300, 460, 0xFFFF8FB1), (240, 300, 0xFFFFD166), (320, 290, 0xFFFFD166), (510, 460, 0xFFFF8FB1)],
-  Creature.pterosaur: [(310, 420, 0xFFFF9F45), (120, 300, 0xFF8C6CFF), (480, 300, 0xFF8C6CFF), (320, 300, 0xFFFF9F45)],
-  Creature.babyDino: [(300, 250, 0xFF5FCB79), (300, 420, 0xFF5FCB79), (300, 640, 0xFFFFF1DA)],
+/// Creatures colored "before" the video starts, so the places are already
+/// lived in: the biggest area of each page gets the first color, the other
+/// areas take turns with the rest.
+const _residents = <Creature, List<int>>{
+  Creature.giraffe: [0xFFFFD166, 0xFFA0673F],
+  Creature.lion: [0xFFFFC56B, 0xFFA0673F, 0xFFFFE2B0],
+  Creature.monkey: [0xFFA0673F, 0xFFFFD2B8],
+  Creature.zebra: [0xFFFFFFFF, 0xFFFFFFFF], // white between its black stripes
+  Creature.clownfish: [0xFFFF9F45, 0xFFFFFFFF, 0xFF4DA3FF],
+  Creature.octopus: [0xFF8C6CFF, 0xFFFFC2DA],
+  Creature.turtle: [0xFF5FCB79, 0xFFB6E08A, 0xFF2EC4B6],
+  Creature.jellyfish: [0xFFFF8FB1, 0xFFFFD6E5],
+  Creature.crab: [0xFFFF5E5B, 0xFFFFB4A8],
+  Creature.triceratops: [0xFF5FCB79, 0xFFFFD166, 0xFFFFFFFF],
+  Creature.brachiosaurus: [0xFF4DA3FF, 0xFFFFD166],
+  Creature.stegosaurus: [0xFFFF8FB1, 0xFFFFD166],
+  Creature.pterosaur: [0xFFFF9F45, 0xFF8C6CFF],
+  Creature.babyDino: [0xFF5FCB79, 0xFFFFF1DA, 0xFFFFD166],
+  Creature.fireTruck: [0xFFFF5E5B, 0xFFA0E1FF, 0xFF34413A, 0xFFFFD166],
+  Creature.bus: [0xFFFFD166, 0xFFA0E1FF, 0xFF34413A],
+  Creature.train: [0xFFFF5E5B, 0xFF34413A, 0xFFFFD166],
+  Creature.airplane: [0xFF4DA3FF, 0xFFFFFFFF],
+  Creature.helicopter: [0xFFFFD166, 0xFFA0E1FF, 0xFF34413A],
+  Creature.scooter: [0xFF4DA3FF, 0xFF34413A, 0xFFFFD166],
 };
 
 void main() {
@@ -274,7 +281,30 @@ void main() {
     await tap(find.bySemanticsLabel(Strings.resident(Creature.babyDino.label)));
     await seconds(2.5);
 
-    // 4c. The album as one timeline.
+    // 4c. The transport museum.
+    caption.value = '新地方：交通車館（在小鎮右邊）';
+    await tap(find.bySemanticsLabel(Strings.backToTown));
+    await until(find.bySemanticsLabel(Strings.blankPaper));
+    await seconds(1);
+    final transportSign = find.bySemanticsLabel(Strings.goTo(PlaceKind.transport.label));
+    if (transportSign.evaluate().isNotEmpty) {
+      await tap(transportSign);
+      await seconds(1.5);
+    }
+    await tap(find.bySemanticsLabel(Strings.enter(PlaceKind.transport.label)));
+    await until(find.bySemanticsLabel(Strings.drawNew(PlaceKind.transport.label, vehicles: true)));
+    caption.value = '汽車在馬路上開、火車在鐵軌上跑\n飛機和直升機在天上飛';
+    await seconds(4);
+    caption.value = '點一下火車：它會跳起來、說一句話';
+    await tap(find.bySemanticsLabel(Strings.resident(Creature.train.label)));
+    await seconds(2.5);
+    await tap(find.bySemanticsLabel(Strings.drawNew(PlaceKind.transport.label, vehicles: true)));
+    caption.value = '畫一台新的：8 台車可以選';
+    await seconds(3);
+    await touch(const Offset(195, 150)); // outside the sheet: it slides away
+    await seconds(1);
+
+    // 4d. The album as one timeline.
     caption.value = '明信片冊：右上角切換「依時間看」';
     await tap(find.bySemanticsLabel(Strings.backToTown));
     await until(find.bySemanticsLabel(Strings.album));
@@ -361,11 +391,21 @@ Future<void> _colorResidents(File dbFile, Directory store) async {
   final db = AppDatabase(NativeDatabase(dbFile));
   final service = ArtworkService(ArtworkRepository(db), ArtworkStore(store));
   final child = await ChildRepository(db).ensureDefault();
-  for (final (i, MapEntry(key: c, value: spots)) in _residents.entries.indexed) {
+  for (final (i, MapEntry(key: c, value: colors)) in _residents.entries.indexed) {
     final art = await service.saveTemplate(childId: child.id, template: c.name, png: File('assets/pages/${c.name}.png').readAsBytesSync());
     final page = await service.load(art.id);
-    for (final (x, y, color) in spots) {
-      page.document.fill(x, y, color);
+    final regions = page.document.regions;
+    final outside = regions.labelAt(0, 0);
+    final area = <int, int>{}, first = <int, int>{};
+    for (var i = 0; i < regions.labels.length; i++) {
+      final l = regions.labels[i];
+      area[l] = (area[l] ?? 0) + 1;
+      first.putIfAbsent(l, () => i);
+    }
+    final order = [for (final l in area.keys) if (l != outside && area[l]! > 300) l]..sort((a, b) => area[b]!.compareTo(area[a]!));
+    for (final (k, l) in order.indexed) {
+      final color = k == 0 ? colors[0] : colors[1 + (k - 1) % (colors.length - 1)];
+      page.document.fill((first[l]! % regions.width).toDouble(), (first[l]! ~/ regions.width).toDouble(), color);
     }
     await service.send(page, await PlaceRepository(db).defaultPlace(child.id, c.habitat.place));
     // Spread them over the last few months, so the timeline has months to drag through.

@@ -404,7 +404,8 @@ def duck(x, y, s=1.0, flip=False):
 
 PLACE_TYPES = [("home", "家"), ("grandma", "阿公阿嬤家"), ("school", "幼兒園"), ("park", "公園"),
                ("food", "好吃的店"), ("shop", "商店"), ("zoo", "動物園"), ("water", "河邊海邊"),
-               ("mountain", "山上"), ("temple", "廟"), ("station", "車站"), ("travel", "去旅行"), ("aquarium", "海洋館"), ("dinoPark", "恐龍樂園")]
+               ("mountain", "山上"), ("temple", "廟"), ("station", "車站"), ("travel", "去旅行"), ("aquarium", "海洋館"), ("dinoPark", "恐龍樂園"),
+               ("transport", "交通車館")]
 PLACE_NAMES = dict(PLACE_TYPES)
 
 
@@ -463,6 +464,13 @@ def place_icon(kind, size=64):
                     '<path d="M30 54 C 30 40, 36 26, 44 16 L 50 19 C 44 30, 40 42, 40 54 Z" fill="#7BD389" stroke="#3FA052" stroke-width="1.4"/>'
                     '<ellipse cx="50" cy="15" rx="9" ry="6" fill="#7BD389" stroke="#3FA052" stroke-width="1.4"/><circle cx="52" cy="13" r="1.6" fill="#2A211D"/>'
                     '<circle cx="36" cy="40" r="2" fill="#3FA052"/><circle cx="40" cy="30" r="1.8" fill="#3FA052"/>',
+        "transport": g + '<path d="M8 54 V30 Q 32 12 56 30 V54 Z" fill="#E9EEF5" stroke="#9AA9BC" stroke-width="1.6"/>'
+                     '<path d="M12 30 Q 32 18 52 30" fill="none" stroke="#BFD9F2" stroke-width="4"/>'
+                     '<rect x="12" y="44" width="34" height="9" rx="2" fill="#FF5E5B" stroke="#C9423F" stroke-width="1.2"/>'
+                     '<rect x="34" y="34" width="12" height="11" rx="2" fill="#FF5E5B" stroke="#C9423F" stroke-width="1.2"/><rect x="37" y="37" width="6" height="5" fill="#A9E0FF"/>'
+                     '<rect x="16" y="37" width="6" height="8" fill="#5A6472"/><circle cx="18" cy="54" r="3.4" fill="#2F3540"/><circle cx="28" cy="54" r="3.4" fill="#2F3540"/>'
+                     '<circle cx="40" cy="54" r="3.4" fill="#2F3540"/><path d="M48 54 L 54 50 V 54 Z" fill="#FFD23F"/>'
+                     '<path d="M30 21 l10 -3 l2 2 l-9 4 Z M34 19 l-2 -4 h2 l3 3 Z" fill="#4DA8FF"/>',
         "travel": g + '<rect x="12" y="22" width="40" height="32" rx="7" fill="#FF8A3D" stroke="#D9692A" stroke-width="1.6"/>'
                   '<path d="M24 22 v-6 a3 3 0 0 1 3 -3 h10 a3 3 0 0 1 3 3 v6" stroke="#8A5A3A" stroke-width="3" fill="none"/>'
                   '<rect x="18" y="30" width="10" height="8" rx="2" fill="#fff" transform="rotate(-8 23 34)"/><circle cx="42" cy="40" r="5" fill="#4DA8FF"/>'

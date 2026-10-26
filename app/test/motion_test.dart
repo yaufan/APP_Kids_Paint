@@ -33,10 +33,28 @@ void main() {
     }
   });
 
-  test('each scene has six creatures to color', () {
+  test('each scene has six animals, or eight vehicles, to color', () {
     for (final habitat in Habitat.values) {
-      expect(habitat.creatures, hasLength(6));
+      expect(habitat.creatures, hasLength(habitat.vehicles ? 8 : 6));
       expect(Habitat.of(habitat.place), habitat);
+    }
+  });
+
+  test('cars drive on the road, trains run on the track, planes fly above', () {
+    final view = SceneView(const Size(390, 844));
+    for (final creature in Habitat.transport.creatures) {
+      final area = roamArea(creature, view);
+      for (var t = 0.0; t < 60; t += 0.7) {
+        final y = poseAt(creature.motion, t, 3, area).at.dy;
+        switch (creature.motion) {
+          case Motion.drive:
+            expect(y, inInclusiveRange(780, 930), reason: '$creature');
+          case Motion.rail:
+            expect(y, closeTo(648, 2), reason: '$creature');
+          default:
+            expect(y, lessThan(600), reason: '$creature');
+        }
+      }
     }
   });
 }

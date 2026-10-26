@@ -69,7 +69,8 @@ void main() {
         final png = File('assets/pages/${c.name}.png').readAsBytesSync();
         final art = await service.saveTemplate(childId: childId, template: c.name, png: png);
         final page = await service.load(art.id);
-        expect(page.document.regions.regionCount, greaterThan(5), reason: c.name);
+        // The outside plus at least two areas (a whale is just body and belly).
+        expect(page.document.regions.regionCount, greaterThan(2), reason: c.name);
         page.document.fill(300, 470, 0xFFFF5E5B);
         await service.saveFinished(page);
         final sprite = img.decodePng(service.filesOf(art).sprite.readAsBytesSync())!;

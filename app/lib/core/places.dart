@@ -14,7 +14,8 @@ enum PlaceKind {
   station('車站'),
   travel('去旅行'),
   aquarium('海洋館'),
-  dinoPark('恐龍樂園');
+  dinoPark('恐龍樂園'),
+  transport('交通車館');
 
   const PlaceKind(this.label);
 

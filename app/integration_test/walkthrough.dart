@@ -275,7 +275,21 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   await idle(tester, 700);
   await shot('22_dino_park');
 
-  // 16. The album as one timeline.
+  // 16. The transport museum: a fire truck on the road, a train on the
+  // track, a plane in the sky.
+  await tester.tap(find.bySemanticsLabel(Strings.backToTown));
+  await waitFor(tester, find.bySemanticsLabel(Strings.blankPaper));
+  await idle(tester, 800);
+  await enterScene(tester, PlaceKind.transport);
+  for (final (i, creature) in [Creature.fireTruck, Creature.train, Creature.airplane].indexed) {
+    await colorCreature(tester, creature, [kidPalette[[0, 5, 6][i]], kidPalette[2], kidPalette[7]]);
+    await tester.tap(find.bySemanticsLabel(Strings.done));
+    await waitFor(tester, find.bySemanticsLabel(Strings.resident(creature.label)));
+    await idle(tester, 1800);
+  }
+  await shot('24_transport');
+
+  // 17. The album as one timeline.
   await tester.tap(find.bySemanticsLabel(Strings.backToTown));
   await waitFor(tester, find.bySemanticsLabel(Strings.album));
   await idle(tester, 600);
@@ -296,7 +310,7 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   });
 }
 
-/// From the town into the zoo or the aquarium: on a phone it is off screen,
+/// From the town into a place you can go into: on a phone it is off screen,
 /// so the sign at the edge slides the map there first.
 Future<void> enterScene(WidgetTester tester, PlaceKind place) async {
   final sign = find.bySemanticsLabel(Strings.goTo(place.label));
@@ -305,12 +319,12 @@ Future<void> enterScene(WidgetTester tester, PlaceKind place) async {
     await idle(tester, 1000);
   }
   await tester.tap(find.bySemanticsLabel(Strings.enter(place.label)));
-  await waitFor(tester, find.bySemanticsLabel(Strings.drawNew(place.label)));
+  await waitFor(tester, find.bySemanticsLabel(Strings.drawNew(place.label, vehicles: Habitat.of(place)!.vehicles)));
 }
 
 /// Picks [creature] in its scene and bucket-fills a few areas with [colors].
 Future<void> colorCreature(WidgetTester tester, Creature creature, List<int> colors) async {
-  await tester.tap(find.bySemanticsLabel(Strings.drawNew(creature.habitat.place.label)));
+  await tester.tap(find.bySemanticsLabel(Strings.drawNew(creature.habitat.place.label, vehicles: creature.habitat.vehicles)));
   await waitFor(tester, find.byKey(ValueKey('creature-${creature.name}')));
   await idle(tester, 500);
   await tester.tap(find.byKey(ValueKey('creature-${creature.name}')));

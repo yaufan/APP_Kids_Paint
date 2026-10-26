@@ -23,10 +23,13 @@ abstract final class Strings {
   static String goTo(String place) => '去$place';
   static String enter(String place) => '進去$place';
 
-  // The zoo and the aquarium.
-  static String sceneEmpty(String place) => '選一隻來畫，\n畫好牠就會住進$place喔！';
-  static String movedIn(String creature, String place) => '$creature住進$place了！';
-  static String drawNew(String place) => '畫一隻新的，住進$place';
+  // The zoo, the aquarium, the dinosaur park and the transport museum
+  // ([vehicles]: counted 台, and they drive in).
+  static String sceneEmpty(String place, {bool vehicles = false}) =>
+      vehicles ? '選一台來畫，\n畫好它就會開進$place喔！' : '選一隻來畫，\n畫好牠就會住進$place喔！';
+  static String movedIn(String creature, String place, {bool vehicles = false}) =>
+      vehicles ? '$creature開進$place了！' : '$creature住進$place了！';
+  static String drawNew(String place, {bool vehicles = false}) => vehicles ? '畫一台新的，開進$place' : '畫一隻新的，住進$place';
   static String drawCreature(String creature) => '畫$creature';
   static String resident(String creature) => '你畫的$creature';
   static String backTo(String place) => '回到$place';

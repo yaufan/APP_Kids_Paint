@@ -235,12 +235,8 @@ def wings():
     s.append(tree(16, 380, 10) + tree(176, 396, 9, "#58C46B"))
     s.append(tree(30, 850, 12, "#4DB860", "pine") + tree(160, 846, 11, "#58C46B", "pine"))
     s.append(house(30, 960, "#FFE7A3") + house(100, 972, "#E3F6E8") + tree(160, 950, 11))
-    # right wing: houses by the river, a lake, a windmill farm
+    # right wing: houses by the river, a windmill farm (the transport museum is its own layer)
     s.append(house(606, 418, "#FFE3EA") + house(660, 426, "#FFE7A3") + house(714, 414, "#E3F6E8"))
-    s.append('<path d="M610 520 C 640 492, 740 490, 764 520 C 780 548, 740 574, 690 572 C 640 570, 596 552, 610 520 Z" fill="#7CCFFF" stroke="#43A9E0" stroke-width="1.5"/>')
-    s.append(duck(660, 528) + duck(686, 540, 0.8, True))
-    s.append(tree(612, 610, 12) + tree(650, 620, 10, "#58C46B") + tree(740, 606, 12))
-    s.append(flower_patch(700, 600) + flower_patch(624, 570, ("#FFFFFF", "#FF8FB1", "#FFD166")))
     s.append('<g transform="translate(720 980)"><rect x="-5" y="-60" width="10" height="60" fill="#FFF4E2" stroke="#C9A06B" stroke-width="1.4"/>'
              + "".join(f'<path d="M0 -60 L{26 * math.cos(math.radians(a)):.1f} {-60 + 26 * math.sin(math.radians(a)):.1f}" stroke="#FF8FB1" stroke-width="6" stroke-linecap="round"/>' for a in (15, 105, 195, 285))
              + '<circle cx="0" cy="-60" r="4" fill="#C98B5E"/></g>')
@@ -396,6 +392,33 @@ def dino_park():
             + '<rect x="16" y="610" width="168" height="5" fill="#A86E43"/>' + eggs + gate)
 
 
+def transport():
+    """The transport museum in the right wing: a hall with an arched glass
+    roof, a steam engine on display out front and a little plane on top."""
+    windows = "".join(f'<rect x="{x}" y="548" width="20" height="30" rx="3" fill="#A9DCFF" stroke="#6E8FB0" stroke-width="1.2"/>' for x in (618, 646, 718, 746))
+    rails = ('<rect x="602" y="622" width="160" height="6" rx="2" fill="#8A6A4A"/>'
+             + "".join(f'<rect x="{x}" y="619" width="5" height="11" rx="1" fill="#6E5338"/>' for x in range(606, 760, 12)))
+    engine = ('<g transform="translate(640 592)">'
+              '<rect x="0" y="12" width="56" height="16" rx="4" fill="#FF5E5B" stroke="#C9423F" stroke-width="1.4"/>'
+              '<rect x="40" y="-4" width="22" height="32" rx="3" fill="#FF5E5B" stroke="#C9423F" stroke-width="1.4"/><rect x="45" y="1" width="12" height="10" rx="2" fill="#A9E0FF"/>'
+              '<rect x="10" y="-2" width="10" height="16" fill="#5A6472"/><path d="M6 -6 h18 l-3 6 h-12 z" fill="#5A6472"/>'
+              '<circle cx="12" cy="30" r="6" fill="#2F3540"/><circle cx="28" cy="30" r="6" fill="#2F3540"/><circle cx="50" cy="30" r="6" fill="#2F3540"/>'
+              '<circle cx="12" cy="30" r="2" fill="#C5CFDC"/><circle cx="28" cy="30" r="2" fill="#C5CFDC"/><circle cx="50" cy="30" r="2" fill="#C5CFDC"/>'
+              '<path d="M-2 28 L -10 28 L 0 16 Z" fill="#FFD23F" stroke="#C99A1A" stroke-width="1.2"/>'
+              '<circle cx="15" cy="-12" r="4" fill="#FFFFFF" opacity=".85"/><circle cx="10" cy="-20" r="5" fill="#FFFFFF" opacity=".85"/></g>')
+    plane = ('<g transform="translate(682 500)"><path d="M-22 4 C -10 0, 14 -2, 22 2 C 14 6, -10 8, -22 4 Z" fill="#4DA8FF" stroke="#2C7FD6" stroke-width="1.2"/>'
+             '<path d="M-2 3 L -12 -10 L -6 -10 L 6 3 Z M-2 5 L -10 16 L -4 16 L 6 5 Z" fill="#7CC4FF" stroke="#2C7FD6" stroke-width="1"/>'
+             '<path d="M-20 3 L -24 -5 L -19 -5 L -15 3 Z" fill="#7CC4FF" stroke="#2C7FD6" stroke-width="1"/></g>')
+    return ('<rect x="596" y="476" width="172" height="170" rx="20" fill="#D6E9C4"/>'
+            '<path d="M606 590 V 540 Q 682 486 758 540 V 590 Z" fill="#E9EEF5" stroke="#9AA9BC" stroke-width="1.6"/>'
+            '<path d="M616 540 Q 682 500 748 540" fill="none" stroke="#BFD9F2" stroke-width="7"/>'
+            + windows + '<rect x="670" y="552" width="24" height="38" rx="3" fill="#5C7DA6"/>'
+            + '<rect x="602" y="588" width="160" height="5" rx="2" fill="#C5CFDC"/>'
+            + plane + rails + engine
+            + '<path d="M612 518 v-24" stroke="#8A97A8" stroke-width="2"/><path d="M612 494 l14 5 l-14 5 z" fill="#FF5E5B"/>'
+            + tree(752, 616, 10))
+
+
 def grandma():
     return mid(box(36, 960, 96, 52, 8, "#E8836B", roof="gable", roof_h=24, windows=[(10, 14, 16, 14), (70, 14, 16, 14)], door=(40, 16, 30, "#7A4A2A")),
                '<path d="M58 990 c-2-3-6-1-4 2 l4 3 4-3 c2-3-2-5-4-2z M118 990 c-2-3-6-1-4 2 l4 3 4-3 c2-3-2-5-4-2z" fill="#FF8FB1"/>',
@@ -425,6 +448,7 @@ SLOTS = {
     "zoo": (zoo, None, (668, 700)),
     "aquarium": (aquarium, None, (100, 700)),
     "dinoPark": (dino_park, None, (96, 500)),
+    "transport": (transport, None, (682, 520)),
     "grandma": (grandma, (OX + 24, 892, 164, 124), (OX + 84, 932)),
     "travel": (travel, (OX + 232, 892, 158, 136), (OX + 299, 896)),
     # scenery that is always there: only a pin anchor
@@ -432,9 +456,10 @@ SLOTS = {
     "mountain": (None, None, (OX + 60, 200)),
     "station": (None, None, (OX + 298, 286)),
 }
-ORDER = ["home", "school", "park", "shop", "food", "temple", "zoo", "aquarium", "dinoPark", "grandma", "travel"]
+ORDER = ["home", "school", "park", "shop", "food", "temple", "zoo", "aquarium", "dinoPark", "transport", "grandma", "travel"]
 # Places you can go into (scenes in the app), always built: kind -> tap area.
-ATTRACTIONS = {"zoo": (596, 690, 172, 124), "aquarium": (12, 690, 178, 128), "dinoPark": (12, 476, 178, 170)}
+ATTRACTIONS = {"zoo": (596, 690, 172, 124), "aquarium": (12, 690, 178, 128), "dinoPark": (12, 476, 178, 170),
+               "transport": (596, 476, 172, 170)}
 
 
 def lot(kind):
@@ -508,7 +533,7 @@ def export(app_dir):
     lines += ["};", "", "/// Back to front.", "const townLayerOrder = [" + ", ".join(f"'{k}'" for k in ORDER) + "];", "",
               "/// Festivals with a decoration layer (`festival_<name>_<phase>.svg`).",
               "const townFestivalLayers = {" + ", ".join(f"'{k}'" for k in festivals.DECOR) + "};", "",
-              "/// Places you can go into (the zoo, the aquarium, the dinosaur park): always built; tapping opens their scene.",
+              "/// Places you can go into (the zoo, the aquarium, the dinosaur park, the transport museum): always built; tapping opens their scene.",
               "const townAttractions = <String, Rect>{",
               *[f"  '{k}': Rect.fromLTWH({x}, {y}, {w}, {h})," for k, (x, y, w, h) in ATTRACTIONS.items()],
               "};", "",

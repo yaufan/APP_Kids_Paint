@@ -5,11 +5,15 @@ import 'places.dart';
 enum Habitat {
   zoo(PlaceKind.zoo),
   aquarium(PlaceKind.aquarium),
-  dinoPark(PlaceKind.dinoPark);
+  dinoPark(PlaceKind.dinoPark),
+  transport(PlaceKind.transport, vehicles: true);
 
-  const Habitat(this.place);
+  const Habitat(this.place, {this.vehicles = false});
 
   final PlaceKind place;
+
+  /// Its residents are vehicles: counted 台, not 隻, and they drive in.
+  final bool vehicles;
 
   List<Creature> get creatures => [for (final c in Creature.values) if (c.habitat == this) c];
 
@@ -17,11 +21,12 @@ enum Habitat {
   static Habitat? of(PlaceKind kind) => values.where((h) => h.place == kind).firstOrNull;
 }
 
-/// How a creature gets around its scene.
-enum Motion { walk, hop, swim, float, crawl, fly }
+/// How a creature gets around its scene: [drive] along the road, [rail]
+/// on the railway track.
+enum Motion { walk, hop, swim, float, crawl, fly, drive, rail }
 
-/// The zoo's, the aquarium's and the dinosaur park's coloring pages, drawn in
-/// docs/design/v3/src/creatures.py (same names) facing right.
+/// The coloring pages of the places you can go into, made in
+/// docs/design/v3/src/animals.py and vehicles.py (same names), facing right.
 enum Creature {
   elephant('大象', Habitat.zoo, Motion.walk, 190),
   giraffe('長頸鹿', Habitat.zoo, Motion.walk, 190),
@@ -40,7 +45,15 @@ enum Creature {
   brachiosaurus('腕龍', Habitat.dinoPark, Motion.walk, 220),
   stegosaurus('劍龍', Habitat.dinoPark, Motion.walk, 190),
   pterosaur('翼龍', Habitat.dinoPark, Motion.fly, 170),
-  babyDino('恐龍寶寶', Habitat.dinoPark, Motion.hop, 120);
+  babyDino('恐龍寶寶', Habitat.dinoPark, Motion.hop, 120),
+  fireTruck('消防車', Habitat.transport, Motion.drive, 230),
+  policeCar('警車', Habitat.transport, Motion.drive, 190),
+  ambulance('救護車', Habitat.transport, Motion.drive, 200),
+  bus('公車', Habitat.transport, Motion.drive, 240),
+  scooter('機車', Habitat.transport, Motion.drive, 140),
+  train('火車', Habitat.transport, Motion.rail, 230),
+  airplane('飛機', Habitat.transport, Motion.fly, 200),
+  helicopter('直升機', Habitat.transport, Motion.fly, 190);
 
   const Creature(this.label, this.habitat, this.motion, this.size);
 

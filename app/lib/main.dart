@@ -18,6 +18,7 @@ Future<void> main() async {
     final text = await rootBundle.loadString('assets/fonts/OFL-jf-openhuninn.txt');
     yield LicenseEntryWithLineBreaks(const ['jf open 粉圓 (jf-openhuninn)'], text);
     yield LicenseEntryWithLineBreaks(const ['TEED (Tiny and Efficient Edge Detector)'], await rootBundle.loadString('assets/models/TEED-LICENSE.txt'));
+    yield LicenseEntryWithLineBreaks(const ['Twemoji (圖案)'], await rootBundle.loadString('assets/art/TWEMOJI-LICENSE.txt'));
   });
   final documents = await getApplicationDocumentsDirectory();
   runApp(ProviderScope(

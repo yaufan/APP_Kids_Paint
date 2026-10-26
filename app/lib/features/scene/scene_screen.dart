@@ -185,8 +185,8 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with SingleTickerProv
     final arrived = residents.where((a) => a.id == widget.arrived).firstOrNull;
     final arrivedCreature = Creature.byName(arrived?.template);
     final bubble = _welcome && arrivedCreature != null
-        ? Strings.movedIn(arrivedCreature.label, _place)
-        : (child != null && residents.isEmpty ? Strings.sceneEmpty(_place) : null);
+        ? Strings.movedIn(arrivedCreature.label, _place, vehicles: widget.habitat.vehicles)
+        : (child != null && residents.isEmpty ? Strings.sceneEmpty(_place, vehicles: widget.habitat.vehicles) : null);
 
     return Scaffold(
       body: LayoutBuilder(builder: (context, box) {
@@ -281,7 +281,7 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with SingleTickerProv
                 child: Breathing(
                   child: Semantics(
                     button: true,
-                    label: Strings.drawNew(_place),
+                    label: Strings.drawNew(_place, vehicles: widget.habitat.vehicles),
                     excludeSemantics: true,
                     child: Pressable(
                       onTap: child == null ? null : () => _pick(child.id),

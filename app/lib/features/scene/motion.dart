@@ -51,6 +51,14 @@ Pose poseAt(Motion motion, double t, int seed, Rect area) {
     case Motion.crawl:
       final w = pacing(32);
       return (at: Offset(w.x, area.bottom), left: false, tilt: 0.07 * math.sin(t * 9 * pace + wobble), squash: 1.0);
+    case Motion.drive:
+      // A steady drive with a little bump now and then.
+      final w = pacing(48);
+      final bump = math.max(0.0, math.sin(t * 5 * pace + wobble) - 0.85) * 20;
+      return (at: Offset(w.x, laneY() - bump), left: w.left, tilt: 0.0, squash: 1.0);
+    case Motion.rail:
+      final w = pacing(58);
+      return (at: Offset(w.x, area.bottom - 1.2 * math.sin(t * 14).abs()), left: w.left, tilt: 0.0, squash: 1.0);
     case Motion.fly:
       final w = pacing(56);
       final glide = t * 0.8 * pace + wobble;
@@ -92,6 +100,8 @@ Rect roamArea(Creature creature, SceneView view, {double top = 110, double botto
     Motion.float => (300.0, 760.0),
     Motion.crawl => (930.0, 950.0),
     Motion.fly => (260.0, 520.0),
+    Motion.drive => (790.0, 930.0),
+    Motion.rail => (648.0, 648.0),
   };
   // Swimmers and floaters are drawn up from their bottom, so leave room above.
   final y0 = math.max(lo, minY + creature.size * view.creatureScale * 0.7);
