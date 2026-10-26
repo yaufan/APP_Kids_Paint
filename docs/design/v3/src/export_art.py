@@ -3,6 +3,7 @@
     python3 export_art.py
 """
 import io
+import math
 import pathlib
 import re
 import subprocess
@@ -21,6 +22,32 @@ ART = APP / "assets" / "art"
 
 # Placeholders the app swaps for the chosen color (see lib/app/art.dart).
 TOKEN, TOKEN_DARK, TOKEN_LIGHT = "#C0FFEE", "#C0FFE1", "#C0FFE2"
+
+
+# Stamp shapes, black, tinted by the app; the canvas draws the same shapes
+# (lib/features/canvas/coloring.dart, stampContains).
+def _star():
+    pts = []
+    for k in range(10):
+        r = 1 if k % 2 == 0 else 0.45
+        pts.append(f"{r * math.sin(k * math.pi / 5):.3f} {-r * math.cos(k * math.pi / 5):.3f}")
+    return f'<svg viewBox="-1 -1 2 2" width="48" height="48"><path d="M{" L".join(pts)} Z" fill="#000"/></svg>'
+
+
+def _flower():
+    petals = "".join(f'<circle cx="{0.55 * math.sin(k * 2 * math.pi / 5):.3f}" cy="{-0.55 * math.cos(k * 2 * math.pi / 5):.3f}" r="0.42" fill="#000"/>'
+                     for k in range(5))
+    return f'<svg viewBox="-1 -1 2 2" width="48" height="48">{petals}<circle r="0.4" fill="#000"/></svg>'
+
+
+STAMPS = {
+    "star": _star(),
+    "heart": '<svg viewBox="-1.3 -1.2 2.6 2.4" width="48" height="48"><path d="M0 1 C -1.6 -0.1, -1.1 -1.2, 0 -0.45 C 1.1 -1.2, 1.6 -0.1, 0 1 Z" fill="#000"/></svg>',
+    "flower": _flower(),
+    "paw": '<svg viewBox="-1 -1 2 2" width="48" height="48"><ellipse cy="0.35" rx="0.55" ry="0.45" fill="#000"/>'
+           '<circle cx="-0.62" cy="-0.2" r="0.22" fill="#000"/><circle cx="-0.24" cy="-0.6" r="0.24" fill="#000"/>'
+           '<circle cx="0.24" cy="-0.6" r="0.24" fill="#000"/><circle cx="0.62" cy="-0.2" r="0.22" fill="#000"/></svg>',
+}
 
 
 def standalone(svg):
@@ -63,9 +90,14 @@ def main():
     # Tools in the chosen color: the generator's shades of a token color are
     # replaced by tokens the app fills in.
     base = "#FF5E5B"
-    for name, fn in [("bucket", screens.tool_bucket), ("crayon", screens.tool_crayon)]:
+    for name, fn in [("bucket", screens.tool_bucket), ("crayon", screens.tool_crayon),
+                     ("glitter", screens.tool_glitter_pen), ("stamp", screens.tool_stamp)]:
         svg = fn(base).replace(kit.shade(base, -0.25), TOKEN_DARK).replace(kit.shade(base, 0.15), TOKEN_LIGHT).replace(base, TOKEN)
         write(f"tools/{name}.svg", svg)
+    write("tools/rainbow.svg", screens.tool_rainbow())
+    write("tools/eraser.svg", screens.tool_eraser())
+    for shape, svg in STAMPS.items():
+        write(f"stamps/{shape}.svg", svg)
     town.export(APP)
 
 

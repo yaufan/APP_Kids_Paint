@@ -230,13 +230,9 @@ def tower_lights(tx, ty):
 def wings():
     """Scenery left and right of the designed column, seen on wide screens."""
     s = []
-    # left wing: neighbors' houses, rice paddies (the aquarium is its own layer)
+    # left wing: neighbors' houses (the dinosaur park and the aquarium are their own layers)
     s.append(house(24, 420, "#E3F6E8") + house(76, 412, "#FFE3EA") + house(128, 424, "#E8EEFF"))
     s.append(tree(16, 380, 10) + tree(176, 396, 9, "#58C46B"))
-    for i in range(3):
-        y0 = 484 + i * 52
-        s.append(f'<rect x="14" y="{y0}" width="164" height="42" rx="8" fill="#B9E58A" stroke="#8CC461" stroke-width="1.5"/>')
-        s.append("".join(f'<path d="M{20 + k * 12} {y0 + 8} v26" stroke="#7DB84E" stroke-width="2.4" stroke-dasharray="3 4"/>' for k in range(14)))
     s.append(tree(30, 850, 12, "#4DB860", "pine") + tree(160, 846, 11, "#58C46B", "pine"))
     s.append(house(30, 960, "#FFE7A3") + house(100, 972, "#E3F6E8") + tree(160, 950, 11))
     # right wing: houses by the river, a lake, a windmill farm
@@ -381,6 +377,25 @@ def aquarium():
             + whale_top + duck(170, 806, 0.7, True))
 
 
+def dino_park():
+    """The dinosaur park in the left wing: a smoking volcano, a long neck over the fence."""
+    fence = "".join(f'<rect x="{18 + k * 14}" y="604" width="7" height="30" rx="2" fill="#C9A06B" stroke="#8A6A4A" stroke-width="1"/>' for k in range(12))
+    neck = ('<path d="M120 606 C 124 560, 140 520, 152 500 L 166 506 C 154 530, 142 566, 140 608 Z" fill="#7BD389" stroke="#3FA052" stroke-width="1.4"/>'
+            '<ellipse cx="166" cy="498" rx="17" ry="11" fill="#7BD389" stroke="#3FA052" stroke-width="1.4"/><circle cx="170" cy="495" r="1.8" fill="#2A211D"/>'
+            '<circle cx="134" cy="560" r="3" fill="#3FA052"/><circle cx="142" cy="530" r="2.6" fill="#3FA052"/>')
+    volcano = ('<path d="M30 600 L 74 520 L 96 520 L 140 600 Z" fill="#A47A4F" stroke="#7A5A3A" stroke-width="1.4"/>'
+               '<path d="M68 532 L 74 520 L 96 520 L 102 532 Q 85 540 68 532 Z" fill="#FF8A3D"/>'
+               + "".join(f'<circle cx="{x}" cy="{y}" r="{r}" fill="#FFFFFF" opacity=".8"/>' for x, y, r in [(86, 508, 7), (92, 494, 9), (86, 478, 11)]))
+    eggs = ('<ellipse cx="60" cy="626" rx="26" ry="8" fill="#C9A06B"/>'
+            '<ellipse cx="50" cy="618" rx="7" ry="9" fill="#FFF4E2" stroke="#E6D3B3"/><ellipse cx="62" cy="616" rx="7" ry="9" fill="#E3F6E8" stroke="#B6D9BF"/><ellipse cx="74" cy="618" rx="7" ry="9" fill="#FFE3EA" stroke="#E8B9C6"/>')
+    gate = ('<rect x="150" y="590" width="8" height="46" rx="3" fill="#A86E43"/><rect x="184" y="590" width="8" height="46" rx="3" fill="#A86E43"/>'
+            '<rect x="144" y="580" width="54" height="16" rx="7" fill="#FFF4E2" stroke="#C9A06B" stroke-width="1.4"/>'
+            '<path d="M158 588 h26 M156 584 a3 3 0 1 0 0 8 M186 584 a3 3 0 1 1 0 8" stroke="#C9A06B" stroke-width="3" fill="none" stroke-linecap="round"/>')
+    return ('<rect x="12" y="476" width="178" height="170" rx="20" fill="#C9E19A"/>'
+            + volcano + tree(176, 560, 12, "#3FB37A", "palm") + neck + fence
+            + '<rect x="16" y="610" width="168" height="5" fill="#A86E43"/>' + eggs + gate)
+
+
 def grandma():
     return mid(box(36, 960, 96, 52, 8, "#E8836B", roof="gable", roof_h=24, windows=[(10, 14, 16, 14), (70, 14, 16, 14)], door=(40, 16, 30, "#7A4A2A")),
                '<path d="M58 990 c-2-3-6-1-4 2 l4 3 4-3 c2-3-2-5-4-2z M118 990 c-2-3-6-1-4 2 l4 3 4-3 c2-3-2-5-4-2z" fill="#FF8FB1"/>',
@@ -409,6 +424,7 @@ SLOTS = {
     "temple": (temple, (OX + 232, 704, 124, 100), (OX + 289, 730)),
     "zoo": (zoo, None, (668, 700)),
     "aquarium": (aquarium, None, (100, 700)),
+    "dinoPark": (dino_park, None, (96, 500)),
     "grandma": (grandma, (OX + 24, 892, 164, 124), (OX + 84, 932)),
     "travel": (travel, (OX + 232, 892, 158, 136), (OX + 299, 896)),
     # scenery that is always there: only a pin anchor
@@ -416,9 +432,9 @@ SLOTS = {
     "mountain": (None, None, (OX + 60, 200)),
     "station": (None, None, (OX + 298, 286)),
 }
-ORDER = ["home", "school", "park", "shop", "food", "temple", "zoo", "aquarium", "grandma", "travel"]
+ORDER = ["home", "school", "park", "shop", "food", "temple", "zoo", "aquarium", "dinoPark", "grandma", "travel"]
 # Places you can go into (scenes in the app), always built: kind -> tap area.
-ATTRACTIONS = {"zoo": (596, 690, 172, 124), "aquarium": (12, 690, 178, 128)}
+ATTRACTIONS = {"zoo": (596, 690, 172, 124), "aquarium": (12, 690, 178, 128), "dinoPark": (12, 476, 178, 170)}
 
 
 def lot(kind):
@@ -492,7 +508,7 @@ def export(app_dir):
     lines += ["};", "", "/// Back to front.", "const townLayerOrder = [" + ", ".join(f"'{k}'" for k in ORDER) + "];", "",
               "/// Festivals with a decoration layer (`festival_<name>_<phase>.svg`).",
               "const townFestivalLayers = {" + ", ".join(f"'{k}'" for k in festivals.DECOR) + "};", "",
-              "/// Places you can go into (the zoo, the aquarium): always built; tapping opens their scene.",
+              "/// Places you can go into (the zoo, the aquarium, the dinosaur park): always built; tapping opens their scene.",
               "const townAttractions = <String, Rect>{",
               *[f"  '{k}': Rect.fromLTWH({x}, {y}, {w}, {h})," for k, (x, y, w, h) in ATTRACTIONS.items()],
               "};", "",

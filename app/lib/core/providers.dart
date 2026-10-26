@@ -9,6 +9,7 @@ import 'festivals.dart';
 import 'places.dart';
 import 'repositories.dart';
 import 'storage/artwork_store.dart';
+import 'voice.dart';
 
 /// The time. Tests set it to see the town at night or on a festival.
 final clockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
@@ -81,3 +82,27 @@ final festivalPageOpenedProvider = StreamProvider.family<bool, ({int childId, Fe
 final residentsProvider = StreamProvider.family<List<Artwork>, ({int childId, Habitat habitat})>(
   (ref, q) => ref.watch(artworkRepositoryProvider).watchMadeFrom(q.childId, [for (final c in q.habitat.creatures) c.name]),
 );
+
+/// The phone's speech engine; tests use a silent one.
+final systemVoiceProvider = Provider<Voice>((ref) => SystemVoice());
+
+/// Whether parents left the creatures' voices on.
+final voiceOnProvider = NotifierProvider<VoiceOn, bool>(VoiceOn.new);
+
+class VoiceOn extends Notifier<bool> {
+  @override
+  bool build() {
+    ref.watch(settingsRepositoryProvider).voiceOn().then((on) {
+      if (ref.mounted) state = on;
+    });
+    return true;
+  }
+
+  Future<void> set(bool on) async {
+    state = on;
+    await ref.read(settingsRepositoryProvider).setVoiceOn(on);
+  }
+}
+
+/// The voice to speak with: the phone's, or none if turned off.
+final voiceProvider = Provider<Voice>((ref) => ref.watch(voiceOnProvider) ? ref.watch(systemVoiceProvider) : const SilentVoice());

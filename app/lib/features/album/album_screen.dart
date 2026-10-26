@@ -10,9 +10,11 @@ import '../../core/db/database.dart';
 import '../../core/places.dart';
 import '../../core/providers.dart';
 import '../../core/repositories.dart';
+import 'timeline_view.dart';
 
 /// All the child's postcards, grouped by where they were sent, plus the
-/// pictures that are not sent yet. Hearts mark favorites.
+/// pictures that are not sent yet; or everything at once on a timeline.
+/// Hearts mark favorites.
 class AlbumScreen extends ConsumerStatefulWidget {
   const AlbumScreen({super.key});
 
@@ -24,6 +26,10 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
   /// null: everything; otherwise only this kind of place.
   PlaceKind? _kind;
   bool _favorites = false;
+
+  /// Everything in time order instead of by place.
+  bool _byTime = false;
+  bool _newestFirst = true;
 
   @override
   Widget build(BuildContext context) {
@@ -124,7 +130,12 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
                 const SizedBox(width: 8),
                 const Text(Strings.album, style: TextStyle(fontSize: 23, fontWeight: FontWeight.w700)),
                 const Spacer(),
-                const SizedBox(width: KidTheme.navButton),
+                NavButton(
+                  icon: _byTime ? 'pin' : 'clock',
+                  label: _byTime ? Strings.byPlace : Strings.byTime,
+                  color: KidColors.skyDark,
+                  onPressed: () => setState(() => _byTime = !_byTime),
+                ),
               ]),
             ),
             SizedBox(
@@ -132,7 +143,18 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
-                children: [
+                children: _byTime
+                    ? [
+                        chip(Strings.newestFirst, selected: _newestFirst, onTap: () => setState(() => _newestFirst = true)),
+                        const SizedBox(width: 10),
+                        chip(Strings.oldestFirst, selected: !_newestFirst, onTap: () => setState(() => _newestFirst = false)),
+                        const SizedBox(width: 10),
+                        chip(Strings.favorites,
+                            selected: _favorites,
+                            leading: const KidIcon('heart', size: 16, color: Color(0xFFFF6F91), solid: true),
+                            onTap: () => setState(() => _favorites = !_favorites)),
+                      ]
+                    : [
                   chip(Strings.all, selected: _kind == null && !_favorites, count: postcards.length, onTap: () => setState(() {
                         _kind = null;
                         _favorites = false;
@@ -172,7 +194,14 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
                         ),
                       ]),
                     )
-                  : ListView(padding: const EdgeInsets.only(bottom: 30), children: [
+                  : _byTime
+                      ? TimelineView(
+                          artworks: [for (final a in all) if (!_favorites || a.isFavorite) a],
+                          newestFirst: _newestFirst,
+                          thumbnailOf: (a) => store.open(a.folder).thumbnail,
+                          onOpen: (a) => context.push('/canvas/${a.id}'),
+                        )
+                      : ListView(padding: const EdgeInsets.only(bottom: 30), children: [
                       for (final MapEntry(key: place, value: items) in groups.entries) ...[
                         header(ArtSvg(Art.place(PlaceKind.byName(place.kind)), size: 30), place.label ?? PlaceKind.byName(place.kind).label, items.length),
                         grid([for (final p in items) p.artwork], sent: true),

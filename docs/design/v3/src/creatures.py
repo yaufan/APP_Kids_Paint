@@ -377,3 +377,133 @@ def aquarium_scene():
 
 
 SCENES = {"zoo": zoo_scene, "aquarium": aquarium_scene}
+
+
+# ---------------------------------------------------------------- the dinosaur park
+
+
+def trex():
+    clip = '<clipPath id="tb"><ellipse cx="280" cy="420" rx="160" ry="112" transform="rotate(-12 280 420)"/></clipPath>'
+    return page(
+        '<path d="M150 400 C 100 400, 60 390, 24 360 C 70 430, 120 470, 170 480 Z"/>'
+        + '<path d="M200 470 C 190 540, 200 600, 210 650 L 260 650 C 262 600, 270 550, 280 500 Z"/><ellipse cx="236" cy="660" rx="44" ry="16"/>'
+        + '<path d="M320 480 C 320 550, 330 600, 340 650 L 390 650 C 392 600, 396 550, 400 470 Z"/><ellipse cx="368" cy="660" rx="44" ry="16"/>'
+        + '<ellipse cx="280" cy="420" rx="160" ry="112" transform="rotate(-12 280 420)"/>'
+        + f'<g clip-path="url(#tb)"><ellipse cx="320" cy="500" rx="110" ry="60"/></g>'
+        + '<path d="M360 330 C 380 260, 420 230, 470 220 L 470 330 C 440 360, 400 370, 360 360 Z"/>'
+        + '<path d="M400 170 C 440 140, 540 140, 570 180 C 590 210, 584 260, 556 272 L 430 286 C 396 270, 380 220, 400 170 Z"/>'
+        + '<path d="M430 286 L 556 272 C 560 300, 530 318, 470 318 C 440 318, 428 304, 430 286 Z"/>'
+        + "".join(f'<path d="M{x} 279 l8 14 l8 -15 Z"/>' for x in (450, 476, 502, 528))
+        + eye(500, 200, 13) + f'<circle cx="566" cy="196" r="5" fill="{INK}" stroke="none"/>'
+        + '<path d="M430 400 C 470 400, 492 420, 488 444" fill="none" stroke-width="18"/>', clip)
+
+
+def triceratops():
+    return page(
+        '<path d="M140 420 C 90 420, 50 400, 26 380 C 60 450, 110 480, 160 480 Z"/>'
+        + legs([170, 236, 340, 404], 500, 650, 56, 20)
+        + '<ellipse cx="290" cy="440" rx="180" ry="120"/>'
+        + scallop(430, 330, 110, 11, 30)
+        + '<ellipse cx="480" cy="390" rx="92" ry="72"/>'
+        + '<path d="M470 330 L 500 200 L 520 330 Z"/><path d="M520 340 L 580 230 L 572 350 Z"/>'
+        + '<path d="M556 400 L 600 360 L 580 420 Z"/>'
+        + eye(500, 380, 12) + '<path d="M520 430 Q 548 444 566 424" fill="none"/>')
+
+
+def brachiosaurus():
+    clip = '<clipPath id="bb"><ellipse cx="260" cy="500" rx="170" ry="110"/></clipPath>'
+    spots = ''.join(f'<circle cx="{x}" cy="{y}" r="{r}"/>' for x, y, r in [(200, 470, 26), (280, 450, 22), (250, 540, 24), (340, 520, 20)])
+    return page(
+        '<path d="M110 500 C 70 520, 40 540, 20 600 C 80 590, 120 570, 140 550 Z"/>'
+        + legs([150, 210, 300, 360], 540, 720, 50, 18)
+        + '<path d="M330 450 C 360 330, 400 220, 440 150 L 500 170 C 470 250, 440 360, 420 470 Z"/>'
+        + '<ellipse cx="260" cy="500" rx="170" ry="110"/>' + f'<g clip-path="url(#bb)">{spots}</g>'
+        + '<ellipse cx="490" cy="130" rx="72" ry="44" transform="rotate(-10 490 130)"/>'
+        + eye(500, 116, 11) + '<path d="M520 150 Q 540 158 556 146" fill="none"/>', clip)
+
+
+def stegosaurus():
+    plates = "".join(f'<path d="M{x - 34} {y + 30} L{x} {y - 40} L{x + 34} {y + 30} Z"/>' for x, y in [(170, 360), (240, 320), (320, 310), (400, 340)])
+    return page(
+        plates
+        + '<path d="M130 440 C 90 440, 50 420, 26 400 C 60 460, 100 490, 150 500 Z"/>'
+        + '<path d="M56 404 L 36 360 M80 420 L 70 370" fill="none" stroke-width="12"/>'
+        + legs([170, 236, 340, 400], 500, 650, 56, 20)
+        + '<path d="M120 470 C 140 360, 420 330, 470 440 C 480 500, 420 530, 300 530 C 200 530, 120 520, 120 470 Z"/>'
+        + '<ellipse cx="510" cy="460" rx="66" ry="44"/>'
+        + eye(528, 448, 11) + '<path d="M540 482 Q 556 488 570 476" fill="none"/>')
+
+
+def pterosaur():
+    return page(
+        '<path d="M300 360 L 40 230 C 60 320, 120 400, 250 430 Z"/>'
+        + '<path d="M330 360 L 580 210 C 566 310, 500 400, 370 430 Z"/>'
+        + '<ellipse cx="310" cy="420" rx="70" ry="90"/>'
+        + '<ellipse cx="310" cy="440" rx="40" ry="56"/>'
+        + '<path d="M286 510 L 270 560 M334 510 L 350 560" fill="none" stroke-width="14"/>'
+        + '<path d="M290 330 C 260 270, 220 250, 200 250 C 240 300, 260 320, 290 344 Z"/>'
+        + '<ellipse cx="320" cy="300" rx="62" ry="50"/>'
+        + '<path d="M370 290 L 480 310 L 372 326 Z"/>'
+        + eye(334, 290, 11))
+
+
+def baby_dino():
+    clip = '<clipPath id="ds"><ellipse cx="300" cy="420" rx="120" ry="150"/></clipPath>'
+    shell = ('M150 520 L 190 470 L 230 520 L 270 466 L 310 520 L 350 466 L 390 520 L 430 470 L 460 520 '
+             'C 470 640, 400 720, 300 720 C 200 720, 130 640, 150 520 Z')
+    spots = ''.join(f'<circle cx="{x}" cy="{y}" r="{r}"/>' for x, y, r in [(244, 382, 28), (356, 366, 26), (300, 452, 24)])
+    return page(
+        '<ellipse cx="300" cy="420" rx="120" ry="150"/>' + f'<g clip-path="url(#ds)">{spots}</g>'
+        + '<ellipse cx="300" cy="250" rx="110" ry="90"/>'
+        + eye(262, 240, 13) + eye(338, 240, 13)
+        + '<ellipse cx="222" cy="290" rx="26" ry="15"/><ellipse cx="378" cy="290" rx="26" ry="15"/>'
+        + '<path d="M276 296 Q 300 318 324 296" fill="none"/>'
+        + '<path d="M298 166 L 318 108 L 340 170 Z"/><path d="M256 174 L 262 122 L 292 166 Z"/>'
+        + '<ellipse cx="190" cy="470" rx="36" ry="22" transform="rotate(-30 190 470)"/><ellipse cx="410" cy="470" rx="36" ry="22" transform="rotate(30 410 470)"/>'
+        + f'<path d="{shell}"/>'
+        + '<path d="M210 600 L 240 630 M360 590 L 390 620" fill="none"/>', clip)
+
+
+CREATURES.update({
+    "trex": ("dinoPark", trex), "triceratops": ("dinoPark", triceratops), "brachiosaurus": ("dinoPark", brachiosaurus),
+    "stegosaurus": ("dinoPark", stegosaurus), "pterosaur": ("dinoPark", pterosaur), "babyDino": ("dinoPark", baby_dino),
+})
+
+
+def dino_scene():
+    """A warm jungle valley: a gentle volcano, ferns, a swamp and a nest of eggs."""
+    defs = ('<linearGradient id="dsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFC98A"/><stop offset="1" stop-color="#FFF1D6"/></linearGradient>'
+            '<pattern id="dgrass" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="5" cy="6" r="1.8" fill="#9BC46A"/><circle cx="16" cy="16" r="1.5" fill="#C8E08A"/></pattern>')
+    s = ['<rect width="1000" height="560" fill="url(#dsky)"/>',
+         '<g transform="translate(160 130)"><circle r="60" fill="#FFE27A" opacity=".4"/><circle r="38" fill="#FFD23F"/></g>',
+         # the volcano, with soft smoke puffs
+         '<path d="M520 470 L 660 210 L 720 210 L 860 470 Z" fill="#A47A4F"/><path d="M640 250 L 660 210 L 720 210 L 740 250 Q 690 270 640 250 Z" fill="#FF8A3D"/>',
+         "".join(f'<circle cx="{x}" cy="{y}" r="{r}" fill="#FFFFFF" opacity=".7"/>' for x, y, r in [(690, 180, 26), (712, 140, 32), (690, 96, 38)]),
+         '<path d="M0 470 C 150 380, 300 400, 430 450 C 560 400, 760 400, 1000 450 V580 H0 Z" fill="#8CC26A"/>',
+         '<path d="M0 520 C 200 470, 380 490, 560 520 C 740 480, 880 480, 1000 510 V600 H0 Z" fill="#78B85A"/>']
+
+    def palm(x, y, h, lean=0):
+        trunk = f'<path d="M{x} {y} Q {x + lean} {y - h / 2} {x + lean * 1.4} {y - h}" stroke="#A86E43" stroke-width="16" fill="none" stroke-linecap="round"/>'
+        tx, ty = x + lean * 1.4, y - h
+        leaves = "".join(f'<path d="M{tx} {ty} Q {tx + dx * 0.5} {ty - 40} {tx + dx} {ty + dy} Q {tx + dx * 0.4} {ty - 10} {tx} {ty} Z" fill="#3FB37A"/>'
+                         for dx, dy in [(-90, 20), (90, 20), (-60, 50), (60, 50), (0, -20)])
+        return trunk + leaves
+    s += [palm(60, 560, 220, 20), palm(940, 560, 200, -24), palm(830, 580, 140, -10)]
+    s.append('<rect y="560" width="1000" height="440" fill="#B9D88A"/><rect y="560" width="1000" height="440" fill="url(#dgrass)"/>')
+    s.append('<ellipse cx="200" cy="690" rx="150" ry="44" fill="#7FB8A0" stroke="#5E9A82" stroke-width="3"/>'
+             '<path d="M140 686 q10 -6 20 0 M230 700 q10 -6 20 0" stroke="#D8F3E8" stroke-width="4" fill="none" stroke-linecap="round"/>')
+    s.append('<g transform="translate(800 760)"><ellipse rx="90" ry="26" fill="#C9A06B"/>'
+             '<ellipse cx="-30" cy="-16" rx="20" ry="26" fill="#FFF4E2" stroke="#E6D3B3" stroke-width="2"/><ellipse cx="6" cy="-20" rx="20" ry="26" fill="#E3F6E8" stroke="#B6D9BF" stroke-width="2"/>'
+             '<ellipse cx="40" cy="-14" rx="20" ry="26" fill="#FFE3EA" stroke="#E8B9C6" stroke-width="2"/></g>')
+    s += [f'<ellipse cx="{x}" cy="{y}" rx="18" ry="10" fill="#9C8A6B" opacity=".45"/>' for x, y in [(420, 880), (470, 840), (530, 860), (580, 820)]]
+    s += [f'<ellipse cx="{x}" cy="{y}" rx="{rx}" ry="{ry}" fill="#A5B1C0"/>' for x, y, rx, ry in [(560, 640, 50, 26), (610, 650, 34, 18)]]
+
+    def fern(x, y, s=1.0):
+        return (f'<g transform="translate({x} {y}) scale({s})">' + "".join(
+            f'<path d="M0 0 Q {dx * 0.4} -60 {dx} -110 Q {dx * 0.2} -50 0 0 Z" fill="{c}"/>'
+            for dx, c in [(-60, "#4DB860"), (-20, "#58C46B"), (20, "#4DB860"), (60, "#58C46B")]) + '</g>')
+    s += [fern(40, 1000, 1.3), fern(960, 1000, 1.2), fern(470, 600, 0.6)]
+    return _scene("".join(s), defs)
+
+
+SCENES["dinoPark"] = dino_scene

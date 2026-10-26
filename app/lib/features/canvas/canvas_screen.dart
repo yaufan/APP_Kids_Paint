@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/art.dart';
@@ -18,12 +19,15 @@ import 'artwork_stamp.dart';
 import 'coloring.dart';
 import 'page_image.dart';
 
-enum Tool { bucket, crayon }
+enum Tool { bucket, crayon, rainbow, glitter, stamp, eraser }
 
-/// Coloring a postcard: bucket fill (the default) and a crayon that never
-/// leaves the region it started in. On blank paper the crayon (the default
-/// there) goes anywhere and the bucket colors the paper behind the drawing.
-/// Everything autosaves; "done" sends it.
+const _stampNames = {StampShape.star: '星星', StampShape.heart: '愛心', StampShape.flower: '花朵', StampShape.paw: '腳印'};
+
+/// Coloring a postcard: bucket fill (the default), and brushes that never
+/// leave the region they started in (crayon, rainbow, glitter, eraser), and
+/// stamps. On blank paper the crayon (the default there) goes anywhere and
+/// the bucket colors the paper behind the drawing. Everything autosaves;
+/// "done" sends it.
 class CanvasScreen extends ConsumerStatefulWidget {
   const CanvasScreen({super.key, required this.artworkId});
 
@@ -38,6 +42,7 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
   ui.Image? _lines;
   ui.Image? _colors;
   Tool _tool = Tool.bucket;
+  StampShape _shape = StampShape.star;
   int _color = kidPalette.first;
   CrayonOp? _stroke;
   bool _refreshing = false;
@@ -146,6 +151,57 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
 
   ({double x, double y}) _toPage(Offset local, double scale) => (x: local.dx / scale, y: local.dy / scale);
 
+  /// The brush in hand, if the tool is one.
+  Brush? get _brush => switch (_tool) {
+        Tool.crayon => Brush.crayon,
+        Tool.rainbow => Brush.rainbow,
+        Tool.glitter => Brush.glitter,
+        Tool.eraser => Brush.eraser,
+        Tool.bucket || Tool.stamp => null,
+      };
+
+  void _tapPage(Offset local, double scale, ColoringDocument doc) {
+    final p = _toPage(local, scale);
+    switch (_tool) {
+      case Tool.bucket:
+        if (_blank) {
+          doc.add(PaperOp(_color));
+          _changed();
+        } else if (doc.fill(p.x, p.y, _color)) {
+          _changed();
+        }
+      case Tool.stamp:
+        final region = doc.regions.labelAt(p.x.floor(), p.y.floor());
+        if (region == 0) return;
+        doc.add(StampOp(region, _color, _shape, p.x, p.y, doc.width * 0.075));
+        _changed();
+      case Tool.crayon || Tool.rainbow || Tool.glitter || Tool.eraser:
+        // A tap with a brush leaves a dot.
+        _startStroke(p, doc);
+        _endStroke();
+    }
+  }
+
+  void _startStroke(PagePoint p, ColoringDocument doc) {
+    final brush = _brush;
+    final region = doc.regions.labelAt(p.x.floor(), p.y.floor());
+    if (brush == null || region == 0) return;
+    final size = switch (brush) {
+      Brush.crayon => 0.02,
+      Brush.rainbow => 0.024,
+      Brush.glitter => 0.03,
+      Brush.eraser => 0.035,
+    };
+    _stroke = CrayonOp(region, _color, doc.width * size, [p], brush: brush);
+    doc.add(_stroke!);
+    _refreshColors();
+  }
+
+  void _endStroke() {
+    if (_stroke != null) _changed();
+    _stroke = null;
+  }
+
   Widget _sheet(LoadedPage page) => LayoutBuilder(builder: (context, box) {
         const pad = 12.0;
         final doc = page.document;
@@ -168,28 +224,9 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
                     width: w,
                     height: h,
                     child: GestureDetector(
-                      onTapUp: _tool == Tool.bucket
-                          ? (d) {
-                              if (_blank) {
-                                doc.add(PaperOp(_color));
-                                _changed();
-                                return;
-                              }
-                              final p = _toPage(d.localPosition, scale);
-                              if (doc.fill(p.x, p.y, _color)) _changed();
-                            }
-                          : null,
-                      onPanStart: _tool == Tool.crayon
-                          ? (d) {
-                              final p = _toPage(d.localPosition, scale);
-                              final region = doc.regions.labelAt(p.x.floor(), p.y.floor());
-                              if (region == 0) return;
-                              _stroke = CrayonOp(region, _color, doc.width * 0.02, [p]);
-                              doc.add(_stroke!);
-                              _refreshColors();
-                            }
-                          : null,
-                      onPanUpdate: _tool == Tool.crayon
+                      onTapUp: (d) => _tapPage(d.localPosition, scale, doc),
+                      onPanStart: _brush != null ? (d) => _startStroke(_toPage(d.localPosition, scale), doc) : null,
+                      onPanUpdate: _brush != null
                           ? (d) {
                               final stroke = _stroke;
                               if (stroke == null) return;
@@ -198,12 +235,7 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
                               _refreshColors();
                             }
                           : null,
-                      onPanEnd: _tool == Tool.crayon
-                          ? (_) {
-                              if (_stroke != null) _changed();
-                              _stroke = null;
-                            }
-                          : null,
+                      onPanEnd: _brush != null ? (_) => _endStroke() : null,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(10),
                         child: CustomPaint(painter: _PagePainter(colors: _colors, lines: _lines!)),
@@ -244,12 +276,45 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
             }
           : null,
     );
-    final tools = Row(mainAxisSize: MainAxisSize.min, children: [
-      _ToolTile(label: _blank ? Strings.paperColor : Strings.bucket, selected: _tool == Tool.bucket, tint: const Color(0xFFFFE6E5),
-          onTap: () => setState(() => _tool = Tool.bucket), child: ToolArt(Art.bucket, color: color)),
-      const SizedBox(width: 12),
-      _ToolTile(label: Strings.crayon, selected: _tool == Tool.crayon, tint: const Color(0xFFFFF1D9),
-          onTap: () => setState(() => _tool = Tool.crayon), child: ToolArt(Art.crayon, color: color)),
+    final tileWidth = wide ? 64.0 : 52.0;
+    final art = tileWidth * 0.62;
+    Widget tool(Tool t, String label, Color tint, Widget child) => _ToolTile(
+        label: label, width: tileWidth, selected: _tool == t, tint: tint, onTap: () => setState(() => _tool = t), child: child);
+    final tools = Wrap(alignment: WrapAlignment.center, spacing: wide ? 12 : 6, runSpacing: 14, children: [
+      tool(Tool.bucket, _blank ? Strings.paperColor : Strings.bucket, const Color(0xFFFFE6E5), ToolArt(Art.bucket, color: color, size: art)),
+      tool(Tool.crayon, Strings.crayon, const Color(0xFFFFF1D9), ToolArt(Art.crayon, color: color, size: art)),
+      tool(Tool.rainbow, Strings.rainbow, const Color(0xFFEDE6FF), ArtSvg(Art.rainbow, width: art, height: art * 1.2)),
+      tool(Tool.glitter, Strings.glitter, const Color(0xFFFFF6C9), ToolArt(Art.glitter, color: color, size: art)),
+      tool(Tool.stamp, Strings.stamp, const Color(0xFFE3F4FB), ToolArt(Art.stamp, color: color, size: art)),
+      tool(Tool.eraser, Strings.eraser, const Color(0xFFFFE3EA), ArtSvg(Art.eraser, width: art, height: art * 1.2)),
+    ]);
+    final shapes = Row(mainAxisSize: MainAxisSize.min, children: [
+      for (final shape in StampShape.values)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: Semantics(
+            button: true,
+            selected: shape == _shape,
+            label: Strings.stampOf(_stampNames[shape]!),
+            excludeSemantics: true,
+            child: Pressable(
+              onTap: () => setState(() => _shape = shape),
+              child: Container(
+                width: 52,
+                height: 52,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: shape == _shape ? color : Colors.white, width: 3),
+                  boxShadow: KidShadows.soft(),
+                ),
+                child: SvgPicture.asset(Art.stampShape(shape.name), width: 32, height: 32,
+                    colorFilter: ColorFilter.mode(color.computeLuminance() > 0.9 ? KidColors.inkSoft : color, BlendMode.srcIn)),
+              ),
+            ),
+          ),
+        ),
     ]);
     final palette = _Palette(selected: _color, columns: wide ? 4 : 6, onSelect: (c) => setState(() => _color = c));
     final done = ChunkyButton(
@@ -290,6 +355,7 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
                           width: 300,
                           child: Column(children: [
                             tools,
+                            if (_tool == Tool.stamp) ...[const SizedBox(height: 14), shapes],
                             const SizedBox(height: 16),
                             palette,
                             const Spacer(),
@@ -309,6 +375,7 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
                         Expanded(child: sheet),
                         const SizedBox(height: 14),
                         tools,
+                        if (_tool == Tool.stamp) ...[const SizedBox(height: 10), shapes],
                         const SizedBox(height: 12),
                         palette,
                         const SizedBox(height: 14),
@@ -326,9 +393,10 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
 
 /// A drawn tool on a tile; the chosen one jumps up.
 class _ToolTile extends StatelessWidget {
-  const _ToolTile({required this.label, required this.selected, required this.tint, required this.onTap, required this.child});
+  const _ToolTile({required this.label, required this.selected, required this.tint, required this.onTap, required this.child, this.width = KidTheme.toolButton});
 
   final String label;
+  final double width;
   final bool selected;
   final Color tint;
   final VoidCallback onTap;
@@ -346,8 +414,8 @@ class _ToolTile extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeOutBack,
-          width: KidTheme.toolButton,
-          height: 70,
+          width: width,
+          height: width + 8,
           transform: Matrix4.translationValues(0, selected ? -6 : 0, 0),
           alignment: Alignment.center,
           decoration: BoxDecoration(

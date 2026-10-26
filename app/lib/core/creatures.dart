@@ -4,7 +4,8 @@ import 'places.dart';
 /// live (docs/town-map.md).
 enum Habitat {
   zoo(PlaceKind.zoo),
-  aquarium(PlaceKind.aquarium);
+  aquarium(PlaceKind.aquarium),
+  dinoPark(PlaceKind.dinoPark);
 
   const Habitat(this.place);
 
@@ -17,9 +18,9 @@ enum Habitat {
 }
 
 /// How a creature gets around its scene.
-enum Motion { walk, hop, swim, float, crawl }
+enum Motion { walk, hop, swim, float, crawl, fly }
 
-/// The zoo's and the aquarium's coloring pages, drawn in
+/// The zoo's, the aquarium's and the dinosaur park's coloring pages, drawn in
 /// docs/design/v3/src/creatures.py (same names) facing right.
 enum Creature {
   elephant('大象', Habitat.zoo, Motion.walk, 190),
@@ -33,7 +34,13 @@ enum Creature {
   turtle('海龜', Habitat.aquarium, Motion.swim, 170),
   whale('鯨魚', Habitat.aquarium, Motion.swim, 240),
   jellyfish('水母', Habitat.aquarium, Motion.float, 115),
-  crab('螃蟹', Habitat.aquarium, Motion.crawl, 130);
+  crab('螃蟹', Habitat.aquarium, Motion.crawl, 130),
+  trex('暴龍', Habitat.dinoPark, Motion.walk, 200),
+  triceratops('三角龍', Habitat.dinoPark, Motion.walk, 190),
+  brachiosaurus('腕龍', Habitat.dinoPark, Motion.walk, 220),
+  stegosaurus('劍龍', Habitat.dinoPark, Motion.walk, 190),
+  pterosaur('翼龍', Habitat.dinoPark, Motion.fly, 170),
+  babyDino('恐龍寶寶', Habitat.dinoPark, Motion.hop, 120);
 
   const Creature(this.label, this.habitat, this.motion, this.size);
 

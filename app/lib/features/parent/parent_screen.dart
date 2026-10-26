@@ -184,6 +184,19 @@ class _ParentScreenState extends ConsumerState<ParentScreen> {
               ]),
               const SizedBox(height: 6),
             ]),
+            card(Strings.voices, [
+              // Its own Material: the card's white background would hide the tile's ink.
+              Material(
+                type: MaterialType.transparency,
+                child: SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text(Strings.creatureVoices, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                  subtitle: const Text(Strings.creatureVoicesHint, style: TextStyle(fontSize: 14, color: KidColors.inkSoft)),
+                  value: ref.watch(voiceOnProvider),
+                  onChanged: (on) => ref.read(voiceOnProvider.notifier).set(on),
+                ),
+              ),
+            ]),
             card(Strings.other, [
               row(const KidIcon('shield', size: 22, color: KidColors.grassDark), Strings.privacy, onTap: () => context.push('/parent/privacy')),
               row(const KidIcon('info', size: 22, color: KidColors.inkSoft), Strings.licenses,

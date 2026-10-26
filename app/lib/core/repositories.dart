@@ -191,6 +191,17 @@ class SettingsRepository {
       .into(_db.settings)
       .insertOnConflictUpdate(Setting(key: dailyMinutesKey, value: '$minutes'));
 
+  static const voiceKey = 'voice';
+
+  /// Whether the creatures' lines are read out loud (on unless a parent turned it off).
+  Future<bool> voiceOn() async {
+    final row = await (_db.select(_db.settings)..where((s) => s.key.equals(voiceKey))).getSingleOrNull();
+    return row?.value != 'off';
+  }
+
+  Future<void> setVoiceOn(bool on) =>
+      _db.into(_db.settings).insertOnConflictUpdate(Setting(key: voiceKey, value: on ? 'on' : 'off'));
+
   /// Parent mode "delete all data": every row, children included.
   Future<void> deleteEverything() => _db.transaction(() async {
         await _db.delete(_db.artworks).go();

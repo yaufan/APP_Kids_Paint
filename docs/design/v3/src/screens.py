@@ -213,6 +213,43 @@ def tool_bucket(c="#FF5E5B"):
 <rect x="11" y="28" width="5" height="12" rx="2.5" fill="#fff" opacity=".8"/></svg>'''
 
 
+def tool_rainbow():
+    """A crayon in rainbow stripes: its color changes as you draw."""
+    bands = ["#FF5E5B", "#FF9F45", "#FFD166", "#5FCB79", "#4DA3FF", "#8C6CFF"]
+    stripes = "".join(f'<rect x="{15 + i * 14 / 6:.2f}" y="13" width="{14 / 6 + 0.1:.2f}" height="34" fill="{c}"/>' for i, c in enumerate(bands))
+    return f'''<svg width="40" height="48" viewBox="0 0 44 52" aria-hidden="true"><g transform="rotate(-28 22 26)">
+{stripes}<rect x="15" y="13" width="14" height="34" rx="3" fill="none" stroke="#8C6CFF" stroke-width="1.5"/>
+<path d="M15 14 L22 1 L29 14 Z" fill="#FFD166" stroke="#E0A21C" stroke-width="1.5" stroke-linejoin="round"/>
+<rect x="15" y="24" width="14" height="10" fill="#fff" opacity=".5"/></g></svg>'''
+
+
+def tool_glitter_pen(c="#FF5E5B"):
+    """A glitter tube in the chosen color, with sparkles."""
+    d, l = shade(c, -0.25), shade(c, 0.15)
+    return f'''<svg width="40" height="48" viewBox="0 0 44 52" aria-hidden="true"><g transform="rotate(-24 22 26)">
+<rect x="14" y="16" width="16" height="30" rx="6" fill="{l}" stroke="{d}" stroke-width="1.5"/>
+<rect x="16" y="6" width="12" height="11" rx="3" fill="{c}" stroke="{d}" stroke-width="1.4"/>
+<circle cx="19" cy="26" r="1.8" fill="#fff"/><circle cx="25" cy="31" r="1.6" fill="#fff"/><circle cx="20" cy="37" r="1.6" fill="#fff"/><circle cx="25" cy="41" r="1.3" fill="#fff"/></g>
+<path d="M37 7 l1.6 3.8 3.8 1.6 -3.8 1.6 -1.6 3.8 -1.6 -3.8 -3.8 -1.6 3.8 -1.6z" fill="#FFD23F"/><path d="M7 30 l1 2.4 2.4 1 -2.4 1 -1 2.4 -1 -2.4 -2.4 -1 2.4 -1z" fill="#FFD23F"/></svg>'''
+
+
+def tool_stamp(c="#FF5E5B"):
+    """A rubber stamp: a wooden knob and a pad in the chosen color."""
+    d = shade(c, -0.25)
+    return f'''<svg width="40" height="48" viewBox="0 0 44 52" aria-hidden="true">
+<circle cx="22" cy="10" r="7" fill="#E8C79A" stroke="#B9935E" stroke-width="1.5"/><rect x="18" y="15" width="8" height="12" rx="2" fill="#E8C79A" stroke="#B9935E" stroke-width="1.5"/>
+<rect x="8" y="26" width="28" height="10" rx="3" fill="#C98B5E" stroke="#8A6A4A" stroke-width="1.5"/>
+<rect x="10" y="36" width="24" height="5" rx="1.5" fill="{c}" stroke="{d}" stroke-width="1.2"/>
+<path d="M22 43.5 l1.6 3.2 3.5.5-2.5 2.5.6 3.5-3.2-1.7-3.2 1.7.6-3.5-2.5-2.5 3.5-.5z" fill="{c}"/></svg>'''
+
+
+def tool_eraser():
+    return '''<svg width="40" height="48" viewBox="0 0 44 52" aria-hidden="true"><g transform="rotate(-28 22 26)">
+<rect x="12" y="10" width="20" height="34" rx="5" fill="#FF8FB1" stroke="#E0668C" stroke-width="1.5"/>
+<rect x="12" y="10" width="20" height="14" rx="5" fill="#FFFFFF" stroke="#E0668C" stroke-width="1.5"/>
+<rect x="15" y="28" width="5" height="12" rx="2.5" fill="#fff" opacity=".6"/></g></svg>'''
+
+
 def tool_glitter():
     return '''<svg width="40" height="48" viewBox="0 0 44 52" aria-hidden="true">
 <rect x="13" y="17" width="18" height="30" rx="6" fill="#EFE6FF" stroke="#A58CF0" stroke-width="1.6"/><rect x="15" y="8" width="14" height="10" rx="3" fill="#B79CFF" stroke="#8C6CFF" stroke-width="1.4"/>

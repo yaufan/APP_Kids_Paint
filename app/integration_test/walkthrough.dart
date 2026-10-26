@@ -99,6 +99,30 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
     await tester.pump(const Duration(milliseconds: 16));
   }
   await gesture.up();
+  await idle(tester, 300);
+  // The rainbow pen and glitter, then a few stamps.
+  for (final (tool, y) in [(Strings.rainbow, 0.62), (Strings.glitter, 0.92)]) {
+    await tester.tap(find.bySemanticsLabel(tool));
+    await tester.pump();
+    final from = canvas.topLeft + Offset(canvas.width * 0.12, canvas.height * y);
+    final g = await tester.startGesture(from);
+    for (var i = 1; i <= 14; i++) {
+      await g.moveTo(from + Offset(i * canvas.width * 0.05, (i.isEven ? -1 : 1) * 10));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await g.up();
+    await idle(tester, 300);
+  }
+  await tester.tap(find.bySemanticsLabel(Strings.stamp));
+  await idle(tester, 400);
+  final stamped = tester.getRect(find.byKey(const ValueKey('page')));
+  for (final (shape, color, dx, dy) in [('星星', kidPalette[2], 0.15, 0.12), ('愛心', kidPalette[7], 0.85, 0.15), ('花朵', kidPalette[6], 0.12, 0.42)]) {
+    await tester.tap(find.bySemanticsLabel(Strings.stampOf(shape)));
+    await tester.tap(find.byKey(ValueKey('swatch-$color')));
+    await tester.pump();
+    await tester.tapAt(stamped.topLeft + Offset(stamped.width * dx, stamped.height * dy));
+    await idle(tester, 300);
+  }
   await idle(tester);
   await shot('06_canvas_colored');
 
@@ -236,6 +260,34 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
     await idle(tester, 1800);
   }
   await shot('21_aquarium');
+
+  // 15. The dinosaur park: a T. rex and a pterosaur that flies.
+  await tester.tap(find.bySemanticsLabel(Strings.backToTown));
+  await waitFor(tester, find.bySemanticsLabel(Strings.blankPaper));
+  await idle(tester, 800);
+  await enterScene(tester, PlaceKind.dinoPark);
+  for (final (i, creature) in [Creature.trex, Creature.pterosaur].indexed) {
+    await colorCreature(tester, creature, [kidPalette[i == 0 ? 3 : 1], kidPalette[i == 0 ? 2 : 7], kidPalette[4]]);
+    await tester.tap(find.bySemanticsLabel(Strings.done));
+    await waitFor(tester, find.bySemanticsLabel(Strings.resident(creature.label)));
+    await idle(tester, 1800);
+  }
+  // Tap the T. rex: it jumps and says something.
+  await tester.tap(find.bySemanticsLabel(Strings.resident(Creature.trex.label)), warnIfMissed: false);
+  await idle(tester, 700);
+  await shot('22_dino_park');
+
+  // 16. The album as one timeline.
+  await tester.tap(find.bySemanticsLabel(Strings.backToTown));
+  await waitFor(tester, find.bySemanticsLabel(Strings.album));
+  await idle(tester, 600);
+  await tester.tap(find.bySemanticsLabel(Strings.album));
+  await waitFor(tester, find.bySemanticsLabel(Strings.byTime));
+  await idle(tester, 500);
+  await tester.tap(find.bySemanticsLabel(Strings.byTime));
+  await waitFor(tester, find.byKey(const ValueKey('timeline')));
+  await idle(tester);
+  await shot('23_album_timeline');
 
   // Unmount so drift's stream queries shut down before the test ends.
   await tester.pumpWidget(const SizedBox());

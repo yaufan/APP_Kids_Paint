@@ -404,7 +404,7 @@ def duck(x, y, s=1.0, flip=False):
 
 PLACE_TYPES = [("home", "家"), ("grandma", "阿公阿嬤家"), ("school", "幼兒園"), ("park", "公園"),
                ("food", "好吃的店"), ("shop", "商店"), ("zoo", "動物園"), ("water", "河邊海邊"),
-               ("mountain", "山上"), ("temple", "廟"), ("station", "車站"), ("travel", "去旅行"), ("aquarium", "海洋館")]
+               ("mountain", "山上"), ("temple", "廟"), ("station", "車站"), ("travel", "去旅行"), ("aquarium", "海洋館"), ("dinoPark", "恐龍樂園")]
 PLACE_NAMES = dict(PLACE_TYPES)
 
 
@@ -458,6 +458,11 @@ def place_icon(kind, size=64):
                     '<path d="M16 34 Q 24 22 36 20" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round" opacity=".85"/>'
                     '<path d="M20 42 q4 -9 15 -7 q9 2 9 9 q-2 7 -13 7 q-9 0 -11 -9z" fill="#4DA8FF"/><path d="M21 42 l-7 -5 v10z" fill="#4DA8FF"/>'
                     '<circle cx="38" cy="42" r="1.7" fill="#2A211D"/><path d="M8 50 q6 -3 12 0 t12 0 t12 0 t12 0 V54 H8z" fill="#2C7FD6"/>',
+        "dinoPark": g + '<path d="M6 54 L 18 30 L 26 30 L 38 54 Z" fill="#A47A4F"/><path d="M16 34 L 18 30 L 26 30 L 28 34 Z" fill="#FF8A3D"/>'
+                    '<circle cx="22" cy="24" r="4" fill="#fff" opacity=".85"/><circle cx="25" cy="16" r="5" fill="#fff" opacity=".85"/>'
+                    '<path d="M30 54 C 30 40, 36 26, 44 16 L 50 19 C 44 30, 40 42, 40 54 Z" fill="#7BD389" stroke="#3FA052" stroke-width="1.4"/>'
+                    '<ellipse cx="50" cy="15" rx="9" ry="6" fill="#7BD389" stroke="#3FA052" stroke-width="1.4"/><circle cx="52" cy="13" r="1.6" fill="#2A211D"/>'
+                    '<circle cx="36" cy="40" r="2" fill="#3FA052"/><circle cx="40" cy="30" r="1.8" fill="#3FA052"/>',
         "travel": g + '<rect x="12" y="22" width="40" height="32" rx="7" fill="#FF8A3D" stroke="#D9692A" stroke-width="1.6"/>'
                   '<path d="M24 22 v-6 a3 3 0 0 1 3 -3 h10 a3 3 0 0 1 3 3 v6" stroke="#8A5A3A" stroke-width="3" fill="none"/>'
                   '<rect x="18" y="30" width="10" height="8" rx="2" fill="#fff" transform="rotate(-8 23 34)"/><circle cx="42" cy="40" r="5" fill="#4DA8FF"/>'

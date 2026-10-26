@@ -37,7 +37,7 @@ void main() {
       expect(find.bySemanticsLabel(label), findsOneWidget);
     }
     expect(find.byTooltip(Strings.parentMode), findsOneWidget);
-    for (final place in [PlaceKind.zoo, PlaceKind.aquarium]) {
+    for (final place in [PlaceKind.zoo, PlaceKind.aquarium, PlaceKind.dinoPark]) {
       expect(find.bySemanticsLabel(Strings.enter(place.label)), findsOneWidget);
     }
     // Children do not need to read: besides the town's name, the postcard

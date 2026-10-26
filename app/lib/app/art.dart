@@ -33,6 +33,11 @@ abstract final class Art {
   static const miniPaper = '$_dir/ui/mini_paper.svg';
   static const bucket = '$_dir/tools/bucket.svg';
   static const crayon = '$_dir/tools/crayon.svg';
+  static const rainbow = '$_dir/tools/rainbow.svg';
+  static const glitter = '$_dir/tools/glitter.svg';
+  static const stamp = '$_dir/tools/stamp.svg';
+  static const eraser = '$_dir/tools/eraser.svg';
+  static String stampShape(String name) => '$_dir/stamps/$name.svg';
 }
 
 /// A drawing at a fixed size. Decorative: screen readers skip it.

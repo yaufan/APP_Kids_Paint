@@ -13,7 +13,8 @@ enum PlaceKind {
   temple('廟'),
   station('車站'),
   travel('去旅行'),
-  aquarium('海洋館');
+  aquarium('海洋館'),
+  dinoPark('恐龍樂園');
 
   const PlaceKind(this.label);
 

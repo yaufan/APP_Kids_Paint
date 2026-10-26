@@ -53,6 +53,11 @@ abstract final class Strings {
   static const bucket = '油漆桶';
   static const crayon = '魔法蠟筆';
   static const paperColor = '換紙的顏色';
+  static const rainbow = '彩虹筆';
+  static const glitter = '亮晶晶筆';
+  static const stamp = '印章';
+  static const eraser = '橡皮擦';
+  static String stampOf(String shape) => '$shape印章';
   static const done = '畫好了，寄出';
   static String colorName(String c) => '$c色';
 
@@ -74,6 +79,15 @@ abstract final class Strings {
   static const drafts = '還沒寄出';
   static const emptyAlbum = '還沒有明信片，去拍照畫一張吧！';
   static String count(int n) => '$n 張';
+  static const byTime = '依時間看';
+  static const byPlace = '依地點看';
+  static const newestFirst = '新到舊';
+  static const oldestFirst = '舊到新';
+  static const timelineRail = '時間軸，上下拖動';
+  static String dayLabel(DateTime day, DateTime now) =>
+      '${day.year == now.year ? '' : '${day.year}年'}${day.month}月${day.day}日 星期${'一二三四五六日'[day.weekday - 1]}';
+  static String monthShort(DateTime m) => '${m.month}月';
+  static String monthLong(DateTime m) => '${m.year}年${m.month}月';
 
   // Parent gate.
   static const parentGateTitle = '家長確認';
@@ -97,6 +111,9 @@ abstract final class Strings {
   static const save = '儲存';
   static const cancel = '取消';
   static const other = '其他';
+  static const voices = '聲音';
+  static const creatureVoices = '角色說話的聲音';
+  static const creatureVoicesHint = '動物園、海洋館、恐龍樂園裡的角色說話時，用手機內建的語音念出來。';
   static const privacy = '隱私與安全';
   static const licenses = '開放原始碼授權';
   static String version(String v) => '版本 $v';

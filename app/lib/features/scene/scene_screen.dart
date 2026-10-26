@@ -12,16 +12,20 @@ import '../../app/celebration.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
+import '../../core/creature_lines.dart';
 import '../../core/creatures.dart';
 import '../../core/db/database.dart';
 import '../../core/providers.dart';
 import '../../core/repositories.dart';
+import '../../core/voice.dart';
 import '../town/place_sheet.dart';
 import 'motion.dart';
 
-/// Inside the zoo or the aquarium: every creature the child colored for it
-/// walks, hops, swims or floats around; tap one and it jumps. The big
-/// button picks a new creature to color, and when it is done it moves in.
+/// Inside the zoo, the aquarium or the dinosaur park: every creature the
+/// child colored for it walks, hops, swims, floats or flies around and now
+/// and then says something (read out loud unless parents turned voices
+/// off); tap one and it jumps and talks. The big button picks a new
+/// creature to color, and when it is done it moves in.
 class SceneScreen extends ConsumerStatefulWidget {
   const SceneScreen({super.key, required this.habitat, this.arrived});
 
@@ -41,6 +45,15 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with SingleTickerProv
   bool _welcome = false;
   Timer? _welcomeTimer;
 
+  /// Who is talking (an artwork id) and what they say.
+  ({int id, String text})? _saying;
+  Timer? _chatter;
+  Timer? _hello;
+  Timer? _hush;
+  Voice? _voice;
+  final _random = math.Random();
+  List<Artwork> _residents = const [];
+
   @override
   void initState() {
     super.initState();
@@ -50,13 +63,44 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with SingleTickerProv
         if (mounted) setState(() => _welcome = false);
       });
     }
+    // Every few seconds someone says something; a new arrival says hello first.
+    _chatter = Timer.periodic(const Duration(milliseconds: 6500), (_) => _chat());
+    _hello = Timer(Duration(milliseconds: widget.arrived != null ? 1600 : 2500), () {
+      final arrived = _residents.where((a) => a.id == widget.arrived).firstOrNull;
+      arrived != null ? _say(arrived) : _chat();
+    });
   }
 
   @override
   void dispose() {
     _clock.dispose();
     _welcomeTimer?.cancel();
+    _chatter?.cancel();
+    _hello?.cancel();
+    _hush?.cancel();
+    _voice?.stop();
     super.dispose();
+  }
+
+  /// A random creature (not the one that just spoke) says something.
+  void _chat() {
+    if (!mounted || _residents.isEmpty) return;
+    final others = [for (final a in _residents) if (a.id != _saying?.id) a];
+    _say((others.isEmpty ? _residents : others)[_random.nextInt(others.isEmpty ? _residents.length : others.length)]);
+  }
+
+  void _say(Artwork art) {
+    final creature = Creature.byName(art.template);
+    if (!mounted || creature == null) return;
+    final text = lineFor(creature, _random);
+    setState(() => _saying = (id: art.id, text: text));
+    final voice = ref.read(voiceProvider);
+    _voice = voice;
+    voice.say(text);
+    _hush?.cancel();
+    _hush = Timer(const Duration(milliseconds: 3200), () {
+      if (mounted) setState(() => _saying = null);
+    });
   }
 
   String get _place => widget.habitat.place.label;
@@ -136,6 +180,7 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with SingleTickerProv
     final postcards = child == null
         ? const <Postcard>[]
         : [for (final p in ref.watch(postcardsProvider(child.id)).value ?? const <Postcard>[]) if (p.place.kind == widget.habitat.place.name) p];
+    _residents = residents;
     final store = ref.watch(artworkStoreProvider);
     final arrived = residents.where((a) => a.id == widget.arrived).firstOrNull;
     final arrivedCreature = Creature.byName(arrived?.template);
@@ -178,6 +223,8 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with SingleTickerProv
                       pose: p.pose,
                       view: view,
                       arrived: p.art.id == widget.arrived,
+                      saying: _saying?.id == p.art.id ? _saying!.text : null,
+                      onTap: () => _say(p.art),
                     ),
                 ]);
               },
@@ -286,13 +333,26 @@ class _Title extends StatelessWidget {
 
 /// One colored creature at its [pose]; tap it and it jumps with hearts.
 class _Resident extends StatefulWidget {
-  const _Resident({super.key, required this.creature, required this.sprite, required this.pose, required this.view, this.arrived = false});
+  const _Resident({
+    super.key,
+    required this.creature,
+    required this.sprite,
+    required this.pose,
+    required this.view,
+    this.arrived = false,
+    this.saying,
+    this.onTap,
+  });
 
   final Creature creature;
   final ImageProvider sprite;
   final Pose pose;
   final SceneView view;
   final bool arrived;
+
+  /// What it is saying, shown in a bubble over its head.
+  final String? saying;
+  final VoidCallback? onTap;
 
   @override
   State<_Resident> createState() => _ResidentState();
@@ -334,7 +394,10 @@ class _ResidentState extends State<_Resident> with TickerProviderStateMixin {
         excludeSemantics: true,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: () => _jump.forward(from: 0),
+          onTap: () {
+            _jump.forward(from: 0);
+            widget.onTap?.call();
+          },
           child: AnimatedBuilder(
             animation: Listenable.merge([_jump, _arrive]),
             builder: (context, child) {
@@ -365,6 +428,13 @@ class _ResidentState extends State<_Resident> with TickerProviderStateMixin {
                     ),
                   ),
                 ),
+                if (widget.saying case final text?)
+                  Positioned(
+                    left: -70,
+                    right: -70,
+                    top: -58 - hop,
+                    child: Center(child: PopIn(key: ValueKey(text), child: _SpeechBubble(text))),
+                  ),
                 if (_jump.value > 0 && _jump.value < 1)
                   Positioned(
                     top: -28 - 30 * _jump.value,
@@ -385,4 +455,36 @@ class _ResidentState extends State<_Resident> with TickerProviderStateMixin {
       ),
     );
   }
+}
+
+/// A creature's words, in a little bubble pointing down at it.
+class _SpeechBubble extends StatelessWidget {
+  const _SpeechBubble(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          constraints: const BoxConstraints(maxWidth: 190),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: KidShadows.soft()),
+          child: Text(text, textAlign: TextAlign.center, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, height: 1.3)),
+        ),
+        CustomPaint(size: const Size(16, 9), painter: _TailPainter()),
+      ]);
+}
+
+class _TailPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) => canvas.drawPath(
+      Path()
+        ..moveTo(0, 0)
+        ..lineTo(size.width, 0)
+        ..lineTo(size.width / 2, size.height)
+        ..close(),
+      Paint()..color = Colors.white);
+
+  @override
+  bool shouldRepaint(_TailPainter old) => false;
 }
