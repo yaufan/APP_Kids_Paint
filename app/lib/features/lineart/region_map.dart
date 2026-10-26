@@ -1,4 +1,3 @@
-import 'dart:collection';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -44,72 +43,77 @@ class RegionMap {
     final blocked = _dilate(ink, width, height, gap);
 
     // Seeds: connected areas of paper that survive the thickened lines.
+    // Every pixel is visited once; a seed's pixels sit together in [order]
+    // so a seed that is too small can be undone.
     final labels = Uint16List(n);
-    final stack = <int>[];
-    var next = 0;
+    final order = Int32List(n);
+    final tried = Uint8List(n); // pixels of seeds that were too small
+    var end = 0, next = 0;
     for (var start = 0; start < n; start++) {
-      if (blocked[start] == 1 || labels[start] != 0) continue;
+      if (blocked[start] == 1 || labels[start] != 0 || tried[start] == 1) continue;
       final label = ++next;
-      final members = <int>[];
+      final first = end;
       labels[start] = label;
-      stack.add(start);
-      while (stack.isNotEmpty) {
-        final i = stack.removeLast();
-        members.add(i);
+      order[end++] = start;
+      for (var k = first; k < end; k++) {
+        final i = order[k];
         final x = i % width;
-        if (x > 0) _visit(i - 1, label, blocked, labels, stack);
-        if (x < width - 1) _visit(i + 1, label, blocked, labels, stack);
-        if (i >= width) _visit(i - width, label, blocked, labels, stack);
-        if (i < n - width) _visit(i + width, label, blocked, labels, stack);
-      }
-      if (members.length < minRegion) {
-        for (final i in members) {
-          labels[i] = 0;
+        if (x > 0 && blocked[i - 1] == 0 && labels[i - 1] == 0) {
+          labels[i - 1] = label;
+          order[end++] = i - 1;
         }
+        if (x < width - 1 && blocked[i + 1] == 0 && labels[i + 1] == 0) {
+          labels[i + 1] = label;
+          order[end++] = i + 1;
+        }
+        if (i >= width && blocked[i - width] == 0 && labels[i - width] == 0) {
+          labels[i - width] = label;
+          order[end++] = i - width;
+        }
+        if (i < n - width && blocked[i + width] == 0 && labels[i + width] == 0) {
+          labels[i + width] = label;
+          order[end++] = i + width;
+        }
+      }
+      if (end - first < minRegion) {
+        for (var k = first; k < end; k++) {
+          labels[order[k]] = 0;
+          tried[order[k]] = 1;
+        }
+        end = first;
         next--;
       }
       if (next >= 65534) break; // Uint16 labels; real pages have far fewer.
     }
 
-    // Grow every seed outward at the same speed until all pixels are taken.
-    final queue = Queue<int>();
-    for (var i = 0; i < n; i++) {
-      if (labels[i] != 0) queue.add(i);
-    }
-    if (queue.isEmpty) {
+    // Grow every seed outward at the same speed until all pixels are taken:
+    // a breadth-first queue that starts with every seed pixel.
+    if (end == 0) {
       labels.fillRange(0, n, 1); // a page with no paper: one region
       return RegionMap(width, height, labels);
     }
-    while (queue.isNotEmpty) {
-      final i = queue.removeFirst();
+    for (var head = 0; head < end; head++) {
+      final i = order[head];
       final label = labels[i];
       final x = i % width;
       if (x > 0 && labels[i - 1] == 0) {
         labels[i - 1] = label;
-        queue.add(i - 1);
+        order[end++] = i - 1;
       }
       if (x < width - 1 && labels[i + 1] == 0) {
         labels[i + 1] = label;
-        queue.add(i + 1);
+        order[end++] = i + 1;
       }
       if (i >= width && labels[i - width] == 0) {
         labels[i - width] = label;
-        queue.add(i - width);
+        order[end++] = i - width;
       }
       if (i < n - width && labels[i + width] == 0) {
         labels[i + width] = label;
-        queue.add(i + width);
+        order[end++] = i + width;
       }
     }
     return RegionMap(width, height, labels);
-  }
-
-  static void _visit(int i, int label, Uint8List blocked, Uint16List labels,
-      List<int> stack) {
-    if (blocked[i] == 0 && labels[i] == 0) {
-      labels[i] = label;
-      stack.add(i);
-    }
   }
 
   /// Square dilation of a 0/1 mask by [r] pixels, in O(n) per axis.

@@ -39,6 +39,27 @@
 
 **限制**：不用生成式 AI 的話，「可愛」只能做到線條更粗、更圓、更簡單。
 
+## 放進 APP：輕量模型 TEED（0.8.0）
+
+DexiNed 有 47 MB，放進手機太大。APP 改用同一位作者的 **TEED**（Tiny and Efficient Edge Detector，[MIT 授權](https://github.com/xavysp/TEED)）：
+- 只有 58,910 個參數（0.24 MB），描出來的輪廓和 DexiNed 差不多。
+- `teed_numpy.py`：不用 PyTorch，直接讀 TEED 的權重檔，用 NumPy 算出輪廓。
+- `export_teed.py`：把權重轉成 APP 用的 `app/assets/models/teed.bin`，另外存一份小小的參考輸入和輸出給 APP 的測試比對。
+- APP 裡用純 Dart 重寫了同一個網路（`app/lib/features/lineart/teed.dart`），所以 Android、iOS 都不需要額外的原生程式庫。
+
+和第二版不同的地方：
+- **先抹平細紋**：長邊縮到 480 像素，先用中值濾波、再用雙邊濾波。木紋、貓毛、印刷花紋就不會變成一堆小線條。
+- **門檻跟著照片調整**：柔光下的蘋果輪廓很淡，就自動降低門檻。
+- **不要照片邊緣的線**：模型會把照片的邊當成輪廓。
+- **不做「補小斷點」**：在 TEED 上，這一步會把細紋連成網狀；小缺口交給塗色區塊圖處理。
+- **還沒有「只畫主角」**：APP 沒有可靠的自動去背；用 GrabCut 自動猜主角，在貓臉、火箭、建築上常常猜錯，錯的去背比不去背更糟。
+
+```bash
+# 需要 TEED 的原始碼和權重：git clone https://github.com/xavysp/TEED
+python teed_numpy.py TEED/checkpoints/BIPED/5/5_model.pth 照片.jpg   # 輸出 照片.teed.png
+python export_teed.py TEED/checkpoints/BIPED/5/5_model.pth            # 更新 APP 的權重和測試資料
+```
+
 ## 可愛風格 v2：開源 AI 畫成 Q 版（實驗）
 
 ![Q 版比較圖](results/comparison_cute_v2.jpg)

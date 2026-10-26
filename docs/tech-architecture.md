@@ -73,11 +73,17 @@ Python 原型與測試結果：[prototypes/lineart](../prototypes/lineart/README
    - 這樣缺口處會形成看不見的邊界，油漆桶不漏色，畫面上的線條也不必為了封閉而變形
 7. **細緻度**：調整線條門檻、最短線長、線條粗細與補缺口的距離。
 
-**移植到 APP**：
-- 影像處理步驟用 `opencv_dart`（OpenCV 原生綁定），在背景 isolate 執行，不卡畫面。
-- 模型用 ONNX Runtime Mobile 或轉成 TFLite 執行。
-- DexiNed 約 47 MB，要先量化壓縮，並在中低階 Android 手機上實測。太慢的話，改用同作者的輕量模型 TEED（MIT 授權）。
-- 細化（skeletonize）在 OpenCV 有對應的 `ximgproc.thinning`。
+**移植到 APP（0.8.0 完成）**：
+- 模型改用 DexiNed 同一位作者的輕量模型 **TEED**（MIT 授權）：58,910 個參數、0.24 MB，品質接近 DexiNed（47 MB）。
+- 用純 Dart 寫推論（`app/lib/features/lineart/teed.dart`），不需要 ONNX Runtime、TFLite 或 OpenCV 原生程式庫，Android 和 iOS 都一樣，CI 也能直接測。
+  - 資料排成「高 × 寬 × 通道」，卷積一次算 4 個輸出通道（`Float32x4` SIMD）。
+  - 測試會和 NumPy 版（`prototypes/lineart/teed_numpy.py`）的輸出比對，誤差小於 0.001。
+- 前處理：長邊 480 像素，中值濾波（7×7）再雙邊濾波，抹掉毛、木紋這類細紋。
+- 線條門檻跟著照片調整：輪廓很淡的照片（柔光下的蘋果）會降低門檻。
+- 照片邊緣 4 像素內的線不要（模型會把照片的邊當成輪廓）。
+- 不做形態學閉合：會把細紋連成網狀；小缺口交給塗色區塊圖處理。
+- 速度：伺服器 CPU 單核，1600 像素的照片約 0.6 秒找輪廓、0.1～0.5 秒畫線和算區塊。
+- 還沒做：自動去背（「只畫主角」）。自動判斷主角在測試照片上常出錯（貓臉、火箭），錯的去背比不去背更糟；之後考慮讓小朋友點一下主角。
 
 ### 3.2 可愛風格 v1（手機端、零成本，原型已完成）
 以 3.1 的真實線稿為基礎，所以認得出是同一個東西：
@@ -231,7 +237,7 @@ app/                  Flutter APP（說明見 app/README.md）
     features/
       town/           小鎮地圖（首頁）、圖釘、地點卡
       capture/        拍照、選相簿
-      lineart/        轉換引擎介面（可替換）、簡易引擎、塗色區塊圖、魔法變身與選風格
+      lineart/        轉換引擎介面（可替換）、TEED 描線（純 Dart）、塗色區塊圖、魔法變身與選風格
       canvas/         明信片著色：油漆桶、魔法蠟筆、復原、自動儲存
       send/           寄到哪裡、寄出慶祝
       album/          明信片冊
@@ -247,4 +253,4 @@ docs/                 規劃文件
 - Flutter 3.47.8（Dart 3.13）
 - flutter_riverpod 3、go_router 18、drift 2.35、image_picker、image、flutter_svg
 
-**尚未加入**：分享（share_plus）、DexiNed 引擎移植、語音、使用時間提醒、內建著色圖庫。
+**尚未加入**：分享（share_plus）、自動去背（只畫主角）、使用時間提醒。

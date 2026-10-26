@@ -1,7 +1,8 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/lineart/line_art.dart';
-import '../features/lineart/simple_engine.dart';
+import '../features/lineart/teed_engine.dart';
 import 'artwork_service.dart';
 import 'creatures.dart';
 import 'db/database.dart';
@@ -26,8 +27,11 @@ final artworkServiceProvider = Provider(
   (ref) => ArtworkService(ref.watch(artworkRepositoryProvider), ref.watch(artworkStoreProvider)),
 );
 
-/// Swap this for the DexiNed engine once it is ported.
-final lineArtEngineProvider = Provider<LineArtEngine>((ref) => const SimpleLineArtEngine());
+/// Photo to coloring page, on the phone: TEED finds the outlines.
+final lineArtEngineProvider = Provider<LineArtEngine>((ref) => TeedLineArtEngine(() async {
+      final data = await rootBundle.load('assets/models/teed.bin');
+      return data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+    }));
 
 final childrenProvider = StreamProvider<List<Child>>((ref) => ref.watch(childRepositoryProvider).watchAll());
 

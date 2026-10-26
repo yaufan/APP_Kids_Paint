@@ -20,8 +20,7 @@ class LineArt {
 /// Turns a photo into a coloring page.
 ///
 /// The app only talks to this interface so engines can be swapped: the
-/// simple built-in one today, the DexiNed port from `prototypes/lineart`
-/// next, and the server-side Q-version (cute v2) later.
+/// on-phone TEED engine today, maybe a server-side Q-version (cute v2) later.
 abstract interface class LineArtEngine {
   Future<LineArt> convert(Uint8List photo, ArtStyle style, DetailLevel detail);
 }

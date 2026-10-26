@@ -4,7 +4,7 @@
 - [產品功能規劃](../docs/product-plan.md)
 - [技術架構](../docs/tech-architecture.md)
 
-## 目前可以做的事（0.7.1）
+## 目前可以做的事（0.8.0）
 
 畫面設計見 [design-v3.md](../docs/design-v3.md)，地圖規則見 [town-map.md](../docs/town-map.md)。
 
@@ -22,7 +22,14 @@
 8. **家長確認**：國字數字題＋大數字鍵盤，答錯 3 次等 1 分鐘。
 9. **家長模式**：小朋友、每天可以玩多久、替地方取名字、隱私與安全（刪除所有資料）、開放原始碼授權、版本號。
 
-目前是**簡易版**（模糊＋邊緣偵測），讓整個流程先能動。下一步會換成 `prototypes/lineart` 驗證過的 DexiNed 版本。
+照片怎麼變成著色畫（`lib/features/lineart/teed_engine.dart`），全部在手機上、背景執行：
+1. 縮小到長邊 480 像素，用中值濾波和雙邊濾波抹平毛、木紋、印刷花紋這類細紋，輪廓保持清楚。
+2. 開源 AI 描線模型 **TEED**（MIT 授權，58,910 個參數、0.24 MB，`assets/models/teed.bin`）找出輪廓。模型用純 Dart 執行（`teed.dart`），不需要原生程式庫或網路。
+3. 留下強的線和連著它的弱線，細化成中心線，去掉太短的雜線和照片邊緣的線。
+4. 畫成粗細一致的圓頭線條；可愛風格用更粗的線，再把轉角融成圓角。
+5. 計算塗色區塊（`RegionMap`），線條缺口處有看不見的邊界，不會漏色。
+
+兩種風格共用同一份描線結果，所以只算一次 AI。電腦上大約 0.6 秒，手機預估 1～2 秒。
 
 ## 程式架構
 
@@ -52,7 +59,7 @@ lib/
   features/                 各功能
     town/                   小鎮地圖（首頁）、圖釘、地點卡；town_layout_data.dart 由設計程式產生
     capture/                拍照、選相簿
-    lineart/                轉換引擎介面、簡易引擎、塗色區塊圖、魔法變身與選風格
+    lineart/                轉換引擎介面、TEED 描線（teed.dart、teed_engine.dart、raster.dart）、塗色區塊圖、魔法變身與選風格
     canvas/                 明信片著色畫面、油漆桶、魔法蠟筆、復原
     send/                   寄到哪裡、寄出慶祝
     album/                  明信片冊
@@ -63,10 +70,11 @@ integration_test/           在模擬器或真機上跑的同一套模擬操作
 assets/fonts/               jf open 粉圓（OFL 授權）
 assets/art/                 自己畫的向量圖（由 docs/design/v3/src/export_art.py 產生；小鎮每一層有白天、黃昏、晚上三版）
 assets/pages/               節日和動物的著色圖（黑線白底 PNG，同一支程式產生）
+assets/models/              TEED 描線模型的權重和授權（由 prototypes/lineart/export_teed.py 產生）
 ```
 
 **重要設計**
-- **轉換引擎可以替換**：APP 只認 `LineArtEngine` 介面；換成 DexiNed 版或雲端 Q 版時，只要改 `core/providers.dart` 一行。
+- **轉換引擎可以替換**：APP 只認 `LineArtEngine` 介面；之後要換成雲端 Q 版時，只要改 `core/providers.dart` 一行。
 - **不漏色**：`RegionMap` 會在線條缺口處設一條看不見的邊界，原理和原型相同。
 - **畫作就是一串動作**：每次塗色都記成一個動作（`ops.json`）。復原、自動儲存、之後的縮時重播都靠它。
 - **隱私**：沒有帳號、沒有網路功能；照片和作品只存在 APP 自己的資料夾裡。

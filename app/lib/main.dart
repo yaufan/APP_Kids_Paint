@@ -17,6 +17,7 @@ Future<void> main() async {
   LicenseRegistry.addLicense(() async* {
     final text = await rootBundle.loadString('assets/fonts/OFL-jf-openhuninn.txt');
     yield LicenseEntryWithLineBreaks(const ['jf open 粉圓 (jf-openhuninn)'], text);
+    yield LicenseEntryWithLineBreaks(const ['TEED (Tiny and Efficient Edge Detector)'], await rootBundle.loadString('assets/models/TEED-LICENSE.txt'));
   });
   final documents = await getApplicationDocumentsDirectory();
   runApp(ProviderScope(

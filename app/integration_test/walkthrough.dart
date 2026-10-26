@@ -17,7 +17,6 @@ import 'package:kids_paint/core/providers.dart';
 import 'package:kids_paint/core/storage/artwork_store.dart';
 import 'package:kids_paint/features/canvas/coloring.dart';
 import 'package:kids_paint/features/capture/capture_screen.dart';
-import 'package:kids_paint/features/lineart/simple_engine.dart';
 
 /// Captures the screen under [name].
 typedef Shot = Future<void> Function(String name);
@@ -43,7 +42,6 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
       overrides: [
         databaseProvider.overrideWithValue(db),
         artworkStoreProvider.overrideWithValue(ArtworkStore(storeDir!)),
-        lineArtEngineProvider.overrideWithValue(const SimpleLineArtEngine(size: 768)),
         clockProvider.overrideWithValue(() => walkthroughNow),
       ],
       child: const KidsPaintApp(),

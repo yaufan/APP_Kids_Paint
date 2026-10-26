@@ -27,7 +27,6 @@ import 'package:kids_paint/core/repositories.dart';
 import 'package:kids_paint/core/storage/artwork_store.dart';
 import 'package:kids_paint/features/canvas/coloring.dart';
 import 'package:kids_paint/features/capture/capture_screen.dart';
-import 'package:kids_paint/features/lineart/simple_engine.dart';
 
 const _phone = Size(390, 844);
 const _captionHeight = 84.0;
@@ -82,7 +81,6 @@ void main() {
                   overrides: [
                     databaseProvider.overrideWithValue(db),
                     artworkStoreProvider.overrideWithValue(ArtworkStore(dir)),
-                    lineArtEngineProvider.overrideWithValue(const SimpleLineArtEngine(size: 768)),
                     clockProvider.overrideWithValue(() => now),
                   ],
                   child: const KidsPaintApp(),
