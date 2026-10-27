@@ -35,7 +35,7 @@ const _fps = 10;
 
 /// Creatures colored "before" the video starts, so the places are already
 /// lived in: each area takes the color its subject really has there
-/// (docs/design/v4/colors/, the painting each page was traced from).
+/// (docs/design/v5/colors/, the same drawing in its colors).
 const _residents = [
   Creature.giraffe, Creature.lion, Creature.monkey, Creature.zebra, //
   Creature.clownfish, Creature.octopus, Creature.turtle, Creature.jellyfish, Creature.crab,
@@ -418,7 +418,7 @@ Future<void> _colorResidents(File dbFile, Directory store) async {
     final page = await service.load(art.id);
     final regions = page.document.regions;
     final outside = regions.labelAt(0, 0);
-    final real = img.decodeJpg(File('../docs/design/v4/colors/${c.name}.jpg').readAsBytesSync())!;
+    final real = img.decodePng(File('../docs/design/v5/colors/${c.name}.png').readAsBytesSync())!;
     final sum = <int, List<int>>{}, first = <int, int>{};
     for (var i = 0; i < regions.labels.length; i++) {
       final l = regions.labels[i];

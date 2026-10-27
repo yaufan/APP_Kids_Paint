@@ -43,7 +43,7 @@ enum Residents {
 enum Motion { walk, hop, swim, float, crawl, fly, drive, rail, sway }
 
 /// The coloring pages of the places you can go into, made in
-/// docs/design/v4 (same names), facing right.
+/// docs/design/v5 (same names), facing right.
 enum Creature {
   elephant('大象', Habitat.zoo, Motion.walk, 190),
   giraffe('長頸鹿', Habitat.zoo, Motion.walk, 190),
