@@ -8,7 +8,8 @@ enum Habitat {
   dinoPark(PlaceKind.dinoPark),
   transport(PlaceKind.transport, residents: Residents.vehicles),
   botanical(PlaceKind.botanical, residents: Residents.plants),
-  insects(PlaceKind.insects);
+  insects(PlaceKind.insects),
+  shop(PlaceKind.shop, residents: Residents.goods);
 
   const Habitat(this.place, {this.residents = Residents.animals});
 
@@ -25,11 +26,12 @@ enum Habitat {
 
 /// Animals (and bugs) are counted 隻 and move in (住進); vehicles are
 /// counted 台 and drive in (開進); plants are counted 棵 and are planted
-/// (種到).
+/// (種到); the shop's goods are counted 個 and go on its shelves (上架到).
 enum Residents {
   animals('隻', '牠', '住進'),
   vehicles('台', '它', '開進'),
-  plants('棵', '它', '種到');
+  plants('棵', '它', '種到'),
+  goods('個', '它', '上架到');
 
   const Residents(this.counter, this.pronoun, this.verb);
 
@@ -39,8 +41,9 @@ enum Residents {
 }
 
 /// How a creature gets around its scene: [drive] along the road, [rail]
-/// on the railway track; plants stay where they grow and [sway].
-enum Motion { walk, hop, swim, float, crawl, fly, drive, rail, sway }
+/// on the railway track; plants stay where they grow and [sway]; the
+/// shop's goods stand on a [shelf] until a customer buys them.
+enum Motion { walk, hop, swim, float, crawl, fly, drive, rail, sway, shelf }
 
 /// The coloring pages of the places you can go into, made in
 /// docs/design/v5 (same names), facing right.
@@ -82,7 +85,16 @@ enum Creature {
   bee('蜜蜂', Habitat.insects, Motion.fly, 110),
   beetle('獨角仙', Habitat.insects, Motion.crawl, 140),
   dragonfly('蜻蜓', Habitat.insects, Motion.fly, 150),
-  mantis('螳螂', Habitat.insects, Motion.walk, 150);
+  mantis('螳螂', Habitat.insects, Motion.walk, 150),
+  // The shop's goods are about as tall as a shelf is high.
+  milk('牛奶', Habitat.shop, Motion.shelf, 80),
+  carrot('胡蘿蔔', Habitat.shop, Motion.shelf, 60),
+  apple('蘋果', Habitat.shop, Motion.shelf, 100),
+  banana('香蕉', Habitat.shop, Motion.shelf, 140),
+  bread('麵包', Habitat.shop, Motion.shelf, 100),
+  iceCream('冰淇淋', Habitat.shop, Motion.shelf, 70),
+  bubbleTea('珍珠奶茶', Habitat.shop, Motion.shelf, 68),
+  pudding('布丁', Habitat.shop, Motion.shelf, 135);
 
   const Creature(this.label, this.habitat, this.motion, this.size);
 

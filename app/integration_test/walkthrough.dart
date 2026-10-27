@@ -330,6 +330,22 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   }
   await shot('26_insects');
 
+  // 19. The shop: milk and a carrot go on the shelves, and one of the
+  //     child's animals comes in to buy something and pays a coin.
+  await tester.tap(find.bySemanticsLabel(Strings.backToTown));
+  await waitFor(tester, find.bySemanticsLabel(Strings.blankPaper));
+  await idle(tester, 800);
+  await enterScene(tester, PlaceKind.shop);
+  for (final (i, creature) in [Creature.milk, Creature.carrot].indexed) {
+    await colorCreature(tester, creature, i == 0 ? [kidPalette[10], kidPalette[5], kidPalette[2]] : [kidPalette[1], kidPalette[2], kidPalette[3]]);
+    await tester.tap(find.bySemanticsLabel(Strings.done));
+    await waitFor(tester, find.bySemanticsLabel(Strings.resident(creature.label)));
+    await idle(tester, 1800);
+  }
+  await waitFor(tester, find.bySemanticsLabel(Strings.customer));
+  await idle(tester, 2600);
+  await shot('27_shop');
+
   // 19. The album as one timeline.
   await tester.tap(find.bySemanticsLabel(Strings.backToTown));
   await waitFor(tester, find.bySemanticsLabel(Strings.album));

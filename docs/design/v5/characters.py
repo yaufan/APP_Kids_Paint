@@ -1,4 +1,4 @@
-"""The 38 characters of the places you can go into, in kawaii.py's
+"""The 46 characters of the places you can go into, in kawaii.py's
 coloring-book style. Each is a function returning SVG parts in page
 coordinates (600 x 800), drawn back to front, facing right; the ground is
 around y = 700.
@@ -773,4 +773,125 @@ def mantis():
         eye(400, 290, 15), eye(448, 290, 15),
         cheek(388, 325, 11, 8),
         smile(430, 325, 20, 7),
+    ]
+
+
+# ---------------------------------------------------------------- the shop
+
+
+@character
+def milk():
+    carton, side, top = WHITE, "#D8E9FF", SKY
+    return [
+        shape("M410 330 L 470 290 L 470 660 L 410 700 Z", side),
+        shape("M410 330 L 300 240 L 360 200 L 470 290 Z", "#5AAEF5"),
+        shape("M292 236 L 352 196 L 352 168 L 292 208 Z", carton),
+        rect(190, 330, 220, 370, 18, carton),
+        shape("M190 330 L 300 240 L 410 330 Z", top),
+        shape("M190 590 H 410 V 682 Q 410 700 392 700 H 208 Q 190 700 190 682 Z", top),
+        shape("M300 612 C 330 650 330 676 300 676 C 270 676 270 650 300 612 Z", carton, w=DETAIL),
+        eye(262, 440, 16), eye(338, 440, 16),
+        cheek(232, 482), cheek(368, 482),
+        smile(300, 480, 30, 10),
+    ]
+
+
+@character
+def carrot():
+    root = "#FF9442"
+    return [
+        ellipse(255, 245, 30, 72, LEAF, rot=-28), ellipse(345, 245, 30, 72, LEAF, rot=28), ellipse(300, 222, 32, 84, LEAF),
+        shape("M190 330 Q 300 280 410 330 Q 400 520 300 720 Q 200 520 190 330 Z", root),
+        line("M228 540 h 34 M338 580 h 32 M276 650 h 26"),
+        eye(262, 400, 16), eye(338, 400, 16),
+        cheek(232, 442), cheek(368, 442),
+        smile(300, 440, 30, 10),
+    ]
+
+
+@character
+def apple():
+    skin = "#FF5E5B"
+    return [
+        tube("M300 330 Q 298 280 318 248", 14, BROWN),
+        shape("M300 330 C 230 280 150 320 150 450 C 150 600 240 700 300 690 C 360 700 450 600 450 450 C 450 320 370 280 300 330 Z", skin),
+        shape("M322 286 Q 372 232 428 258 Q 376 306 322 286 Z", LEAF),
+        line("M210 400 Q 220 370 245 355", w=DETAIL),
+        eye(262, 480, 16), eye(338, 480, 16),
+        cheek(230, 522), cheek(370, 522),
+        smile(300, 520, 30, 10),
+    ]
+
+
+@character
+def banana():
+    peel = "#FFE15A"
+    return [
+        tube("M150 368 L 142 318", 30, "#A9C94F"),
+        shape("M115 370 C 125 680 430 740 505 455 L 470 440 C 400 520 230 520 185 365 Z", peel),
+        ellipse(490, 448, 16, 12, BROWN, w=DETAIL, rot=-20),
+        eye(272, 560, 15), eye(336, 556, 15),
+        cheek(244, 596, 13, 9), cheek(364, 590, 13, 9),
+        smile(304, 594, 26, 9),
+    ]
+
+
+@character
+def bread():
+    crust, crumb = "#D9965A", "#FFE3B3"
+    return [
+        shape("M170 700 V 400 C 115 380 118 262 200 250 C 240 196 360 196 400 250 C 482 262 485 380 430 400 V 700 Z", crust),
+        shape("M200 672 V 388 C 158 368 165 288 222 282 C 256 238 344 238 378 282 C 435 288 442 368 400 388 V 672 Z", crumb, w=DETAIL),
+        eye(262, 470, 16), eye(338, 470, 16),
+        cheek(232, 512), cheek(368, 512),
+        smile(300, 510, 30, 10),
+    ]
+
+
+@character
+def iceCream():
+    cone, scoop = "#F2B56B", "#FFB3C7"
+    cone_d = "M205 440 L 395 440 L 300 720 Z"
+    return [
+        shape(cone_d, cone),
+        clip("waffle", f'<path d="{cone_d}"/>', [line("M210 470 L 370 630 M250 450 L 395 595 M390 470 L 230 630 M350 450 L 205 595", w=5)]),
+        outline(shape(cone_d, cone)),
+        shape("M185 450 C 150 330 220 250 300 250 C 380 250 450 330 415 450 Q 398 482 375 456 Q 352 494 330 458 Q 305 494 282 458 "
+              "Q 258 492 238 456 Q 214 484 185 450 Z", scoop),
+        tube("M300 222 Q 302 190 322 172", 8, BROWN),
+        circle(300, 236, 26, RED),
+        eye(262, 360, 15), eye(338, 360, 15),
+        cheek(234, 398, 13, 9), cheek(366, 398, 13, 9),
+        smile(300, 396, 28, 9),
+    ]
+
+
+@character
+def bubbleTea():
+    tea, pearl = "#E9C29C", "#7A4E36"
+    pearls = [circle(x, y, 17, pearl, w=5) for x, y in
+              ((242, 662), (286, 670), (330, 666), (370, 652), (262, 626), (308, 632), (350, 620))]
+    return [
+        tube("M330 280 L 378 118", 30, PINK),
+        shape("M190 336 L 410 336 L 384 700 L 216 700 Z", tea),
+        *pearls,
+        shape("M180 330 Q 300 205 420 330 Z", "#F4FBFF"),
+        rect(170, 318, 260, 32, 15, WHITE),
+        eye(262, 450, 16), eye(338, 450, 16),
+        cheek(232, 492), cheek(368, 492),
+        smile(300, 490, 30, 10),
+    ]
+
+
+@character
+def pudding():
+    custard, caramel, plate = "#FFE07A", "#C2733A", "#BFE3FF"
+    return [
+        ellipse(300, 672, 200, 40, plate),
+        shape("M212 350 C 212 322 388 322 388 350 L 432 648 C 432 694 168 694 168 648 Z", custard),
+        shape("M206 358 C 216 320 384 320 394 358 L 401 404 Q 386 432 364 410 Q 342 438 319 412 Q 296 438 274 412 "
+              "Q 251 436 230 410 Q 211 430 199 404 Z", caramel),
+        eye(262, 530, 17), eye(338, 530, 17),
+        cheek(228, 574), cheek(372, 574),
+        smile(300, 572, 32, 10),
     ]

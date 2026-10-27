@@ -33,6 +33,8 @@ PROMPTS = {
     "transport": "a museum plaza, a big glass-roofed exhibition hall, an empty railway track, an empty two-lane asphalt road with a zebra crossing, traffic lights, a bus stop sign, trees, blue sky",
     "botanical": "a botanical garden, a big glass greenhouse with palm trees inside, colorful flower beds along a path, a small lily pond, a lush green lawn",
     "insects": "a sunny meadow with wildflowers and tall grass, a tree stump, a log and mushrooms, a round red house shaped like a ladybug, trees",
+    "shop": "a cozy little shop interior, a red and white striped awning, warm hanging lamps, a big wall of empty wooden shelves, "
+            "a checkered tile floor, a potted plant, a wicker basket",
 }
 
 _img2img = None

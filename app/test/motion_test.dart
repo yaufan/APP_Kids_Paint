@@ -15,7 +15,7 @@ void main() {
         expect(pose.at.dy, inInclusiveRange(area.top - 70, area.bottom + 1), reason: '$motion at $t');
         turned |= pose.left;
       }
-      if (![Motion.float, Motion.crawl, Motion.sway].contains(motion)) expect(turned, isTrue, reason: '$motion');
+      if (![Motion.float, Motion.crawl, Motion.sway, Motion.shelf].contains(motion)) expect(turned, isTrue, reason: '$motion');
     }
   });
 
@@ -33,9 +33,9 @@ void main() {
     }
   });
 
-  test('each scene has six animals or plants, or eight vehicles, to color', () {
+  test('each scene has six animals or plants, or eight vehicles or goods, to color', () {
     for (final habitat in Habitat.values) {
-      expect(habitat.creatures, hasLength(habitat.residents == Residents.vehicles ? 8 : 6));
+      expect(habitat.creatures, hasLength({Residents.vehicles, Residents.goods}.contains(habitat.residents) ? 8 : 6));
       expect(Habitat.of(habitat.place), habitat);
     }
   });
@@ -68,6 +68,29 @@ void main() {
         expect(pose.at, start, reason: '$creature');
         expect(pose.tilt.abs(), lessThan(0.1), reason: '$creature');
         expect(pose.at.dy, inInclusiveRange(720, 950), reason: '$creature');
+      }
+    }
+  });
+
+  test("the shop's goods stand side by side on the shelves the screen shows", () {
+    for (final screen in [const Size(390, 844), const Size(1280, 800), const Size(1024, 1366)]) {
+      final view = SceneView(screen);
+      final spots = shelfSpots(view);
+      expect(spots.length, greaterThanOrEqualTo(8), reason: '$screen');
+      for (final (i, a) in spots.indexed) {
+        expect(shopBoards, contains(a.dy));
+        expect(a.dx, inInclusiveRange(view.visible.left + 40, view.visible.right - 40), reason: '$screen');
+        // Room for the goods above the board, clear of the buttons.
+        expect(a.dy - 150 * view.creatureScale, greaterThanOrEqualTo(view.visible.top + 110 / view.scale), reason: '$screen');
+        for (final b in spots.skip(i + 1)) {
+          expect((a - b).distance, greaterThan(100 * view.creatureScale), reason: '$screen');
+        }
+      }
+      // The lowest shelf fills first.
+      expect(spots.first.dy, shopBoards.first);
+      for (final creature in Habitat.shop.creatures) {
+        final pose = poseAt(creature.motion, 12.3, 5, Rect.fromPoints(spots[2], spots[2]));
+        expect(pose.at, spots[2], reason: '$creature stays on its spot');
       }
     }
   });

@@ -345,3 +345,51 @@ def insect_scene():
 
 
 SCENES["insects"] = insect_scene
+
+
+# ---------------------------------------------------------------- the shop
+
+
+SHOP_BOARDS = (840, 670, 500)  # the shelves' tops, lowest first; lib/features/scene/motion.dart puts goods on them
+
+
+def shop_scene():
+    """The shop (商店): a striped awning and bunting, a wall of wooden
+    shelves for the goods children color (low enough that a landscape
+    tablet shows two of them), a tiled floor the customers walk in on."""
+    defs = ('<pattern id="swall" width="80" height="80" patternUnits="userSpaceOnUse"><rect width="80" height="80" fill="#FFF3DC"/>'
+            '<rect width="40" height="80" fill="#FFEACB"/></pattern>'
+            '<pattern id="sfloor" width="80" height="80" patternUnits="userSpaceOnUse"><rect width="80" height="80" fill="#F7E2C2"/>'
+            '<rect width="40" height="40" fill="#E9C99C"/><rect x="40" y="40" width="40" height="40" fill="#E9C99C"/></pattern>')
+    s = ['<rect width="1000" height="900" fill="url(#swall)"/>']
+    # the awning along the top, red and white
+    for i, x in enumerate(range(0, 1000, 100)):
+        s.append(f'<path d="M{x} 0 H {x + 100} V 120 Q {x + 75} 160 {x + 50} 120 Q {x + 25} 160 {x} 120 Z" fill="{"#FF6B6B" if i % 2 == 0 else "#FFFFFF"}"/>')
+    s.append('<rect width="1000" height="18" fill="#D94B4B"/>')
+    # lamps, and bunting between them
+    for x in (250, 500, 750):
+        s.append(f'<path d="M{x} 130 V 180" stroke="#8A6A4A" stroke-width="4"/>'
+                 f'<path d="M{x - 34} 212 Q {x} 160 {x + 34} 212 Z" fill="#FFD84D" stroke="#E0A21C" stroke-width="4"/>'
+                 f'<circle cx="{x}" cy="216" r="10" fill="#FFF6C9"/>')
+    s.append('<path d="M20 250 Q 500 300 980 250" fill="none" stroke="#C98F5E" stroke-width="3"/>')
+    for i, x in enumerate(range(50, 960, 60)):
+        y = 250 + 50 * (1 - ((x - 500) / 480) ** 2) * 0.5
+        color = ("#FF8FB1", "#FFD84D", "#7CC7FF", "#8ED36B")[i % 4]
+        s.append(f'<path d="M{x - 18} {y:.0f} L {x + 18} {y:.0f} L {x} {y + 34:.0f} Z" fill="{color}"/>')
+    # the shelves: a back panel, two posts and three boards
+    s.append('<rect x="40" y="330" width="920" height="570" rx="10" fill="#F2C99A" stroke="#C98F5E" stroke-width="6"/>')
+    for y in SHOP_BOARDS:
+        s.append(f'<rect x="40" y="{y}" width="920" height="28" rx="6" fill="#B97A4B"/>'
+                 f'<rect x="40" y="{y}" width="920" height="8" rx="4" fill="#D69B66"/>'
+                 f'<rect x="60" y="{y + 28}" width="880" height="10" fill="#C98F5E" opacity=".45"/>')
+    s.append('<rect x="28" y="320" width="30" height="590" rx="8" fill="#A86E43"/><rect x="942" y="320" width="30" height="590" rx="8" fill="#A86E43"/>')
+    # the floor, a basket and a plant
+    s.append('<rect y="900" width="1000" height="100" fill="url(#sfloor)"/><rect y="896" width="1000" height="10" fill="#C98F5E"/>')
+    s.append('<path d="M850 930 H 960 L 945 990 H 865 Z" fill="#E0A96A" stroke="#A86E43" stroke-width="5"/>'
+             '<path d="M862 950 H 948 M858 970 H 952" stroke="#A86E43" stroke-width="4"/>'
+             '<path d="M868 930 Q 905 870 942 930" fill="none" stroke="#A86E43" stroke-width="7"/>')
+    s.append(deco("1f33f", 10, 840, 100) + '<path d="M22 925 H 98 L 88 995 H 32 Z" fill="#E58B4D" stroke="#C26A33" stroke-width="5"/>')
+    return _scene("".join(s), defs)
+
+
+SCENES["shop"] = shop_scene

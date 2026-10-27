@@ -434,10 +434,11 @@ def place_icon(kind, size=64):
                 '<rect x="9" y="24" width="46" height="11" rx="3" fill="#FF5E5B"/>' + "".join(f'<rect x="{12 + k * 11}" y="24" width="5" height="11" fill="#fff" opacity=".8"/>' for k in range(4)) +
                 '<path d="M22 44 h20 a10 7 0 0 1 -20 0z" fill="#FFC94A" stroke="#D9A21C" stroke-width="1.2"/><path d="M27 40 q-2 -3 0 -6 M32 40 q-2 -3 0 -6 M37 40 q-2 -3 0 -6" stroke="#B9B2A4" stroke-width="1.6" fill="none" stroke-linecap="round"/>'
                 '<ellipse cx="14" cy="16" rx="4" ry="5" fill="#FF5E5B"/><ellipse cx="50" cy="16" rx="4" ry="5" fill="#FFC94A"/><path d="M14 11 Q 32 4 50 11" stroke="#8A6A4A" stroke-width="1.2" fill="none"/>',
-        "shop": g + '<rect x="12" y="30" width="40" height="24" rx="2" fill="#E8EEFF" stroke="#9FB3C8" stroke-width="1.6"/>'
-                '<rect x="10" y="24" width="44" height="7" fill="#FF8A3D"/><rect x="10" y="30" width="44" height="4" fill="#3FB37A"/>'
-                '<rect x="16" y="38" width="16" height="12" rx="2" fill="#A9E0FF"/><rect x="36" y="38" width="10" height="16" rx="2" fill="#9FB3C8"/>'
-                '<path d="M20 44 h8 v6 h-8z" fill="#FF8FB1"/><path d="M22 44 q2 -4 4 0" stroke="#E0668C" stroke-width="1.4" fill="none"/>',
+        "shop": g + '<rect x="12" y="28" width="40" height="26" rx="2" fill="#FFF6E8" stroke="#C98F5E" stroke-width="1.6"/>'
+                + "".join(f'<path d="M{10 + k * 11} 20 h 11 v 9 q -5.5 7 -11 0 z" fill="{"#FF5E5B" if k % 2 == 0 else "#FFFFFF"}" stroke="#D94B4B" stroke-width="1"/>' for k in range(4))
+                + '<rect x="16" y="37" width="18" height="13" rx="2" fill="#A9E0FF"/><rect x="38" y="38" width="10" height="16" rx="3" fill="#C98F5E"/>'
+                '<path d="M19 40 h5 v9 h-5 z M19 40 l2.5 -3 l2.5 3" fill="#FFFFFF" stroke="#4DA3FF" stroke-width="1.1"/>'
+                '<path d="M26 41 h6 l-3 8 z" fill="#FF9442"/><path d="M29 41 l-1.5 -3 M29 41 l1.5 -3" stroke="#3FB37A" stroke-width="1.3" stroke-linecap="round"/>',
         "zoo": g + '<path d="M26 56 V26 q0 -12 8 -14" stroke="#F7C35C" stroke-width="10" stroke-linecap="round" fill="none"/>'
                '<circle cx="30" cy="34" r="2.6" fill="#C98536"/><circle cx="26" cy="46" r="3" fill="#C98536"/>'
                '<ellipse cx="40" cy="14" rx="11" ry="7.5" fill="#F7C35C" stroke="#C98536" stroke-width="1.4"/>'

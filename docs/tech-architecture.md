@@ -233,7 +233,8 @@ prototypes/lineart/   第 0 階段的線稿轉換原型（Python）＋測試結�
 app/                  Flutter APP（說明見 app/README.md）
   lib/
     app/              外殼：路由（go_router）、主題、元件、向量圖案、繁中文字、版本號
-    core/             資料層：drift 資料庫、地點種類、作品資料夾、repositories、Riverpod providers
+    core/             資料層：drift 資料庫、地點種類、作品資料夾、repositories、Riverpod providers、
+                      角色台詞（看情況說）、每天的遊玩時間（play_time）、存到相簿（album_export）
     features/
       town/           小鎮地圖（首頁）、圖釘、地點卡
       capture/        拍照、選相簿
@@ -242,8 +243,11 @@ app/                  Flutter APP（說明見 app/README.md）
       send/           寄到哪裡、寄出慶祝
       album/          明信片冊
       parent/         家長確認、家長模式、隱私與安全
+      scene/          可以走進去的地方：角色的動作、商店的架子和客人
+      rest/           時間到了的提醒和休息畫面（蓋在所有畫面上）
   assets/art/         向量圖案（由 docs/design/v3/src/export_art.py 產生）
-  test/               自動測試（區塊圖、著色、家長確認、資料庫與升級、照片中繼資料、版本、首頁、完整操作）
+  test/               自動測試（區塊圖、著色、家長確認、資料庫與升級、照片中繼資料、版本、首頁、完整操作、
+                      沒有廣告和追蹤、存到相簿、遊玩時間、台詞）
 docs/design/v3/src/   設計稿與圖案的原始程式（Python）：改圖案時改這裡，再匯出到 APP
 .github/workflows/    GitHub Actions：檢查、測試、建置 APK、檢查權限、iOS 模擬器、發行版本
 docs/                 規劃文件
@@ -251,6 +255,6 @@ docs/                 規劃文件
 
 **套件版本**（第 1 階段骨架）
 - Flutter 3.47.8（Dart 3.13）
-- flutter_riverpod 3、go_router 18、drift 2.35、image_picker、image、flutter_svg
+- flutter_riverpod 3、go_router 18、drift 2.35、image_picker、image、flutter_svg、flutter_tts、gal（存到相簿）
 
-**尚未加入**：分享（share_plus）、自動去背（只畫主角）、使用時間提醒。
+**尚未加入**：分享（share_plus）、自動去背（只畫主角）。

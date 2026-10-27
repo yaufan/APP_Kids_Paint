@@ -46,6 +46,8 @@ abstract final class Strings {
       '畫一${residents.counter}新的，${residents.verb}$place';
   static String drawCreature(String creature) => '畫$creature';
   static String resident(String creature) => '你畫的$creature';
+  static String coins(int n) => '賣東西賺到的金幣，$n 個';
+  static const customer = '來買東西的客人';
   static String backTo(String place) => '回到$place';
   static String postcardsAt(String place, int n) => '寄到$place的明信片，$n 張';
   static const close = '關閉';

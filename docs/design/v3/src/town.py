@@ -289,8 +289,14 @@ def park():
 
 
 def shop():
-    return mid(box(240, 600, 66, 36, 6, "#E8EEFF", roof="flat", windows=[(6, 14, 24, 16)], door=(38, 18, 24, "#9FB3C8")),
-               '<rect x="240" y="566" width="66" height="7" fill="#FF8A3D"/><rect x="240" y="573" width="66" height="5" fill="#3FB37A"/>')
+    """The shop, a place you can go into (0.12): a striped awning, and milk
+    and a carrot in the window."""
+    awning = "".join(f'<path d="M{240 + k * 11} 565 h 11 v 8 q -5.5 7 -11 0 z" fill="{"#FF5E5B" if k % 2 == 0 else "#FFFFFF"}" '
+                     'stroke="#D94B4B" stroke-width=".8"/>' for k in range(6))
+    goods = ('<path d="M250 584 h 7 v 10 h -7 z M250 584 l 3.5 -4 l 3.5 4" fill="#FFFFFF" stroke="#4DA3FF" stroke-width="1.1"/>'
+             '<path d="M260 585 h 8 l -4 10 z" fill="#FF9442" stroke="#C9692A" stroke-width=".9"/>'
+             '<path d="M264 585 l -2 -4 M264 585 l 2 -4" stroke="#3FB37A" stroke-width="1.4" stroke-linecap="round"/>')
+    return mid(box(240, 600, 66, 36, 6, "#FFF6E8", roof="flat", windows=[(6, 14, 24, 16)], door=(38, 18, 24, "#C98F5E")), awning, goods)
 
 
 def food():
@@ -490,7 +496,8 @@ SLOTS = {
 ORDER = ["home", "school", "park", "shop", "food", "temple", "zoo", "aquarium", "dinoPark", "transport", "botanical", "insects", "grandma", "travel"]
 # Places you can go into (scenes in the app), always built: kind -> tap area.
 ATTRACTIONS = {"zoo": (596, 690, 172, 124), "aquarium": (12, 690, 178, 128), "dinoPark": (12, 476, 178, 170),
-               "transport": (596, 476, 172, 170), "botanical": (12, 878, 178, 168), "insects": (596, 878, 172, 168)}
+               "transport": (596, 476, 172, 170), "botanical": (12, 878, 178, 168), "insects": (596, 878, 172, 168),
+               "shop": (OX + 230, 548, 90, 76)}
 
 
 def lot(kind):
@@ -564,7 +571,7 @@ def export(app_dir):
     lines += ["};", "", "/// Back to front.", "const townLayerOrder = [" + ", ".join(f"'{k}'" for k in ORDER) + "];", "",
               "/// Festivals with a decoration layer (`festival_<name>_<phase>.svg`).",
               "const townFestivalLayers = {" + ", ".join(f"'{k}'" for k in festivals.DECOR) + "};", "",
-              "/// Places you can go into (the zoo, the aquarium, the dinosaur park, the transport museum, the botanical garden, the insect museum): always built; tapping opens their scene.",
+              "/// Places you can go into (the zoo, the aquarium, the dinosaur park, the transport museum, the botanical garden, the insect museum, the shop): always built; tapping opens their scene.",
               "const townAttractions = <String, Rect>{",
               *[f"  '{k}': Rect.fromLTWH({x}, {y}, {w}, {h})," for k, (x, y, w, h) in ATTRACTIONS.items()],
               "};", "",

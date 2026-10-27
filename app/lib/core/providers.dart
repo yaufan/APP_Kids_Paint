@@ -93,6 +93,15 @@ final residentsProvider = StreamProvider.family<List<Artwork>, ({int childId, Ha
   (ref, q) => ref.watch(artworkRepositoryProvider).watchMadeFrom(q.childId, [for (final c in q.habitat.creatures) c.name]),
 );
 
+/// Who comes to the shop to buy: the child's own animals that walk (from
+/// the zoo, the dinosaur park and the insect museum), newest first.
+final shopCustomersProvider = StreamProvider.family<List<Artwork>, int>(
+  (ref, childId) => ref.watch(artworkRepositoryProvider).watchMadeFrom(childId, [
+    for (final c in Creature.values)
+      if ({Habitat.zoo, Habitat.dinoPark, Habitat.insects}.contains(c.habitat) && {Motion.walk, Motion.hop, Motion.crawl}.contains(c.motion)) c.name,
+  ]),
+);
+
 /// The phone's speech engine; tests use a silent one.
 final systemVoiceProvider = Provider<Voice>((ref) => SystemVoice());
 

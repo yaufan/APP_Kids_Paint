@@ -34,7 +34,7 @@ const townLayerOrder = ['home', 'school', 'park', 'shop', 'food', 'temple', 'zoo
 /// Festivals with a decoration layer (`festival_<name>_<phase>.svg`).
 const townFestivalLayers = {'lunarNewYear', 'lantern', 'childrensDay', 'dragonBoat', 'midAutumn', 'christmas', 'newYearsEve'};
 
-/// Places you can go into (the zoo, the aquarium, the dinosaur park, the transport museum, the botanical garden, the insect museum): always built; tapping opens their scene.
+/// Places you can go into (the zoo, the aquarium, the dinosaur park, the transport museum, the botanical garden, the insect museum, the shop): always built; tapping opens their scene.
 const townAttractions = <String, Rect>{
   'zoo': Rect.fromLTWH(596, 690, 172, 124),
   'aquarium': Rect.fromLTWH(12, 690, 178, 128),
@@ -42,6 +42,7 @@ const townAttractions = <String, Rect>{
   'transport': Rect.fromLTWH(596, 476, 172, 170),
   'botanical': Rect.fromLTWH(12, 878, 178, 168),
   'insects': Rect.fromLTWH(596, 878, 172, 168),
+  'shop': Rect.fromLTWH(425, 548, 90, 76),
 };
 
 /// The tip of Taipei 101, where the New Year's Eve fireworks go up.

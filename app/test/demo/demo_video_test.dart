@@ -18,16 +18,20 @@ import 'package:go_router/go_router.dart';
 import 'package:image/image.dart' as img;
 import 'package:kids_paint/app/app.dart';
 import 'package:kids_paint/app/strings.dart';
+import 'package:kids_paint/core/album_export.dart';
 import 'package:kids_paint/core/artwork_service.dart';
 import 'package:kids_paint/core/creatures.dart';
 import 'package:kids_paint/core/db/database.dart';
 import 'package:kids_paint/core/festivals.dart';
 import 'package:kids_paint/core/places.dart';
+import 'package:kids_paint/core/play_time.dart';
 import 'package:kids_paint/core/providers.dart';
 import 'package:kids_paint/core/repositories.dart';
 import 'package:kids_paint/core/storage/artwork_store.dart';
 import 'package:kids_paint/features/canvas/coloring.dart';
 import 'package:kids_paint/features/capture/capture_screen.dart';
+
+import '../../integration_test/walkthrough.dart' show answerParentGate;
 
 const _phone = Size(390, 844);
 const _captionHeight = 84.0;
@@ -43,7 +47,17 @@ const _residents = [
   Creature.fireTruck, Creature.bus, Creature.train, Creature.airplane, Creature.helicopter, Creature.scooter,
   Creature.tulip, Creature.cactus, Creature.rose, Creature.lotus,
   Creature.bee, Creature.dragonfly, Creature.beetle, Creature.mantis,
+  Creature.milk, Creature.apple, Creature.bubbleTea, Creature.pudding, Creature.bread, Creature.banana, Creature.iceCream,
 ];
+
+/// The photo album, pretend: the demo has no phone to save to.
+class _DemoAlbum implements PhotoAlbum {
+  @override
+  Future<bool> allow() async => true;
+
+  @override
+  Future<void> add(File picture) async {}
+}
 
 void main() {
   testWidgets('demo video', (tester) async {
@@ -76,6 +90,7 @@ void main() {
                     databaseProvider.overrideWithValue(db),
                     artworkStoreProvider.overrideWithValue(ArtworkStore(dir)),
                     clockProvider.overrideWithValue(() => now),
+                    photoAlbumProvider.overrideWithValue(_DemoAlbum()),
                   ],
                   child: const KidsPaintApp(),
                 ),
@@ -103,8 +118,13 @@ void main() {
     ));
 
     final rec = await tester.runAsync(() => _Recorder.start(key));
+    // Where each part starts (frame number), to cut a short video of what is new.
+    var frameCount = 0;
+    final marks = <String>[];
+    void mark(String name) => marks.add('$name $frameCount');
     Future<void> frames(int n) async {
       for (var i = 0; i < n; i++) {
+        frameCount++;
         await tester.runAsync(() async {
           await rec!.capture();
           await Future<void>.delayed(const Duration(milliseconds: 20));
@@ -278,10 +298,16 @@ void main() {
     caption.value = '恐龍樂園：翼龍會飛、恐龍寶寶會跳';
     await seconds(3);
     caption.value = '點一下恐龍：牠會跳起來、說一句話';
-    await tap(find.bySemanticsLabel(Strings.resident(Creature.triceratops.label)));
-    await seconds(2.5);
     await tap(find.bySemanticsLabel(Strings.resident(Creature.babyDino.label)));
     await seconds(2.5);
+    mark('tickle');
+    caption.value = '一直點牠，牠會說「呵呵呵，好癢喔！」\n（角色會看早上晚上、節日、旁邊的朋友說話）';
+    for (var i = 0; i < 3; i++) {
+      await tap(find.bySemanticsLabel(Strings.resident(Creature.triceratops.label)));
+      await seconds(1.2);
+    }
+    await seconds(2);
+    mark('tickle_end');
 
     // 4c. The transport museum.
     caption.value = '新地方：交通車館（在小鎮右邊）';
@@ -325,6 +351,39 @@ void main() {
       caption.value = words;
       await seconds(4);
     }
+
+    // 4f. The shop (0.12): goods on the shelves, customers come to buy.
+    mark('shop');
+    caption.value = '新地方：商店（地圖中間，紅白條紋的遮雨棚）';
+    await tap(find.bySemanticsLabel(Strings.backToTown));
+    await until(find.bySemanticsLabel(Strings.blankPaper));
+    await seconds(1);
+    final shopSign = find.bySemanticsLabel(Strings.goTo(PlaceKind.shop.label));
+    if (shopSign.evaluate().isNotEmpty) {
+      await tap(shopSign);
+      await seconds(1.5);
+    }
+    await tap(find.bySemanticsLabel(Strings.enter(PlaceKind.shop.label)));
+    await until(find.bySemanticsLabel(Strings.drawNew(PlaceKind.shop.label, residents: Residents.goods)));
+    caption.value = '小朋友畫的牛奶、蘋果、珍珠奶茶⋯⋯\n都擺在架子上';
+    await seconds(3);
+    await until(find.bySemanticsLabel(Strings.customer));
+    caption.value = '客人來買東西了：「我要買○○！」\n拿走就付一個金幣，架子馬上補貨';
+    await seconds(8);
+    caption.value = '畫一個新的：8 個可愛的商品可以選';
+    await tap(find.bySemanticsLabel(Strings.drawNew(PlaceKind.shop.label, residents: Residents.goods)));
+    await until(find.byKey(const ValueKey('creature-carrot')));
+    await seconds(2);
+    await tap(find.byKey(const ValueKey('creature-carrot')));
+    await until(find.byKey(const ValueKey('page')));
+    caption.value = '胡蘿蔔的著色圖';
+    await seconds(1);
+    await fill([(kidPalette[1], 0.5, 0.6), (kidPalette[3], 0.5, 0.26), (kidPalette[3], 0.4, 0.31), (kidPalette[3], 0.6, 0.31)]);
+    caption.value = '畫好了 → 胡蘿蔔上架到商店';
+    await tap(find.bySemanticsLabel(Strings.done));
+    await until(find.bySemanticsLabel(Strings.resident(Creature.carrot.label)));
+    await seconds(6);
+    mark('shop_end');
 
     // 4e. The album as one timeline.
     caption.value = '明信片冊：右上角切換「依時間看」';
@@ -387,6 +446,71 @@ void main() {
     await seconds(1);
     await fill([(kidPalette[3], 0.5, 0.45), (kidPalette[2], 0.5, 0.1), (kidPalette[0], 0.25, 0.9)]);
     await seconds(2);
+
+    // 7. Parent mode: save the pictures to the photo album (0.12).
+    now = DateTime(2026, 10, 27, 16, 40);
+    GoRouter.of(tester.element(find.byKey(const ValueKey('page')))).go('/');
+    await until(find.byTooltip(Strings.parentMode));
+    await seconds(1);
+    mark('album');
+    caption.value = '家長模式（要先回答家長關卡的題目）';
+    await tap(find.byTooltip(Strings.parentMode));
+    await until(find.text(Strings.parentGateTitle));
+    await seconds(1.5);
+    for (final digit in '${answerParentGate(tester)}'.split('')) {
+      await tap(find.byKey(ValueKey('gate-key-$digit')));
+    }
+    await until(find.text(Strings.dailyLimit));
+    caption.value = '每天可以玩多久：15～60 分鐘，或不限';
+    await seconds(2.5);
+    final keep = find.textContaining('存到相簿（');
+    await tester.scrollUntilVisible(keep, 200, scrollable: find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first);
+    await frames(3);
+    caption.value = '存到相簿：不用帳號，換手機作品也不會不見\n（每張只存一次，下次只存新的）';
+    await seconds(2);
+    await tap(keep);
+    await seconds(3);
+    mark('album_end');
+
+    // 8. Time to rest, gently (0.12).
+    mark('rest');
+    GoRouter.of(tester.element(find.text(Strings.dailyLimit))).go('/');
+    await until(find.bySemanticsLabel(Strings.blankPaper));
+    final app = ProviderScope.containerOf(tester.element(find.bySemanticsLabel(Strings.blankPaper)));
+    Future<void> playTo(Duration at) => tester.runAsync(() => app.read(playTimeProvider.notifier).add(at - app.read(playTimeProvider)!.played));
+    caption.value = '每天 30 分鐘：快到時間時，鴿子先提醒';
+    await playTo(const Duration(minutes: 28));
+    await seconds(4);
+    caption.value = '時間到了，正在畫的畫不會被打斷';
+    await tap(find.bySemanticsLabel(Strings.blankPaper));
+    await until(find.byKey(const ValueKey('page')));
+    await seconds(0.5);
+    await playTo(const Duration(minutes: 30, seconds: 5));
+    await seconds(1);
+    final sheet = tester.getRect(find.byKey(const ValueKey('page')));
+    await tap(find.byKey(ValueKey('swatch-${kidPalette[0]}')));
+    await stroke([for (var i = 0; i <= 12; i++) sheet.topLeft + Offset(sheet.width * (0.2 + i * 0.05), sheet.height * (0.45 + (i.isEven ? -0.05 : 0.05)))]);
+    await seconds(2.5);
+    caption.value = '畫完寄出，才出現休息畫面';
+    await tap(find.bySemanticsLabel(Strings.done));
+    await until(find.bySemanticsLabel(Strings.sendTo(PlaceKind.home.label)));
+    await seconds(1);
+    await tap(find.bySemanticsLabel(Strings.sendTo(PlaceKind.home.label)));
+    await until(find.byKey(const ValueKey('rest-screen')), max: 20);
+    caption.value = '休息畫面：今天畫了幾張，明天再來畫\n家長通過關卡可以再玩 10 分鐘';
+    await seconds(6);
+    await tap(find.byTooltip(Strings.parentMode).last);
+    await until(find.text(Strings.parentGateTitle));
+    await seconds(1);
+    for (final digit in '${answerParentGate(tester)}'.split('')) {
+      await tap(find.byKey(ValueKey('gate-key-$digit')));
+    }
+    await until(find.text(Strings.tenMoreMinutes));
+    await seconds(1.5);
+    await tap(find.text(Strings.tenMoreMinutes));
+    await seconds(2.5);
+    mark('rest_end');
+    File('build/demo/chapters.txt').writeAsStringSync('${marks.join('\n')}\n');
 
     await tester.runAsync(() => rec!.finish('build/demo/demo.mp4'));
     await tester.pumpWidget(const SizedBox());

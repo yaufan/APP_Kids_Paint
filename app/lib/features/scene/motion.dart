@@ -68,7 +68,31 @@ Pose poseAt(Motion motion, double t, int seed, Rect area) {
       // Rooted where it grows, rocking in the breeze.
       final breeze = t * 1.3 * pace + wobble;
       return (at: Offset(area.left + area.width * phase, laneY()), left: false, tilt: 0.06 * math.sin(breeze), squash: 1 + 0.02 * math.sin(2 * breeze));
+    case Motion.shelf:
+      // On its spot on the shelf ([shelfSpots]), now and then a little wiggle.
+      final wiggle = math.max(0.0, math.sin(t * 0.9 * pace + wobble) - 0.9) * 10;
+      return (at: area.bottomCenter, left: false, tilt: 0.05 * wiggle * math.sin(t * 12), squash: 1.0);
   }
+}
+
+/// The shop's shelves: where their tops are in the scene (docs/design/v3/src
+/// creatures.py SHOP_BOARDS), the lowest first.
+const shopBoards = [840.0, 670.0, 500.0];
+
+/// Spots on the shop's shelves that [view] shows clear of the buttons:
+/// the bottom middle of each of the goods, side by side, the lowest shelf
+/// first. The newest goods take the first spots.
+List<Offset> shelfSpots(SceneView view, {double top = 110}) {
+  final v = view.visible;
+  final slot = 150 * view.creatureScale;
+  final tallest = 150 * view.creatureScale;
+  final across = math.max(1, ((v.width - 30) / slot).floor());
+  final left = v.left + (v.width - across * slot) / 2;
+  return [
+    for (final board in shopBoards)
+      if (board - tallest >= v.top + top / view.scale)
+        for (var i = 0; i < across; i++) Offset(left + slot * (i + 0.5), board),
+  ];
 }
 
 /// How a 1000 x 1000 scene sits on a screen: covering it, anchored at the
@@ -107,6 +131,7 @@ Rect roamArea(Creature creature, SceneView view, {double top = 110, double botto
     Motion.drive => (790.0, 930.0),
     Motion.rail => (648.0, 648.0),
     Motion.sway => (720.0, 950.0),
+    Motion.shelf => (shopBoards.first, shopBoards.first), // see [shelfSpots]
   };
   // Swimmers and floaters are drawn up from their bottom, so leave room above.
   final y0 = math.max(lo, minY + creature.size * view.creatureScale * 0.7);

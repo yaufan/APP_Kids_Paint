@@ -14,17 +14,24 @@ import '../../app/widgets.dart';
 import '../../core/creature_lines.dart';
 import '../../core/creatures.dart';
 import '../../core/db/database.dart';
+import '../../core/festivals.dart';
+import '../../core/places.dart';
 import '../../core/providers.dart';
 import '../../core/repositories.dart';
 import '../../core/voice.dart';
 import '../town/place_sheet.dart';
 import 'motion.dart';
 
-/// Inside the zoo, the aquarium or the dinosaur park: every creature the
-/// child colored for it walks, hops, swims, floats or flies around and now
-/// and then says something (read out loud unless parents turned voices
-/// off); tap one and it jumps and talks. The big button picks a new
-/// creature to color, and when it is done it moves in.
+/// Inside a place you can go into: every creature the child colored for it
+/// walks, hops, swims, floats or flies around (in the shop the goods stand
+/// on the shelves) and now and then says something that fits the moment
+/// (read out loud unless parents turned voices off); tap one and it jumps
+/// and talks. The big button picks a new creature to color, and when it is
+/// done it moves in.
+///
+/// In the shop customers come in now and then (the child's own animals, or
+/// the buddies), ask for one of the goods, take it home and pay a coin;
+/// the shelf is filled again right away.
 class SceneScreen extends ConsumerStatefulWidget {
   const SceneScreen({super.key, required this.habitat, this.arrived});
 
@@ -37,7 +44,7 @@ class SceneScreen extends ConsumerStatefulWidget {
   ConsumerState<SceneScreen> createState() => _SceneScreenState();
 }
 
-class _SceneScreenState extends ConsumerState<SceneScreen> with SingleTickerProviderStateMixin {
+class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderStateMixin {
   /// Seconds since the scene opened drive every creature's pose.
   late final AnimationController _clock = AnimationController(vsync: this, duration: const Duration(minutes: 10))..repeat();
   bool _opening = false;
@@ -52,6 +59,24 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with SingleTickerProv
   Voice? _voice;
   final _random = math.Random();
   List<Artwork> _residents = const [];
+
+  /// Taps in a row on a creature (an artwork id): how many, and when the
+  /// last was (on the scene's clock).
+  final _taps = <int, ({int count, Duration at})>{};
+  bool _greeted = false;
+
+  // The shop's customers.
+  late final AnimationController _visit = AnimationController(vsync: this, duration: const Duration(milliseconds: 7500));
+  Timer? _customers;
+  Timer? _firstCustomer;
+  _Sale? _sale;
+  int _coins = 0;
+
+  /// Goods on the shelves now, and who may come to buy them.
+  List<Artwork> _shelved = const [];
+  List<Artwork> _customerArts = const [];
+
+  bool get _shop => widget.habitat == Habitat.shop;
 
   @override
   void initState() {
@@ -68,6 +93,14 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with SingleTickerProv
       final arrived = _residents.where((a) => a.id == widget.arrived).firstOrNull;
       arrived != null ? _say(arrived) : _chat();
     });
+    if (_shop) {
+      _firstCustomer = Timer(const Duration(milliseconds: 5000), _startSale);
+      _customers = Timer.periodic(const Duration(seconds: 13), (_) => _startSale());
+      _visit.addListener(_onVisit);
+      _visit.addStatusListener((status) {
+        if (status == AnimationStatus.completed && mounted) setState(() => _sale = null);
+      });
+    }
   }
 
   @override
@@ -77,22 +110,45 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with SingleTickerProv
     _chatter?.cancel();
     _hello?.cancel();
     _hush?.cancel();
+    _customers?.cancel();
+    _firstCustomer?.cancel();
+    _visit.dispose();
     _voice?.stop();
     super.dispose();
   }
 
   /// A random creature (not the one that just spoke) says something.
   void _chat() {
-    if (!mounted || _residents.isEmpty) return;
+    if (!mounted || _residents.isEmpty || _sale != null) return;
     final others = [for (final a in _residents) if (a.id != _saying?.id) a];
     _say((others.isEmpty ? _residents : others)[_random.nextInt(others.isEmpty ? _residents.length : others.length)]);
   }
 
-  void _say(Artwork art) {
+  void _say(Artwork art, {bool tapped = false}) {
     final creature = Creature.byName(art.template);
     if (!mounted || creature == null) return;
-    final text = lineFor(creature, _random);
-    setState(() => _saying = (id: art.id, text: text));
+    final now = ref.read(clockProvider)();
+    var taps = 0;
+    if (tapped) {
+      final at = _clock.lastElapsedDuration ?? Duration.zero, last = _taps[art.id];
+      taps = last != null && at - last.at < const Duration(seconds: 5) ? last.count + 1 : 1;
+      _taps[art.id] = (count: taps, at: at);
+    }
+    final arrived = art.id == widget.arrived && !_greeted;
+    if (arrived) _greeted = true;
+    final moment = Moment(
+      time: now,
+      festival: festivalOn(now)?.festival,
+      justArrived: arrived,
+      neighbors: [for (final a in _residents) if (a.id != art.id) ?Creature.byName(a.template)],
+      taps: taps,
+    );
+    _speak(art.id, lineFor(creature, _random, moment));
+  }
+
+  /// [id] (an artwork; 0 for a customer) says [text] in a bubble and out loud.
+  void _speak(int id, String text) {
+    setState(() => _saying = (id: id, text: text));
     final voice = ref.read(voiceProvider);
     _voice = voice;
     voice.say(text);
@@ -100,6 +156,38 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with SingleTickerProv
     _hush = Timer(const Duration(milliseconds: 3200), () {
       if (mounted) setState(() => _saying = null);
     });
+  }
+
+  /// A customer comes in for one of the goods on the shelves.
+  void _startSale() {
+    if (!mounted || _sale != null || _shelved.isEmpty) return;
+    final item = _shelved[_random.nextInt(_shelved.length)];
+    final creature = Creature.byName(item.template);
+    if (creature == null) return;
+    final who = _customerArts.isEmpty ? null : _customerArts[_random.nextInt(_customerArts.length)];
+    setState(() => _sale = _Sale(
+          item: item,
+          customer: who,
+          buddy: animals[_random.nextInt(animals.length)],
+          asks: wantToBuy(creature, _random),
+          thanks: soldLines[_random.nextInt(soldLines.length)],
+        ));
+    _visit.forward(from: 0);
+  }
+
+  /// The sale's moments: asking, then paying.
+  void _onVisit() {
+    final sale = _sale;
+    if (sale == null || !mounted) return;
+    if (!sale.asked && _visit.value >= _Sale.ask) {
+      sale.asked = true;
+      _speak(0, sale.asks);
+    }
+    if (!sale.paid && _visit.value >= _Sale.pay) {
+      sale.paid = true;
+      setState(() => _coins++);
+      _speak(sale.item.id, sale.thanks);
+    }
   }
 
   String get _place => widget.habitat.place.label;
@@ -180,6 +268,7 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with SingleTickerProv
         ? const <Postcard>[]
         : [for (final p in ref.watch(postcardsProvider(child.id)).value ?? const <Postcard>[]) if (p.place.kind == widget.habitat.place.name) p];
     _residents = residents;
+    if (_shop && child != null) _customerArts = ref.watch(shopCustomersProvider(child.id)).value ?? const [];
     final store = ref.watch(artworkStoreProvider);
     final arrived = residents.where((a) => a.id == widget.arrived).firstOrNull;
     final arrivedCreature = Creature.byName(arrived?.template);
@@ -206,11 +295,24 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with SingleTickerProv
                 final t = _clock.lastElapsedDuration?.inMicroseconds ?? 0;
                 final seconds = t / 1e6;
                 final placed = <({Artwork art, Creature creature, Pose pose})>[];
+                final spots = _shop ? shelfSpots(view) : const <Offset>[];
+                final shelved = <Artwork>[];
                 for (final art in residents) {
                   final creature = Creature.byName(art.template);
                   if (creature == null) continue;
-                  placed.add((art: art, creature: creature, pose: poseAt(creature.motion, seconds, art.id, roamArea(creature, view))));
+                  final Rect area;
+                  if (creature.motion == Motion.shelf) {
+                    if (shelved.length >= spots.length) continue; // the shelves on screen are full
+                    area = Rect.fromPoints(spots[shelved.length], spots[shelved.length]);
+                    shelved.add(art);
+                  } else {
+                    area = roamArea(creature, view);
+                  }
+                  placed.add((art: art, creature: creature, pose: poseAt(creature.motion, seconds, art.id, area)));
                 }
+                _shelved = shelved;
+                final sale = _sale;
+                final sold = sale == null ? null : placed.where((p) => p.art.id == sale.item.id).firstOrNull;
                 // Farther back (higher up) first, so nearer creatures pass in front.
                 placed.sort((a, b) => a.pose.at.dy.compareTo(b.pose.at.dy));
                 return Stack(clipBehavior: Clip.none, children: [
@@ -223,7 +325,21 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with SingleTickerProv
                       view: view,
                       arrived: p.art.id == widget.arrived,
                       saying: _saying?.id == p.art.id ? _saying!.text : null,
-                      onTap: () => _say(p.art),
+                      presence: sale != null && sale.item.id == p.art.id ? sale.presence(_visit.value) : 1,
+                      onTap: () => _say(p.art, tapped: true),
+                    ),
+                  if (sale != null && sold != null)
+                    _Customer(
+                      sale: sale,
+                      t: _visit.value,
+                      seconds: seconds,
+                      view: view,
+                      standAt: sold.pose.at.dx,
+                      sprite: sale.customer == null ? null : FileImage(store.open(sale.customer!.folder).sprite),
+                      customerSize: Creature.byName(sale.customer?.template)?.size,
+                      item: FileImage(store.open(sale.item.folder).sprite),
+                      itemSize: sold.creature.size,
+                      saying: _saying?.id == 0 ? _saying!.text : null,
                     ),
                 ]);
               },
@@ -262,6 +378,32 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with SingleTickerProv
                           const KidIcon('mail', size: 26, color: KidColors.coral),
                           const SizedBox(width: 6),
                           Text('${postcards.length}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                        ]),
+                      ),
+                    ),
+                  ),
+                ),
+              if (_shop)
+                Positioned(
+                  right: 14,
+                  top: postcards.isNotEmpty ? 76 : 10,
+                  child: Semantics(
+                    label: Strings.coins(_coins),
+                    excludeSemantics: true,
+                    child: TweenAnimationBuilder<double>(
+                      key: ValueKey(_coins),
+                      tween: Tween(begin: _coins == 0 ? 1 : 1.35, end: 1),
+                      duration: const Duration(milliseconds: 600),
+                      curve: Curves.elasticOut,
+                      builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
+                      child: Container(
+                        height: 56,
+                        padding: const EdgeInsets.fromLTRB(10, 0, 16, 0),
+                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(28), boxShadow: KidShadows.soft()),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          const _Coin(size: 30),
+                          const SizedBox(width: 6),
+                          Text('$_coins', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
                         ]),
                       ),
                     ),
@@ -340,6 +482,7 @@ class _Resident extends StatefulWidget {
     required this.view,
     this.arrived = false,
     this.saying,
+    this.presence = 1,
     this.onTap,
   });
 
@@ -351,6 +494,10 @@ class _Resident extends StatefulWidget {
 
   /// What it is saying, shown in a bubble over its head.
   final String? saying;
+
+  /// How much of it is there: 0 while a customer has it, growing back to 1
+  /// when the shelf is filled again.
+  final double presence;
   final VoidCallback? onTap;
 
   @override
@@ -418,7 +565,7 @@ class _ResidentState extends State<_Resident> with TickerProviderStateMixin {
                 Transform.translate(
                   offset: Offset(0, -hop),
                   child: Transform.scale(
-                    scale: 0.2 + 0.8 * grow,
+                    scale: (0.2 + 0.8 * grow) * widget.presence,
                     alignment: Alignment.bottomCenter,
                     child: Transform(
                       alignment: Alignment.bottomCenter,
@@ -486,4 +633,123 @@ class _TailPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_TailPainter old) => false;
+}
+
+/// One customer's visit to the shop, over the visit's animation (0 to 1):
+/// walking in, asking, taking the goods, paying, walking out; the shelf is
+/// filled again before they are gone.
+class _Sale {
+  _Sale({required this.item, required this.customer, required this.buddy, required this.asks, required this.thanks});
+
+  /// What they buy.
+  final Artwork item;
+
+  /// One of the child's own animals, or else a [buddy].
+  final Artwork? customer;
+  final String buddy;
+  final String asks;
+  final String thanks;
+  bool asked = false, paid = false;
+
+  static const arrive = 0.33, ask = 0.36, take = 0.5, pay = 0.55, leave = 0.6, restock = 0.8;
+
+  double presence(double t) {
+    if (t < take) return 1;
+    if (t < restock) return 0;
+    return Curves.elasticOut.transform(((t - restock) / (1 - restock)).clamp(0.0, 1.0));
+  }
+}
+
+/// A customer walking along the shop's floor; with the goods over their
+/// head once they have bought them.
+class _Customer extends StatelessWidget {
+  const _Customer({
+    required this.sale,
+    required this.t,
+    required this.seconds,
+    required this.view,
+    required this.standAt,
+    required this.sprite,
+    required this.customerSize,
+    required this.item,
+    required this.itemSize,
+    this.saying,
+  });
+
+  final _Sale sale;
+  final double t, seconds;
+  final SceneView view;
+
+  /// Where they stop, under the goods (scene units).
+  final double standAt;
+  final ImageProvider? sprite;
+  final double? customerSize;
+  final ImageProvider item;
+  final double itemSize;
+  final String? saying;
+
+  static const floor = 985.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final v = view.visible;
+    final width = (customerSize == null ? 90 : customerSize! * 0.75) * view.creatureScale;
+    final stand = standAt.clamp(v.left + width / 2, v.right - width / 2);
+    final double x;
+    if (t < _Sale.arrive) {
+      x = v.left - width + (stand - v.left + width) * Curves.easeOut.transform(t / _Sale.arrive);
+    } else if (t < _Sale.leave) {
+      x = stand;
+    } else {
+      x = stand + (v.right + width - stand) * Curves.easeIn.transform((t - _Sale.leave) / (1 - _Sale.leave));
+    }
+    final walking = t < _Sale.arrive || t >= _Sale.leave;
+    final bob = walking ? 8 * math.sin(seconds * 12).abs() : 0.0;
+    final at = view.toScreen(Offset(x, floor - bob));
+    final w = width * view.scale;
+    final carrying = t >= _Sale.take;
+    final carry = Curves.elasticOut.transform(((t - _Sale.take) / 0.15).clamp(0.0, 1.0));
+    final room = math.max(w * 2, 220.0); // for the speech bubble
+    return Positioned(
+      left: at.dx - room / 2,
+      width: room,
+      bottom: view.screen.height - at.dy,
+      child: Semantics(
+        label: Strings.customer,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          if (saying case final text?) PopIn(key: ValueKey(text), child: _SpeechBubble(text)),
+          if (carrying)
+            Transform.scale(
+              scale: carry,
+              alignment: Alignment.bottomCenter,
+              child: Image(image: item, width: itemSize * 0.55 * view.creatureScale * view.scale, gaplessPlayback: true),
+            ),
+          SizedBox(
+            width: w,
+            child: sprite != null ? Image(image: sprite!, gaplessPlayback: true, fit: BoxFit.contain) : AnimalArt(sale.buddy, size: w),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+/// A gold coin.
+class _Coin extends StatelessWidget {
+  const _Coin({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: KidColors.sun,
+          shape: BoxShape.circle,
+          border: Border.all(color: KidColors.sunDark, width: size * 0.09),
+        ),
+        child: KidIcon('star', size: size * 0.5, color: Colors.white, solid: true),
+      );
 }

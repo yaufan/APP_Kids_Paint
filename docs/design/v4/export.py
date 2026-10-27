@@ -3,7 +3,7 @@
 (0.10's creature pages were also painted and traced here; since 0.11
 they are drawn in docs/design/v5.)
 
-    python3 export.py <draw_scenes out>
+    python3 export.py <draw_scenes out> [habitats...]
 """
 import sys
 from pathlib import Path
@@ -21,6 +21,7 @@ SCENES = {
     "transport": 1,
     "botanical": 2,
     "insects": 2,
+    "shop": 3,
 }
 
 # Parts of a scene's layout put back over its painting (scene units, 1000
@@ -35,6 +36,8 @@ def main():
     out = APP / "assets" / "scenes"
     out.mkdir(parents=True, exist_ok=True)
     for habitat, seed in SCENES.items():
+        if sys.argv[2:] and habitat not in sys.argv[2:]:
+            continue
         img = cv2.resize(cv2.imread(str(src / f"{habitat}_{seed}.png")), (1024, 1024), interpolation=cv2.INTER_LANCZOS4)
         if habitat in KEEP:
             layout = cv2.resize(cv2.imread(str(src / f"{habitat}_layout.png")), (1024, 1024), interpolation=cv2.INTER_LANCZOS4)
