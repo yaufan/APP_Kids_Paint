@@ -10,6 +10,8 @@
 	<string>拍下想畫的東西，轉成著色圖。照片只存在這支手機裡。</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>從相簿選一張照片，轉成著色圖。照片只存在這支手機裡。</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>家長可以把畫好的作品存到相簿，換手機也不會不見。</string>
 	<key>CFBundleDisplayName</key>
 	<string>畫畫小鎮</string>
 	<key>CFBundleExecutable</key>

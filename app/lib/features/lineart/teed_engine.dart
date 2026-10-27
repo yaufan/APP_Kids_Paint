@@ -30,8 +30,10 @@ class EdgeMap {
 ///
 /// 1. smooth texture away (median, then bilateral filter) and let TEED find
 ///    the edges;
-/// 2. keep strong edges and the weaker parts that continue them, thin them
-///    to center lines and drop short scraps and the photo's own border;
+/// 2. keep strong edges and the weaker parts that continue them (edges well
+///    inside skin count for less, so wrinkles do not become lines), thin
+///    them to center lines and drop short scraps, little enclosed bits too
+///    small to color, and the photo's own border;
 /// 3. draw the center lines as even, round strokes on the page; the cute
 ///    style uses fewer, thicker lines and melts them into rounder shapes;
 /// 4. compute fill regions that do not leak through the small gaps left.
@@ -47,6 +49,10 @@ class TeedLineArtEngine implements LineArtEngine {
 
   /// Long side of the image the network looks at.
   final int edgeSize;
+
+  /// How much an edge well inside skin counts (wrinkles, freckles). Lower
+  /// also wipes out a ginger cat's whiskers, which look like skin.
+  static const insideSkin = 0.6;
 
   Future<Uint8List>? _weights;
   (Uint8List, Future<EdgeMap>)? _last;
@@ -112,8 +118,18 @@ class TeedLineArtEngine implements LineArtEngine {
       hi = math.max(hi, e);
     }
     final range = math.max(1e-6, hi - lo);
+    // Well inside skin (a face, an arm) wrinkles, creases and freckles would
+    // become a tangle of lines, so edges there count for less: only clear
+    // ones still start a line. Eyes, lips and the face's outline sit where
+    // skin ends, so they keep their full strength.
+    final notSkin = raster.skin(smooth, w, h);
+    for (var i = 0; i < notSkin.length; i++) {
+      notSkin[i] = 1 - notSkin[i];
+    }
+    final nearOther = raster.dilate(notSkin, w, h, 2);
     for (var i = 0; i < edges.length; i++) {
       edges[i] = (edges[i] - lo) / range;
+      if (nearOther[i] == 0) edges[i] *= insideSkin;
     }
     return EdgeMap(w, h, edges, pageW, pageH);
   }
@@ -140,6 +156,11 @@ class TeedLineArtEngine implements LineArtEngine {
     // No closing of small breaks here: on TEED's thin lines it knits texture
     // into a mesh. The fill regions below take care of the breaks instead.
     final center = raster.thin(raster.hysteresis(edges, w, h, low, high), w, h);
+    raster.dropSmall(center, w, h, (p.strokeLength * math.sqrt(w * w + h * h)).round());
+    // Little enclosed bits (too small to color on their own) would only
+    // clutter the page: their fences go, then any scraps left over. Clearly
+    // drawn ones (an eye, a nose) stay.
+    raster.removeTinyAreas(center, edges, w, h, math.max(1, (p.minRegion * w * h).round()), keep: 0.6);
     raster.dropSmall(center, w, h, (p.strokeLength * math.sqrt(w * w + h * h)).round());
     var ink = raster.strokes(center, w, h, pw, ph, p.line * scale);
     if (style == ArtStyle.cute) ink = _round(ink, pw, ph, p.rounding * scale, p.line * scale);

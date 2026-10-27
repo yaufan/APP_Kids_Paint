@@ -131,6 +131,13 @@ abstract final class Strings {
   static const voices = '聲音';
   static const creatureVoices = '角色說話的聲音';
   static const creatureVoicesHint = '動物園、海洋館、恐龍樂園裡的角色說話時，用手機內建的語音念出來。';
+  static const keepArt = '留住作品';
+  static const keepArtHint = '作品只存在這支手機裡，沒有帳號可以備份。存到相簿，換手機也不會不見。';
+  static String saveToAlbum(int n) => n == 0 ? '存到相簿（沒有新作品）' : '存到相簿（$n 張新作品）';
+  static String savedToAlbum(int n) => n == 0 ? '沒有新作品要存' : '已存 $n 張到相簿';
+  static const albumNotAllowed = '沒有權限存到相簿，請到手機的設定打開';
+  static const savingToAlbum = '存到相簿中…';
+  static const albumFailed = '有些作品沒存進去，請再試一次';
   static const privacy = '隱私與安全';
   static const licenses = '開放原始碼授權';
   static String version(String v) => '版本 $v';
@@ -146,7 +153,7 @@ abstract final class Strings {
   static const permCamera = '相機';
   static const permCameraUse = '按拍照時才用';
   static const permPhotos = '相片';
-  static const permPhotosUse = '只讀你選的那張';
+  static const permPhotosUse = '只讀你選的那張；家長按「存到相簿」時才存入';
   static const permLocation = '位置';
   static const permMicrophone = '麥克風';
   static const permNetwork = '網路';

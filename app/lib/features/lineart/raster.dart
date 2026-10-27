@@ -212,6 +212,109 @@ Uint8List dropSmall(Uint8List mask, int w, int h, int minPixels) {
   return mask;
 }
 
+/// Removes the bits of one-pixel [center] lines that only fence off areas
+/// smaller than [minArea] pixels (a fleck of fur, a crease, a curl of hair):
+/// areas too small to color on their own. A line pixel goes when it touches
+/// such an area and at most one bigger one, so the line between two areas
+/// big enough to color always stays. A little area whose fence is on
+/// average at least [keep] strong in [edges] stays too: that is an eye, a
+/// nostril or a button, which the photo draws clearly. Two rounds, since
+/// removing a fence can join little areas into one that is still too small.
+Uint8List removeTinyAreas(Uint8List center, Float32List edges, int w, int h, int minArea, {required double keep}) {
+  final n = w * h;
+  final label = Int32List(n);
+  final queue = Int32List(n);
+  final near = Int32List(8);
+  // The different areas around line pixel [i], in [near]; returns how many.
+  int around(int i) {
+    final x = i % w, y = i ~/ w;
+    var count = 0;
+    for (var dy = -1; dy <= 1; dy++) {
+      final ny = y + dy;
+      if (ny < 0 || ny >= h) continue;
+      for (var dx = -1; dx <= 1; dx++) {
+        final nx = x + dx;
+        if (nx < 0 || nx >= w) continue;
+        final l = label[ny * w + nx];
+        if (l == 0) continue;
+        var seen = false;
+        for (var k = 0; k < count && !seen; k++) {
+          seen = near[k] == l;
+        }
+        if (!seen) near[count++] = l;
+      }
+    }
+    return count;
+  }
+
+  for (var round = 0; round < 2; round++) {
+    label.fillRange(0, n, 0);
+    final areas = <int>[0];
+    // Areas of paper: 4-neighbour groups (the lines are 8-connected).
+    for (var start = 0; start < n; start++) {
+      if (center[start] == 1 || label[start] != 0) continue;
+      final id = areas.length;
+      var head = 0, tail = 0;
+      label[start] = id;
+      queue[tail++] = start;
+      while (head < tail) {
+        final i = queue[head++];
+        final x = i % w, y = i ~/ w;
+        for (final j in [if (x > 0) i - 1, if (x < w - 1) i + 1, if (y > 0) i - w, if (y < h - 1) i + w]) {
+          if (center[j] == 0 && label[j] == 0) {
+            label[j] = id;
+            queue[tail++] = j;
+          }
+        }
+      }
+      areas.add(tail);
+    }
+    // How strong each area's fence is, on average.
+    final strength = Float64List(areas.length), fence = Int32List(areas.length);
+    for (var i = 0; i < n; i++) {
+      if (center[i] == 0) continue;
+      for (var k = around(i) - 1; k >= 0; k--) {
+        strength[near[k]] += edges[i];
+        fence[near[k]]++;
+      }
+    }
+    final tiny = [for (var l = 0; l < areas.length; l++) l > 0 && areas[l] < minArea && strength[l] < keep * fence[l]];
+    var removed = 0;
+    for (var i = 0; i < n; i++) {
+      if (center[i] == 0) continue;
+      var touchesTiny = false, big = 0;
+      for (var k = around(i) - 1; k >= 0; k--) {
+        if (tiny[near[k]]) {
+          touchesTiny = true;
+        } else {
+          big++;
+        }
+      }
+      if (touchesTiny && big <= 1) {
+        center[i] = 0;
+        removed++;
+      }
+    }
+    if (removed == 0) break;
+  }
+  return center;
+}
+
+/// Where an RGB image (3 bytes per pixel) looks like skin, by its color in
+/// YCbCr: 1 for skin, 0 elsewhere. Wood, oranges and ginger fur often look
+/// like skin too, so this only ever softens lines, never removes them.
+Uint8List skin(Uint8List rgb, int w, int h) {
+  final mask = Uint8List(w * h);
+  for (var i = 0; i < mask.length; i++) {
+    final r = rgb[3 * i], g = rgb[3 * i + 1], b = rgb[3 * i + 2];
+    final y = 0.299 * r + 0.587 * g + 0.114 * b;
+    final cb = 128 - 0.168736 * r - 0.331264 * g + 0.5 * b;
+    final cr = 128 + 0.5 * r - 0.418688 * g - 0.081312 * b;
+    if (y > 60 && cb >= 77 && cb <= 127 && cr >= 133 && cr <= 173) mask[i] = 1;
+  }
+  return mask;
+}
+
 /// Draws one-pixel center lines from a [w] x [h] grid as even, round,
 /// anti-aliased strokes [thickness] wide on a [pageW] x [pageH] page.
 ///

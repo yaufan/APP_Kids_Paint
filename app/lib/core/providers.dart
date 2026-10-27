@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/lineart/line_art.dart';
+import 'album_export.dart';
 import '../features/lineart/teed_engine.dart';
 import 'artwork_service.dart';
 import 'creatures.dart';
@@ -26,6 +27,11 @@ final settingsRepositoryProvider = Provider((ref) => SettingsRepository(ref.watc
 final artworkServiceProvider = Provider(
   (ref) => ArtworkService(ref.watch(artworkRepositoryProvider), ref.watch(artworkStoreProvider)),
 );
+
+/// The phone's photo album; tests use a pretend one.
+final photoAlbumProvider = Provider<PhotoAlbum>((ref) => SystemPhotoAlbum());
+final albumExportProvider = Provider((ref) => AlbumExport(ref.watch(artworkRepositoryProvider),
+    ref.watch(settingsRepositoryProvider), ref.watch(artworkStoreProvider), ref.watch(photoAlbumProvider)));
 
 /// Photo to coloring page, on the phone: TEED finds the outlines.
 final lineArtEngineProvider = Provider<LineArtEngine>((ref) => TeedLineArtEngine(() async {

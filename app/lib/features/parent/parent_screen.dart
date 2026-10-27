@@ -23,12 +23,35 @@ class ParentScreen extends ConsumerStatefulWidget {
 class _ParentScreenState extends ConsumerState<ParentScreen> {
   int? _minutes;
 
+  /// Finished pictures not saved to the photo album yet; null while counting or saving.
+  int? _waiting;
+
   @override
   void initState() {
     super.initState();
     ref.read(settingsRepositoryProvider).dailyMinutes().then((m) {
       if (mounted) setState(() => _minutes = m);
     });
+    _countWaiting();
+  }
+
+  Future<void> _countWaiting() async {
+    final n = await ref.read(albumExportProvider).waiting();
+    if (mounted) setState(() => _waiting = n);
+  }
+
+  Future<void> _saveToAlbum() async {
+    setState(() => _waiting = null);
+    String message;
+    try {
+      final saved = await ref.read(albumExportProvider).saveNew();
+      message = saved == null ? Strings.albumNotAllowed : Strings.savedToAlbum(saved);
+    } on Exception {
+      message = Strings.albumFailed; // the ones saved so far stay marked
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    await _countWaiting();
   }
 
   Future<void> _addChild(List<String> used) async {
@@ -245,6 +268,15 @@ class _ParentScreenState extends ConsumerState<ParentScreen> {
                   ),
               ]),
               const SizedBox(height: 6),
+            ]),
+            card(Strings.keepArt, [
+              const Text(Strings.keepArtHint, style: TextStyle(fontSize: 14, color: KidColors.inkSoft)),
+              row(
+                const KidIcon('download', size: 22, color: KidColors.skyDark),
+                _waiting == null ? Strings.savingToAlbum : Strings.saveToAlbum(_waiting!),
+                color: KidColors.skyDark,
+                onTap: _waiting == null || _waiting == 0 ? null : _saveToAlbum,
+              ),
             ]),
             card(Strings.voices, [
               // Its own Material: the card's white background would hide the tile's ink.

@@ -139,6 +139,12 @@ class ArtworkRepository {
 
   Future<void> delete(int id) => (_db.delete(_db.artworks)..where((a) => a.id.equals(id))).go();
 
+  /// Every child's finished pictures after the one with id [afterId], oldest first.
+  Future<List<Artwork>> finishedAfter(int afterId) => (_db.select(_db.artworks)
+        ..where((a) => a.isCompleted.equals(true) & a.id.isBiggerThanValue(afterId))
+        ..orderBy([(a) => OrderingTerm.asc(a.id)]))
+      .get();
+
   /// Puts the postcard on the map at [placeId].
   Future<void> send(int id, int placeId) {
     final now = DateTime.now();
@@ -214,6 +220,18 @@ class SettingsRepository {
 
   Future<void> setVoiceOn(bool on) =>
       _db.into(_db.settings).insertOnConflictUpdate(Setting(key: voiceKey, value: on ? 'on' : 'off'));
+
+  Future<String?> _value(String key) async =>
+      (await (_db.select(_db.settings)..where((s) => s.key.equals(key))).getSingleOrNull())?.value;
+
+  Future<void> _put(String key, String value) => _db.into(_db.settings).insertOnConflictUpdate(Setting(key: key, value: value));
+
+  static const exportedKey = 'exported_up_to';
+
+  /// The newest picture already saved to the photo album (an artwork id).
+  Future<int> exportedUpTo() async => int.tryParse(await _value(exportedKey) ?? '') ?? 0;
+
+  Future<void> setExportedUpTo(int id) => _put(exportedKey, '$id');
 
   static const welcomedKey = 'welcomed';
 
