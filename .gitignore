@@ -18,3 +18,7 @@ Thumbs.db
 
 # Downloaded models (fetched on first run)
 prototypes/lineart/models/
+
+# Research notes and drafts (the final report is copied into docs/)
+research_notes/
+reports/
