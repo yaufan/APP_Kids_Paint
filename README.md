@@ -21,6 +21,7 @@
 - [視覺設計 v3：畫畫小鎮（完整版）](docs/design-v3.md)：選定方向 A 的所有畫面、流程、動畫與設計規範
 - [地圖怎麼運作](docs/town-map.md)：小朋友自己的小鎮、12 種地點、小鎮會長大、不使用定位
 - [安全與隱私設計](docs/safety-privacy.md)：資料只在手機、權限、家長關卡、安全分享、上架規定
+- [分享到社群、帶來下載（構想）](docs/sharing.md)：家長分享明信片圖卡、縮時影片、LINE 賀卡，點進來先送免費著色圖，再導到下載
 - [部署與安裝](docs/deployment.md)：Android 側載與 Google Play 上架、沒有 Mac 怎麼用 TestFlight 和上架 App Store
 - [功能點子與優先順序](docs/feature-ideas.md)：還有什麼值得加、建議順序、不建議做的
 - [怎麼賺錢](docs/business-model.md)：兒童 APP 的收費限制、別人怎麼做、建議的「小鎮通行證」、其他收入
