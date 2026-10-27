@@ -81,11 +81,11 @@ const shopBoards = [840.0, 670.0, 500.0];
 
 /// Spots on the shop's shelves that [view] shows clear of the buttons:
 /// the bottom middle of each of the goods, side by side, the lowest shelf
-/// first. The newest goods take the first spots.
+/// first. The newest goods take the first spots. Goods keep their full size
+/// on a phone too (unlike the creatures that roam): the shelves hold them.
 List<Offset> shelfSpots(SceneView view, {double top = 110}) {
   final v = view.visible;
-  final slot = 150 * view.creatureScale;
-  final tallest = 150 * view.creatureScale;
+  const slot = 130.0, tallest = 150.0;
   final across = math.max(1, ((v.width - 30) / slot).floor());
   final left = v.left + (v.width - across * slot) / 2;
   return [

@@ -17,6 +17,7 @@ import 'package:kids_paint/core/providers.dart';
 import 'package:kids_paint/core/storage/artwork_store.dart';
 import 'package:kids_paint/features/canvas/coloring.dart';
 import 'package:kids_paint/features/capture/capture_screen.dart';
+import 'package:kids_paint/features/town/town_map.dart';
 
 /// Captures the screen under [name].
 typedef Shot = Future<void> Function(String name);
@@ -375,7 +376,15 @@ Future<void> enterScene(WidgetTester tester, PlaceKind place) async {
     await tester.tap(sign);
     await idle(tester, 1000);
   }
-  await tester.tap(find.bySemanticsLabel(Strings.enter(place.label)));
+  // Near an edge or under the buttons (the shop, in the middle column, after
+  // the map slid to the far right): drag it to the middle, as a child would.
+  final door = find.bySemanticsLabel(Strings.enter(place.label));
+  final map = tester.getRect(find.byType(TownMap)), at = tester.getRect(door).center;
+  if (at.dx < map.left + 100 || at.dx > map.right - 100 || at.dy < map.top + 160 || at.dy > map.bottom - 220) {
+    await tester.dragFrom(map.center, Offset(map.center.dx - at.dx, map.top + map.height * 0.45 - at.dy));
+    await idle(tester, 800);
+  }
+  await tester.tap(door);
   await waitFor(tester, find.bySemanticsLabel(Strings.drawNew(place.label, residents: Habitat.of(place)!.residents)));
 }
 

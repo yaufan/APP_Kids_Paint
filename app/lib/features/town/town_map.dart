@@ -309,8 +309,10 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
     final signs = <({String name, Rect rect, int edge, double x, double y})>[];
     for (final MapEntry(key: name, value: rect) in townAttractions.entries) {
       final center = rect.center * s + shift;
-      final left = center.dx < 0, right = center.dx > viewport.width;
-      final up = center.dy < 0, down = center.dy > viewport.height - widget.bottomInset; // under the dock too
+      // Right at an edge or under the town's name at the top counts as off
+      // screen too: half hidden, and the signs would cover the rest.
+      final left = center.dx < 40, right = center.dx > viewport.width - 40;
+      final up = center.dy < 100, down = center.dy > viewport.height - widget.bottomInset; // under the dock too
       if (!left && !right && !up && !down) continue;
       final side = left || right;
       signs.add((

@@ -526,9 +526,11 @@ class _ResidentState extends State<_Resident> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final view = widget.view;
     final pose = widget.pose;
-    // Farther creatures (higher up) are a little smaller.
-    final depth = 0.85 + 0.15 * ((pose.at.dy - 300) / 650).clamp(0.0, 1.0);
-    final width = widget.creature.size * view.creatureScale * view.scale * depth;
+    // Farther creatures (higher up) are a little smaller; goods on a shelf
+    // keep their size ([shelfSpots]).
+    final shelf = widget.creature.motion == Motion.shelf;
+    final depth = shelf ? 1.0 : 0.85 + 0.15 * ((pose.at.dy - 300) / 650).clamp(0.0, 1.0);
+    final width = widget.creature.size * (shelf ? 1.0 : view.creatureScale) * view.scale * depth;
     final at = view.toScreen(pose.at);
     return Positioned(
       left: at.dx - width / 2,
@@ -722,7 +724,7 @@ class _Customer extends StatelessWidget {
             Transform.scale(
               scale: carry,
               alignment: Alignment.bottomCenter,
-              child: Image(image: item, width: itemSize * 0.55 * view.creatureScale * view.scale, gaplessPlayback: true),
+              child: Image(image: item, width: itemSize * 0.6 * view.scale, gaplessPlayback: true),
             ),
           SizedBox(
             width: w,

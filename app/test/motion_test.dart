@@ -81,9 +81,9 @@ void main() {
         expect(shopBoards, contains(a.dy));
         expect(a.dx, inInclusiveRange(view.visible.left + 40, view.visible.right - 40), reason: '$screen');
         // Room for the goods above the board, clear of the buttons.
-        expect(a.dy - 150 * view.creatureScale, greaterThanOrEqualTo(view.visible.top + 110 / view.scale), reason: '$screen');
+        expect(a.dy - 150, greaterThanOrEqualTo(view.visible.top + 110 / view.scale), reason: '$screen');
         for (final b in spots.skip(i + 1)) {
-          expect((a - b).distance, greaterThan(100 * view.creatureScale), reason: '$screen');
+          expect((a - b).distance, greaterThan(129.9), reason: '$screen');
         }
       }
       // The lowest shelf fills first.

@@ -90,11 +90,11 @@ enum Creature {
   milk('牛奶', Habitat.shop, Motion.shelf, 80),
   carrot('胡蘿蔔', Habitat.shop, Motion.shelf, 60),
   apple('蘋果', Habitat.shop, Motion.shelf, 100),
-  banana('香蕉', Habitat.shop, Motion.shelf, 140),
+  banana('香蕉', Habitat.shop, Motion.shelf, 125),
   bread('麵包', Habitat.shop, Motion.shelf, 100),
   iceCream('冰淇淋', Habitat.shop, Motion.shelf, 70),
   bubbleTea('珍珠奶茶', Habitat.shop, Motion.shelf, 68),
-  pudding('布丁', Habitat.shop, Motion.shelf, 135);
+  pudding('布丁', Habitat.shop, Motion.shelf, 125);
 
   const Creature(this.label, this.habitat, this.motion, this.size);
 
