@@ -145,6 +145,23 @@ enum Brush {
 
   /// Back to the paper.
   eraser,
+
+  /// Round dots of the color, spaced along the stroke.
+  dots,
+
+  /// Fine specks, thicker in the middle, like a spray can.
+  spray,
+
+  /// See-through: what is underneath shows, and colors mix where strokes
+  /// cross (blue over yellow turns green).
+  watercolor,
+
+  /// A glowing line: a pale, bright middle, the color around it, a soft
+  /// pale glow outside.
+  neon,
+
+  /// Stripes across the stroke, the color and a paler one, like a candy cane.
+  stripes,
 }
 
 /// Magic crayon (and the other brushes): a stroke that only colors the
@@ -184,6 +201,21 @@ class ColoringDocument {
 
   /// The paper's color as of the last rebuild (what the eraser brings back).
   int _paper = 0xFFFFFFFF;
+
+  /// What the stroke in [_maskOp] has done to each pixel so far: whether
+  /// watercolor has been laid there, how near the middle of a neon line it
+  /// has been. One stroke's at a time; a new stroke starts it afresh.
+  Uint8List? _mask;
+  CrayonOp? _maskOp;
+
+  Uint8List _maskOf(CrayonOp op) {
+    final mask = _mask ??= Uint8List(width * height);
+    if (!identical(op, _maskOp)) {
+      mask.fillRange(0, mask.length, 0);
+      _maskOp = op;
+    }
+    return mask;
+  }
 
   int get width => regions.width;
   int get height => regions.height;
@@ -252,17 +284,17 @@ class ColoringDocument {
   void applyStroke(CrayonOp op, int from) {
     final pts = op.points;
     if (pts.isEmpty) return;
-    double dist(PagePoint a, PagePoint b) => math.sqrt(math.pow(b.x - a.x, 2) + math.pow(b.y - a.y, 2));
     final start = math.max(0, from - 1);
     // How far along the stroke we are: the rainbow's color depends on it.
     var travelled = 0.0;
     for (var k = 1; k <= start; k++) {
-      travelled += dist(pts[k - 1], pts[k]);
+      travelled += _dist(pts[k - 1], pts[k]);
     }
+    if (op.brush == Brush.dots) return _dots(op, start, travelled);
     _dab(op, pts[start], travelled);
     for (var k = start + 1; k < pts.length; k++) {
       final a = pts[k - 1], b = pts[k];
-      final d = dist(a, b);
+      final d = _dist(a, b);
       final steps = math.max(1, (d / (op.radius * 0.4)).ceil());
       for (var s = 1; s <= steps; s++) {
         final t = s / steps;
@@ -272,13 +304,35 @@ class ColoringDocument {
     }
   }
 
+  static double _dist(PagePoint a, PagePoint b) => math.sqrt(math.pow(b.x - a.x, 2) + math.pow(b.y - a.y, 2));
+
+  /// The dots brush: one dot every so far along the stroke, from point
+  /// [start] on (the ones before it are already there).
+  void _dots(CrayonOp op, int start, double travelled) {
+    final pts = op.points, gap = op.radius * 2.8;
+    if (start == 0) _dab(op, pts[0], 0);
+    for (var k = start + 1; k < pts.length; k++) {
+      final a = pts[k - 1], b = pts[k];
+      final d = _dist(a, b);
+      for (var n = (travelled / gap).floor() + 1; n * gap <= travelled + d; n++) {
+        final t = (n * gap - travelled) / d;
+        _dab(op, (x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t), n * gap);
+      }
+      travelled += d;
+    }
+  }
+
   void _dab(CrayonOp op, PagePoint c, double travelled) {
-    final color = switch (op.brush) {
+    final brush = op.brush;
+    final color = switch (brush) {
       Brush.rainbow => rainbowColor(travelled / (op.radius * 6)),
       Brush.eraser => _paper,
-      Brush.crayon || Brush.glitter => op.color,
+      Brush.stripes => (travelled / (op.radius * 1.1)).floor().isEven ? op.color : _lighter(op.color, 0.6),
+      _ => op.color,
     };
-    final glitter = op.brush == Brush.glitter;
+    final mask = brush == Brush.watercolor || brush == Brush.neon ? _maskOf(op) : null;
+    // The spray's specks come out the same every time the page is rebuilt.
+    final seed = (travelled * 8).round();
     final r = op.radius, r2 = r * r;
     final x0 = math.max(0, (c.x - r).floor()), x1 = math.min(width - 1, (c.x + r).ceil());
     final y0 = math.max(0, (c.y - r).floor()), y1 = math.min(height - 1, (c.y + r).ceil());
@@ -287,9 +341,29 @@ class ColoringDocument {
       final dy = y - c.y;
       for (var x = x0; x <= x1; x++) {
         final dx = x - c.x;
-        if (dx * dx + dy * dy > r2) continue;
+        final d2 = dx * dx + dy * dy;
+        if (d2 > r2) continue;
         final i = y * width + x;
-        if (labels[i] == op.region) _set(i, glitter ? sparkle(x, y, color) : color);
+        if (labels[i] != op.region) continue;
+        switch (brush) {
+          case Brush.glitter:
+            _set(i, sparkle(x, y, color));
+          case Brush.spray:
+            if (_mix(x >> 1, y >> 1, seed) % 1000 < 170 * (1 - d2 / r2)) _set(i, color);
+          case Brush.watercolor:
+            if (mask![i] == 0) {
+              mask[i] = 1;
+              _set(i, _wash(_get(i), color));
+            }
+          case Brush.neon:
+            final near = 1 + (254 * (1 - math.sqrt(d2) / r)).round();
+            if (near > mask![i]) {
+              mask[i] = near;
+              _set(i, near > 160 ? _lighter(color, 0.8) : (near > 64 ? color : _lighter(color, 0.55)));
+            }
+          case Brush.crayon || Brush.rainbow || Brush.eraser || Brush.dots || Brush.stripes:
+            _set(i, color);
+        }
       }
     }
   }
@@ -305,6 +379,11 @@ class ColoringDocument {
         if (labels[i] == op.region && stampContains(op.shape, (x - op.x) / r, (y - op.y) / r)) _set(i, op.color);
       }
     }
+  }
+
+  int _get(int i) {
+    final o = i * 4;
+    return 0xFF000000 | rgba[o] << 16 | rgba[o + 1] << 8 | rgba[o + 2];
   }
 
   void _set(int i, int argb) {
@@ -337,6 +416,35 @@ int rainbowColor(double t) {
   };
   int channel(double v) => ((v + m) * 255).round();
   return 0xFF000000 | channel(r) << 16 | channel(g) << 8 | channel(b);
+}
+
+/// [color] mixed with white: [amount] 0 is the color, 1 is white.
+int _lighter(int color, double amount) {
+  int channel(int shift) {
+    final v = (color >> shift) & 0xFF;
+    return (v + (255 - v) * amount).round() << shift;
+  }
+
+  return 0xFF000000 | channel(16) | channel(8) | channel(0);
+}
+
+/// Watercolor laid over [under]: like real paint, it darkens what is
+/// there, so yellow under blue turns green, and white paper turns pale.
+int _wash(int under, int color) {
+  const strength = 0.5;
+  int channel(int shift) {
+    final u = (under >> shift) & 0xFF, c = (color >> shift) & 0xFF;
+    return (u * (1 - strength + strength * c / 255)).round() << shift;
+  }
+
+  return 0xFF000000 | channel(16) | channel(8) | channel(0);
+}
+
+/// A number from three that looks random but is always the same for them.
+int _mix(int a, int b, int c) {
+  var h = (a * 374761393 + b * 668265263 + c * 1274126177) & 0xFFFFFFFF;
+  h = ((h ^ (h >> 13)) * 1103515245) & 0xFFFFFFFF;
+  return (h ^ (h >> 16)) & 0x7FFFFFFF;
 }
 
 /// Glitter: the color, with little white, pale and gold flecks scattered

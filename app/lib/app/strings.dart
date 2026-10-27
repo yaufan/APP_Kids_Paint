@@ -72,7 +72,15 @@ abstract final class Strings {
   // Coloring.
   static const undo = '復原';
   static const bucket = '油漆桶';
-  static const crayon = '魔法蠟筆';
+  static const crayon = '魔法畫筆';
+  // The kinds of pen under 魔法畫筆.
+  static const penCrayon = '蠟筆';
+  static const penThick = '粗粗筆';
+  static const penDots = '點點筆';
+  static const penSpray = '噴漆';
+  static const penWatercolor = '水彩筆';
+  static const penNeon = '霓虹筆';
+  static const penStripes = '條紋筆';
   static const paperColor = '換紙的顏色';
   static const rainbow = '彩虹筆';
   static const glitter = '亮晶晶筆';

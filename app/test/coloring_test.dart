@@ -89,6 +89,68 @@ void main() {
       expect(doc.colorAt(12, 10), red);
     });
 
+    int channel(int color, int shift) => (color >> shift) & 0xFF;
+
+    test('the dots pen leaves dots with paper between them', () {
+      final doc = ColoringDocument(blank)..add(CrayonOp(1, red, 3, [(x: 4, y: 30), (x: 56, y: 30)], brush: Brush.dots));
+      final along = [for (var x = 4; x < 56; x++) doc.colorAt(x, 30)];
+      expect(along.where((c) => c == red).length, greaterThan(10));
+      expect(along.where((c) => c == white).length, greaterThan(10));
+    });
+
+    test('the spray leaves specks, more of them in the middle', () {
+      final doc = ColoringDocument(blank)..add(CrayonOp(1, red, 12, [(x: 10, y: 30), (x: 50, y: 30)], brush: Brush.spray));
+      int specks(int y) => [for (var x = 12; x < 48; x++) doc.colorAt(x, y)].where((c) => c == red).length;
+      expect(specks(30), greaterThan(0));
+      expect(specks(30), lessThan(36), reason: 'not solid');
+      expect(specks(30), greaterThan(specks(40)));
+    });
+
+    test('watercolor is see-through: pale on white, and blue over yellow turns green', () {
+      const yellow = 0xFFFFD166;
+      final doc = ColoringDocument(blank)
+        ..add(CrayonOp(1, yellow, 6, [(x: 10, y: 20), (x: 50, y: 20)]))
+        ..add(CrayonOp(1, blue, 6, [(x: 30, y: 10), (x: 30, y: 50)], brush: Brush.watercolor));
+      final pale = doc.colorAt(30, 45);
+      expect(pale, isNot(white));
+      expect(pale, isNot(blue));
+      final green = doc.colorAt(30, 20);
+      expect(channel(green, 8), greaterThan(channel(green, 16)), reason: 'more green than red');
+      expect(channel(green, 8), greaterThan(channel(green, 0)), reason: 'more green than blue');
+      // Going back over the same place in one stroke does not darken it.
+      final once = ColoringDocument(blank)..add(CrayonOp(1, blue, 6, [(x: 10, y: 30), (x: 50, y: 30)], brush: Brush.watercolor));
+      final twice = ColoringDocument(blank)..add(CrayonOp(1, blue, 6, [(x: 10, y: 30), (x: 50, y: 30), (x: 10, y: 30)], brush: Brush.watercolor));
+      expect(twice.colorAt(30, 30), once.colorAt(30, 30));
+    });
+
+    test('the neon pen is pale in the middle with the color around it', () {
+      final doc = ColoringDocument(blank)..add(CrayonOp(1, blue, 10, [(x: 10, y: 30), (x: 50, y: 30)], brush: Brush.neon));
+      expect(doc.colorAt(30, 30), isNot(blue));
+      expect(channel(doc.colorAt(30, 30), 16), greaterThan(channel(blue, 16)), reason: 'paler');
+      expect(doc.colorAt(30, 35), blue);
+    });
+
+    test('the stripes pen takes turns: the color, then a paler one', () {
+      final doc = ColoringDocument(blank)..add(CrayonOp(1, red, 4, [(x: 4, y: 30), (x: 56, y: 30)], brush: Brush.stripes));
+      final colors = {for (var x = 6; x < 54; x++) doc.colorAt(x, 30)};
+      expect(colors.length, 2);
+      expect(colors, contains(red));
+    });
+
+    test('every pen draws the same live, stroke by stroke, as when the page is opened again', () {
+      for (final brush in Brush.values) {
+        final live = ColoringDocument(blank)..add(const PaperOp(0xFFFFD166));
+        final stroke = CrayonOp(1, blue, 7, [(x: 5, y: 8)], brush: brush);
+        live.add(stroke);
+        for (final p in [(x: 20.0, y: 12.0), (x: 31.5, y: 40.0), (x: 48.0, y: 22.0), (x: 55.0, y: 50.0), (x: 20.0, y: 52.0)]) {
+          stroke.points.add(p);
+          live.applyStroke(stroke, stroke.points.length - 1);
+        }
+        final opened = ColoringDocument(blank, ColoringDocument.decodeOps(live.encodeOps()));
+        expect(opened.rgba, live.rgba, reason: '$brush');
+      }
+    });
+
     test('stamps keep their shape and stay in their region', () {
       final doc = ColoringDocument(regions)..add(StampOp(regions.labelAt(32, 32), red, StampShape.heart, 32, 32, 12));
       expect(doc.colorAt(32, 32), red);

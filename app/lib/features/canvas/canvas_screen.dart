@@ -23,9 +23,21 @@ enum Tool { bucket, crayon, rainbow, glitter, stamp, eraser }
 
 const _stampNames = {StampShape.star: '星星', StampShape.heart: '愛心', StampShape.flower: '花朵', StampShape.paw: '腳印'};
 
+/// The kinds of pen under 魔法畫筆: what it draws with, how thick (a part of
+/// the page's width), what it is called.
+const _pens = [
+  (Brush.crayon, 0.02, Strings.penCrayon),
+  (Brush.crayon, 0.045, Strings.penThick),
+  (Brush.dots, 0.022, Strings.penDots),
+  (Brush.spray, 0.05, Strings.penSpray),
+  (Brush.watercolor, 0.035, Strings.penWatercolor),
+  (Brush.neon, 0.03, Strings.penNeon),
+  (Brush.stripes, 0.03, Strings.penStripes),
+];
+
 /// Coloring a postcard: bucket fill (the default), and brushes that never
-/// leave the region they started in (crayon, rainbow, glitter, eraser), and
-/// stamps. On blank paper the crayon (the default there) goes anywhere and
+/// leave the region they started in (the magic pen in its seven kinds,
+/// rainbow, glitter, eraser), and stamps. On blank paper the crayon (the default there) goes anywhere and
 /// the bucket colors the paper behind the drawing. Everything autosaves;
 /// "done" sends it.
 class CanvasScreen extends ConsumerStatefulWidget {
@@ -43,6 +55,7 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
   ui.Image? _colors;
   Tool _tool = Tool.bucket;
   StampShape _shape = StampShape.star;
+  int _pen = 0; // which of [_pens]
   int _color = kidPalette.first;
   CrayonOp? _stroke;
   bool _refreshing = false;
@@ -153,7 +166,7 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
 
   /// The brush in hand, if the tool is one.
   Brush? get _brush => switch (_tool) {
-        Tool.crayon => Brush.crayon,
+        Tool.crayon => _pens[_pen].$1,
         Tool.rainbow => Brush.rainbow,
         Tool.glitter => Brush.glitter,
         Tool.eraser => Brush.eraser,
@@ -186,11 +199,11 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
     final brush = _brush;
     final region = doc.regions.labelAt(p.x.floor(), p.y.floor());
     if (brush == null || region == 0) return;
-    final size = switch (brush) {
-      Brush.crayon => 0.02,
-      Brush.rainbow => 0.024,
-      Brush.glitter => 0.03,
-      Brush.eraser => 0.035,
+    final size = switch (_tool) {
+      Tool.crayon => _pens[_pen].$2,
+      Tool.rainbow => 0.024,
+      Tool.glitter => 0.03,
+      _ => 0.035, // the eraser
     };
     _stroke = CrayonOp(region, _color, doc.width * size, [p], brush: brush);
     doc.add(_stroke!);
@@ -316,6 +329,29 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
           ),
         ),
     ]);
+    final pens = Wrap(alignment: WrapAlignment.center, spacing: 6, runSpacing: 8, children: [
+      for (final (i, (brush, _, name)) in _pens.indexed)
+        Semantics(
+          button: true,
+          selected: i == _pen,
+          label: name,
+          excludeSemantics: true,
+          child: Pressable(
+            onTap: () => setState(() => _pen = i),
+            child: Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: i == _pen ? (color.computeLuminance() > 0.9 ? KidColors.inkSoft : color) : Colors.white, width: 3),
+                boxShadow: KidShadows.soft(),
+              ),
+              child: CustomPaint(painter: _PenSample(brush, thick: i == 1, color: color.computeLuminance() > 0.9 ? KidColors.inkSoft : color)),
+            ),
+          ),
+        ),
+    ]);
     final palette = _Palette(selected: _color, columns: wide ? 4 : 6, onSelect: (c) => setState(() => _color = c));
     final done = ChunkyButton(
       label: Strings.done,
@@ -356,6 +392,7 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
                           child: Column(children: [
                             tools,
                             if (_tool == Tool.stamp) ...[const SizedBox(height: 14), shapes],
+                            if (_tool == Tool.crayon) ...[const SizedBox(height: 14), pens],
                             const SizedBox(height: 16),
                             palette,
                             const Spacer(),
@@ -376,6 +413,7 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
                         const SizedBox(height: 14),
                         tools,
                         if (_tool == Tool.stamp) ...[const SizedBox(height: 10), shapes],
+                        if (_tool == Tool.crayon) ...[const SizedBox(height: 10), pens],
                         const SizedBox(height: 12),
                         palette,
                         const SizedBox(height: 14),
@@ -499,6 +537,60 @@ class _Pot extends StatelessWidget {
       ),
     );
   }
+}
+
+/// What a kind of pen draws, as a little wavy line on its button.
+class _PenSample extends CustomPainter {
+  _PenSample(this.brush, {required this.color, this.thick = false});
+
+  final Brush brush;
+  final Color color;
+  final bool thick;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final wave = [
+      for (var i = 0; i <= 20; i++)
+        Offset(size.width * (0.18 + 0.64 * i / 20), size.height * (0.5 + 0.18 * math.sin(i / 20 * 2 * math.pi))),
+    ];
+    final path = Path()..addPolygon(wave, false);
+    Paint pen(double width, Color c) => Paint()
+      ..color = c
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = width
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final pale = Color.lerp(color, Colors.white, 0.6)!;
+    switch (brush) {
+      case Brush.dots:
+        for (final p in [wave[0], wave[5], wave[10], wave[15], wave[20]]) {
+          canvas.drawCircle(p, 3.6, Paint()..color = color);
+        }
+      case Brush.spray:
+        final r = math.Random(3);
+        for (var i = 0; i < 90; i++) {
+          final p = wave[r.nextInt(wave.length)];
+          final a = r.nextDouble() * 2 * math.pi, d = 6 * math.sqrt(r.nextDouble());
+          canvas.drawCircle(p + Offset(math.cos(a) * d, math.sin(a) * d), 0.9, Paint()..color = color);
+        }
+      case Brush.watercolor:
+        canvas.drawPath(path, pen(10, color.withValues(alpha: 0.45)));
+        canvas.drawPath(path.shift(const Offset(0, 4)), pen(8, color.withValues(alpha: 0.35)));
+      case Brush.neon:
+        canvas.drawPath(path, pen(12, Color.lerp(color, Colors.white, 0.55)!));
+        canvas.drawPath(path, pen(7, color));
+        canvas.drawPath(path, pen(2.5, Color.lerp(color, Colors.white, 0.8)!));
+      case Brush.stripes:
+        for (var i = 0; i < 20; i += 2) {
+          canvas.drawLine(wave[i], wave[i + 2], pen(7, (i ~/ 2).isEven ? color : pale)..strokeCap = StrokeCap.butt);
+        }
+      case _:
+        canvas.drawPath(path, pen(thick ? 11 : 5, color));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_PenSample old) => old.brush != brush || old.color != color || old.thick != thick;
 }
 
 /// Color layer underneath, line art multiplied on top: lines never get covered.

@@ -7,6 +7,7 @@ import math
 import pathlib
 import re
 import subprocess
+import sys
 import tempfile
 
 from PIL import Image
@@ -18,6 +19,11 @@ import town
 
 APP = pathlib.Path(__file__).resolve().parents[4] / "app"
 ART = APP / "assets" / "art"
+
+# The buddies and the places you go into are drawn like the coloring pages
+# (docs/design/v5/icons.py).
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[2] / "v5"))
+import icons as v5_icons  # noqa: E402
 
 # Placeholders the app swaps for the chosen color (see lib/app/art.dart).
 TOKEN, TOKEN_DARK, TOKEN_LIGHT = "#C0FFEE", "#C0FFE1", "#C0FFE2"
@@ -68,9 +74,9 @@ def main():
         write(f"icons/{name}.svg", kit.icon(name, 24, "#000000"))
         write(f"icons/{name}_solid.svg", kit.solid(name, 24, "#000000"))
     for kind, _ in kit.PLACE_TYPES:
-        write(f"places/{kind}.svg", kit.place_icon(kind, 64))
+        write(f"places/{kind}.svg", v5_icons.place_icon(kind) or kit.place_icon(kind, 64))
     for kind in kit.ANIMALS:
-        write(f"animals/{kind}.svg", kit.animal(kind, 64))
+        write(f"animals/{kind}.svg", v5_icons.buddy(kind))
     write("pigeon.svg", kit.pigeon(100, letter=True))
     write("pigeon_flying.svg", kit.pigeon(100, letter=False, flying=True))
     write("pigeon_flying_letter.svg", kit.pigeon(100, letter=True, flying=True))

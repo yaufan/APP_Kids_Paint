@@ -109,6 +109,20 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   }
   await gesture.up();
   await idle(tester, 300);
+  // Some of the magic pen's other kinds.
+  for (final (pen, y) in [(Strings.penDots, 0.2), (Strings.penNeon, 0.45), (Strings.penStripes, 0.7)]) {
+    await tester.tap(find.bySemanticsLabel(pen));
+    await tester.pump();
+    final from = canvas.topLeft + Offset(canvas.width * 0.15, canvas.height * y);
+    final g = await tester.startGesture(from);
+    for (var i = 1; i <= 12; i++) {
+      await g.moveTo(from + Offset(i * canvas.width * 0.05, (i.isEven ? -1 : 1) * 10));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await g.up();
+    await idle(tester, 300);
+  }
+  await shot('05b_pens');
   // The rainbow pen and glitter, then a few stamps.
   for (final (tool, y) in [(Strings.rainbow, 0.62), (Strings.glitter, 0.92)]) {
     await tester.tap(find.bySemanticsLabel(tool));
