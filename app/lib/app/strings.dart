@@ -121,6 +121,17 @@ abstract final class Strings {
   static const addChild = '新增小朋友';
   static const dailyLimit = '每天可以玩多久';
   static String minutes(int m) => '$m 分';
+  static const noLimit = '不限';
+  static const dailyLimitHint = '快到時間時鴿子會先提醒；時間到了，會等孩子畫完手上這張再休息。';
+
+  // Time to rest.
+  static const almostRest = '再畫一下下，就要休息囉！';
+  static const restWhenDone = '時間到囉！畫完這張，我們就休息。';
+  static String restTitle(int finished) => finished == 0 ? '今天玩得好開心！' : '今天畫了 $finished 張，好棒！';
+  static const restBody = '眼睛和小手要休息囉，明天再來畫畫吧！';
+  static const restForParents = '家長：讓孩子再玩一下';
+  static const tenMoreMinutes = '再玩 10 分鐘';
+  static const noLimitToday = '今天不限時間';
   static const ourPlaces = '我們的地方';
   static const ourPlacesHint = '不使用定位，小朋友寄出明信片時自己選地方。點一下可以取名字。';
   static const placeName = '幫這個地方取名字';
@@ -153,7 +164,7 @@ abstract final class Strings {
   static const permCamera = '相機';
   static const permCameraUse = '按拍照時才用';
   static const permPhotos = '相片';
-  static const permPhotosUse = '只讀你選的那張；家長按「存到相簿」時才存入';
+  static const permPhotosUse = '只讀你選的那張；家長按了才存進相簿';
   static const permLocation = '位置';
   static const permMicrophone = '麥克風';
   static const permNetwork = '網路';

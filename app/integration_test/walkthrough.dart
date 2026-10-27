@@ -178,6 +178,10 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   await waitFor(tester, find.text(Strings.dailyLimit));
   await idle(tester, 500);
   await shot('12_parent_mode');
+  // Further down the list (built only when scrolled to).
+  await tester.scrollUntilVisible(find.text(Strings.privacy), 300,
+      scrollable: find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first);
+  await tester.pump();
   await tester.tap(find.text(Strings.privacy));
   await waitFor(tester, find.text(Strings.allOnPhone));
   await idle(tester, 500);

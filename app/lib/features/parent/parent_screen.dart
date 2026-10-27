@@ -8,6 +8,7 @@ import '../../app/theme.dart';
 import '../../app/version.dart';
 import '../../core/db/database.dart';
 import '../../core/places.dart';
+import '../../core/play_time.dart';
 import '../../core/providers.dart';
 import '../../core/repositories.dart';
 
@@ -244,13 +245,21 @@ class _ParentScreenState extends ConsumerState<ParentScreen> {
               if (minutes != null)
                 SegmentedButton<int>(
                   showSelectedIcon: false,
-                  segments: [for (final m in [15, 30, 45, 60]) ButtonSegment(value: m, label: Text(Strings.minutes(m)))],
+                  // Five fit across a small phone only without the extra padding.
+                  style: SegmentedButton.styleFrom(visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 4)),
+                  segments: [
+                    for (final m in [15, 30, 45, 60]) ButtonSegment(value: m, label: Text(Strings.minutes(m))),
+                    const ButtonSegment(value: SettingsRepository.noLimit, label: Text(Strings.noLimit)),
+                  ],
                   selected: {minutes},
-                  onSelectionChanged: (s) {
+                  onSelectionChanged: (s) async {
                     setState(() => _minutes = s.first);
-                    ref.read(settingsRepositoryProvider).setDailyMinutes(s.first);
+                    await ref.read(settingsRepositoryProvider).setDailyMinutes(s.first);
+                    await ref.read(playTimeProvider.notifier).reload();
                   },
                 ),
+              const SizedBox(height: 8),
+              const Text(Strings.dailyLimitHint, style: TextStyle(fontSize: 14, color: KidColors.inkSoft)),
               const SizedBox(height: 6),
             ]),
             card(Strings.ourPlaces, [

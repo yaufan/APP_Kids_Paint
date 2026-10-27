@@ -55,13 +55,19 @@ class PrivacyScreen extends ConsumerWidget {
           Text(text, style: const TextStyle(fontSize: 13, color: KidColors.inkSoft)),
         ]);
     Widget perm(String icon, String name, String use, bool used) => Container(
-          height: 50,
+          constraints: const BoxConstraints(minHeight: 50),
+          padding: const EdgeInsets.symmetric(vertical: 6),
           decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: KidColors.line))),
           child: Row(children: [
             KidIcon(icon, size: 22, color: used ? KidColors.ink : KidColors.inkSoft),
             const SizedBox(width: 10),
-            Expanded(child: Text(name, style: const TextStyle(fontSize: 16))),
-            Text(use, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: used ? KidColors.grassDark : KidColors.inkSoft)),
+            Text(name, style: const TextStyle(fontSize: 16)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(use,
+                  textAlign: TextAlign.end,
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: used ? KidColors.grassDark : KidColors.inkSoft)),
+            ),
           ]),
         );
     BoxDecoration card() => BoxDecoration(

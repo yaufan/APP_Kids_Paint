@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/rest/rest_curtain.dart';
 import 'router.dart';
 import 'strings.dart';
 import 'theme.dart';
@@ -32,6 +33,7 @@ class _KidsPaintAppState extends State<KidsPaintApp> {
       supportedLocales: const [Locale('zh', 'TW')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       routerConfig: _router,
+      builder: (context, child) => RestCurtain(router: _router, child: child!),
     );
   }
 }

@@ -146,6 +146,12 @@ class ArtworkRepository {
       .get();
 
   /// Puts the postcard on the map at [placeId].
+  /// How many pictures were finished since [since] (today, on the rest screen).
+  Future<int> finishedSince(DateTime since) async => (await (_db.select(_db.artworks)
+            ..where((a) => a.isCompleted.equals(true) & a.updatedAt.isBiggerOrEqualValue(since)))
+          .get())
+      .length;
+
   Future<void> send(int id, int placeId) {
     final now = DateTime.now();
     return (_db.update(_db.artworks)..where((a) => a.id.equals(id))).write(ArtworksCompanion(
@@ -200,6 +206,9 @@ class SettingsRepository {
   static const dailyMinutesKey = 'daily_minutes';
   static const defaultDailyMinutes = 30;
 
+  /// The daily limit that means no limit.
+  static const noLimit = 0;
+
   Future<int> dailyMinutes() async {
     final row = await (_db.select(_db.settings)..where((s) => s.key.equals(dailyMinutesKey)))
         .getSingleOrNull();
@@ -232,6 +241,19 @@ class SettingsRepository {
   Future<int> exportedUpTo() async => int.tryParse(await _value(exportedKey) ?? '') ?? 0;
 
   Future<void> setExportedUpTo(int id) => _put(exportedKey, '$id');
+
+  static const playKey = 'play_today';
+
+  /// What was played on [day] (`2026-10-27`): seconds on screen and minutes
+  /// a parent added. Another day's record counts as nothing.
+  Future<({int seconds, int extraMinutes})> playOn(String day) async {
+    final parts = (await _value(playKey) ?? '').split(' ');
+    if (parts.length != 3 || parts[0] != day) return (seconds: 0, extraMinutes: 0);
+    return (seconds: int.tryParse(parts[1]) ?? 0, extraMinutes: int.tryParse(parts[2]) ?? 0);
+  }
+
+  Future<void> setPlayOn(String day, {required int seconds, required int extraMinutes}) =>
+      _put(playKey, '$day $seconds $extraMinutes');
 
   static const welcomedKey = 'welcomed';
 
