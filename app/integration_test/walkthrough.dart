@@ -347,6 +347,43 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   await idle(tester, 2600);
   await shot('27_shop');
 
+  // 20. Space: a rocket that takes off when tapped.
+  await tester.tap(find.bySemanticsLabel(Strings.backToTown));
+  await waitFor(tester, find.bySemanticsLabel(Strings.blankPaper));
+  await idle(tester, 800);
+  await enterScene(tester, PlaceKind.space);
+  await colorCreature(tester, Creature.rocket, [kidPalette[0], kidPalette[5], kidPalette[2]]);
+  await tester.tap(find.bySemanticsLabel(Strings.done));
+  await waitFor(tester, find.bySemanticsLabel(Strings.resident(Creature.rocket.label)));
+  await idle(tester, 2000);
+  await tester.tap(find.bySemanticsLabel(Strings.resident(Creature.rocket.label)), warnIfMissed: false);
+  await idle(tester, 1800);
+  await shot('28_space');
+
+  // 21. The night market: a ring thrown over a snack.
+  await tester.tap(find.bySemanticsLabel(Strings.backToTown));
+  await waitFor(tester, find.bySemanticsLabel(Strings.blankPaper));
+  await idle(tester, 800);
+  await enterScene(tester, PlaceKind.food);
+  await colorCreature(tester, Creature.friedChicken, [kidPalette[8], kidPalette[0], kidPalette[2]]);
+  await tester.tap(find.bySemanticsLabel(Strings.done));
+  await waitFor(tester, find.bySemanticsLabel(Strings.resident(Creature.friedChicken.label)));
+  await idle(tester, 2000);
+  await tester.tap(find.bySemanticsLabel(Strings.resident(Creature.friedChicken.label)), warnIfMissed: false);
+  await idle(tester, 1100);
+  await shot('29_night_market');
+
+  // 22. The polar sea: a penguin in the snow.
+  await tester.tap(find.bySemanticsLabel(Strings.backToTown));
+  await waitFor(tester, find.bySemanticsLabel(Strings.blankPaper));
+  await idle(tester, 800);
+  await enterScene(tester, PlaceKind.polar);
+  await colorCreature(tester, Creature.penguin, [kidPalette[5], kidPalette[1], kidPalette[3]]);
+  await tester.tap(find.bySemanticsLabel(Strings.done));
+  await waitFor(tester, find.bySemanticsLabel(Strings.resident(Creature.penguin.label)));
+  await idle(tester, 2500);
+  await shot('30_polar');
+
   // 19. The album as one timeline.
   await tester.tap(find.bySemanticsLabel(Strings.backToTown));
   await waitFor(tester, find.bySemanticsLabel(Strings.album));
@@ -371,26 +408,27 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
 /// From the town into a place you can go into: on a phone it is off screen,
 /// so the sign at the edge slides the map there first.
 Future<void> enterScene(WidgetTester tester, PlaceKind place) async {
-  final sign = find.bySemanticsLabel(Strings.goTo(place.label));
+  final habitat = Habitat.of(place)!;
+  final sign = find.bySemanticsLabel(Strings.goTo(habitat.label));
   if (sign.evaluate().isNotEmpty) {
     await tester.tap(sign);
     await idle(tester, 1000);
   }
   // Near an edge or under the buttons (the shop, in the middle column, after
   // the map slid to the far right): drag it to the middle, as a child would.
-  final door = find.bySemanticsLabel(Strings.enter(place.label));
+  final door = find.bySemanticsLabel(Strings.enter(habitat.label));
   final map = tester.getRect(find.byType(TownMap)), at = tester.getRect(door).center;
   if (at.dx < map.left + 100 || at.dx > map.right - 100 || at.dy < map.top + 160 || at.dy > map.bottom - 220) {
     await tester.dragFrom(map.center, Offset(map.center.dx - at.dx, map.top + map.height * 0.45 - at.dy));
     await idle(tester, 800);
   }
   await tester.tap(door);
-  await waitFor(tester, find.bySemanticsLabel(Strings.drawNew(place.label, residents: Habitat.of(place)!.residents)));
+  await waitFor(tester, find.bySemanticsLabel(Strings.drawNew(habitat.label, residents: habitat.residents)));
 }
 
 /// Picks [creature] in its scene and bucket-fills a few areas with [colors].
 Future<void> colorCreature(WidgetTester tester, Creature creature, List<int> colors) async {
-  await tester.tap(find.bySemanticsLabel(Strings.drawNew(creature.habitat.place.label, residents: creature.habitat.residents)));
+  await tester.tap(find.bySemanticsLabel(Strings.drawNew(creature.habitat.label, residents: creature.habitat.residents)));
   await waitFor(tester, find.byKey(ValueKey('creature-${creature.name}')));
   await idle(tester, 500);
   await tester.tap(find.byKey(ValueKey('creature-${creature.name}')));

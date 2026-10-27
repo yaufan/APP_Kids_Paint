@@ -68,6 +68,23 @@ Pose poseAt(Motion motion, double t, int seed, Rect area) {
       // Rooted where it grows, rocking in the breeze.
       final breeze = t * 1.3 * pace + wobble;
       return (at: Offset(area.left + area.width * phase, laneY()), left: false, tilt: 0.06 * math.sin(breeze), squash: 1 + 0.02 * math.sin(2 * breeze));
+    case Motion.drift:
+      // No up or down in space: a slow wander every way, turning round and round.
+      final x = area.left + area.width * (0.5 + 0.45 * math.sin(t * 0.07 * pace + phase * 2 * math.pi));
+      final y = area.top + area.height * (0.5 + 0.45 * math.sin(t * 0.11 * pace + wobble));
+      return (at: Offset(x, y), left: false, tilt: 0.35 * math.sin(t * 0.25 * pace + wobble), squash: 1.0);
+    case Motion.slide:
+      // Waddles along, then drops onto its belly and slides, then stands up.
+      final cycle = (t * 0.12 * pace + phase) % 1;
+      final sliding = cycle > 0.62 && cycle < 0.86;
+      final w = pacing(sliding ? 30 : 22);
+      final waddle = math.sin(t * 9 * pace + wobble);
+      return (
+        at: Offset(w.x, laneY()),
+        left: w.left,
+        tilt: sliding ? (w.left ? -1.25 : 1.25) : 0.12 * waddle,
+        squash: sliding ? 0.92 : 1.0,
+      );
     case Motion.shelf:
       // On its spot on the shelf ([shelfSpots]), now and then a little wiggle.
       final wiggle = math.max(0.0, math.sin(t * 0.9 * pace + wobble) - 0.9) * 10;
@@ -79,17 +96,25 @@ Pose poseAt(Motion motion, double t, int seed, Rect area) {
 /// creatures.py SHOP_BOARDS), the lowest first.
 const shopBoards = [840.0, 670.0, 500.0];
 
-/// Spots on the shop's shelves that [view] shows clear of the buttons:
-/// the bottom middle of each of the goods, side by side, the lowest shelf
-/// first. The newest goods take the first spots. Goods keep their full size
-/// on a phone too (unlike the creatures that roam): the shelves hold them.
-List<Offset> shelfSpots(SceneView view, {double top = 110}) {
+/// The night market's long table, the stalls' counters and their shelves
+/// (creatures.py MARKET_COUNTERS), the lowest first.
+const marketCounters = [800.0, 620.0, 460.0];
+
+/// The night market's lanterns (creatures.py MARKET_LANTERNS), in scene units.
+final marketLanterns = [for (var x = 40; x < 1000; x += 92) Offset(x.toDouble(), (150 + 50 * (1 - math.pow((x - 500) / 520, 2))).roundToDouble() + 14)];
+
+/// Spots on the shelves (the tops of [boards]) that [view] shows clear of
+/// the buttons: the bottom middle of each of the goods, side by side, the
+/// lowest shelf first. The newest goods take the first spots. Goods keep
+/// their full size on a phone too (unlike the creatures that roam): the
+/// shelves hold them.
+List<Offset> shelfSpots(SceneView view, {List<double> boards = shopBoards, double top = 110}) {
   final v = view.visible;
   const slot = 130.0, tallest = 150.0;
   final across = math.max(1, ((v.width - 30) / slot).floor());
   final left = v.left + (v.width - across * slot) / 2;
   return [
-    for (final board in shopBoards)
+    for (final board in boards)
       if (board - tallest >= v.top + top / view.scale)
         for (var i = 0; i < across; i++) Offset(left + slot * (i + 0.5), board),
   ];
@@ -123,6 +148,10 @@ Rect roamArea(Creature creature, SceneView view, {double top = 110, double botto
   final minY = v.top + top / view.scale;
   final maxY = v.bottom - bottom / view.scale;
   final (lo, hi) = switch (creature.motion) {
+    // The polar sea's orcas keep to the water between the floes; the night
+    // market's goldfish to their pool.
+    Motion.swim when creature.habitat == Habitat.polar => (560.0, 690.0),
+    Motion.swim when creature.habitat == Habitat.nightMarket => (930.0, 962.0),
     Motion.walk || Motion.hop => (640.0, 950.0),
     Motion.swim => (330.0, 800.0),
     Motion.float => (300.0, 760.0),
@@ -132,6 +161,8 @@ Rect roamArea(Creature creature, SceneView view, {double top = 110, double botto
     Motion.rail => (648.0, 648.0),
     Motion.sway => (720.0, 950.0),
     Motion.shelf => (shopBoards.first, shopBoards.first), // see [shelfSpots]
+    Motion.drift => (260.0, 760.0),
+    Motion.slide => (730.0, 950.0),
   };
   // Swimmers and floaters are drawn up from their bottom, so leave room above.
   final y0 = math.max(lo, minY + creature.size * view.creatureScale * 0.7);

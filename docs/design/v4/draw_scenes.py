@@ -35,6 +35,12 @@ PROMPTS = {
     "insects": "a sunny meadow with wildflowers and tall grass, a tree stump, a log and mushrooms, a round red house shaped like a ladybug, trees",
     "shop": "a cozy little shop interior, a red and white striped awning, warm hanging lamps, a big wall of empty wooden shelves, "
             "a checkered tile floor, a potted plant, a wicker basket",
+    "space": "outer space, a starry purple night sky, the blue planet earth, an orange ringed planet, a small pink planet, "
+             "the grey surface of the moon with craters, a metal launch tower, a small white dome base",
+    "nightMarket": "a taiwanese night market street at dusk, glowing red and yellow paper lanterns on a string, a row of empty food stalls "
+                   "with striped awnings and wooden shelves, a long table with a red cloth, a blue goldfish pool, brick pavement, nobody",
+    "polar": "an arctic landscape at night, green and purple northern lights, white icebergs, ice floes on a calm dark blue sea, "
+             "snowy white ground, a red flag, small ice blocks",
 }
 
 _img2img = None

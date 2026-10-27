@@ -15,7 +15,7 @@ void main() {
         expect(pose.at.dy, inInclusiveRange(area.top - 70, area.bottom + 1), reason: '$motion at $t');
         turned |= pose.left;
       }
-      if (![Motion.float, Motion.crawl, Motion.sway, Motion.shelf].contains(motion)) expect(turned, isTrue, reason: '$motion');
+      if (![Motion.float, Motion.crawl, Motion.sway, Motion.shelf, Motion.drift].contains(motion)) expect(turned, isTrue, reason: '$motion');
     }
   });
 
@@ -33,9 +33,10 @@ void main() {
     }
   });
 
-  test('each scene has six animals or plants, or eight vehicles or goods, to color', () {
+  test('each scene has six or eight things to color', () {
     for (final habitat in Habitat.values) {
-      expect(habitat.creatures, hasLength({Residents.vehicles, Residents.goods}.contains(habitat.residents) ? 8 : 6));
+      final six = {Habitat.zoo, Habitat.aquarium, Habitat.dinoPark, Habitat.botanical, Habitat.insects};
+      expect(habitat.creatures, hasLength(six.contains(habitat) ? 6 : 8), reason: '$habitat');
       expect(Habitat.of(habitat.place), habitat);
     }
   });
@@ -93,5 +94,27 @@ void main() {
         expect(pose.at, spots[2], reason: '$creature stays on its spot');
       }
     }
+  });
+
+  test("the night market's snacks stand on its counters", () {
+    for (final screen in [const Size(390, 844), const Size(1280, 800)]) {
+      final view = SceneView(screen);
+      final spots = shelfSpots(view, boards: marketCounters);
+      expect(spots.length, greaterThanOrEqualTo(6), reason: '$screen');
+      expect(spots.map((s) => s.dy).toSet().every(marketCounters.contains), isTrue);
+    }
+  });
+
+  test('orcas keep to the icy sea, goldfish to their pool; things in space drift and penguins slide', () {
+    final view = SceneView(const Size(390, 844));
+    for (var t = 0.0; t < 90; t += 0.5) {
+      expect(poseAt(Motion.swim, t, 4, roamArea(Creature.orca, view)).at.dy, inInclusiveRange(530, 720), reason: 'orca at $t');
+      expect(poseAt(Motion.swim, t, 4, roamArea(Creature.goldfish, view)).at.dy, inInclusiveRange(890, 1000), reason: 'goldfish at $t');
+    }
+    final turns = {for (var t = 0.0; t < 60; t += 0.5) (poseAt(Motion.drift, t, 9, roamArea(Creature.astronaut, view)).tilt * 10).round()};
+    expect(turns.length, greaterThan(4), reason: 'an astronaut turns slowly as it drifts');
+    final slides = [for (var t = 0.0; t < 120; t += 0.25) poseAt(Motion.slide, t, 2, roamArea(Creature.penguin, view)).tilt.abs()];
+    expect(slides.any((tilt) => tilt > 1), isTrue, reason: 'now and then the penguin is on its belly');
+    expect(slides.any((tilt) => tilt < 0.2), isTrue, reason: 'and then it waddles again');
   });
 }

@@ -9,11 +9,21 @@ enum Habitat {
   transport(PlaceKind.transport, residents: Residents.vehicles),
   botanical(PlaceKind.botanical, residents: Residents.plants),
   insects(PlaceKind.insects),
-  shop(PlaceKind.shop, residents: Residents.goods);
+  shop(PlaceKind.shop, residents: Residents.goods),
+  space(PlaceKind.space, residents: Residents.space),
+  // Postcards of eating out go to 好吃的店; inside it is the night market.
+  nightMarket(PlaceKind.food, residents: Residents.visitors, ownName: '夜市'),
+  polar(PlaceKind.polar, residents: Residents.visitors);
 
-  const Habitat(this.place, {this.residents = Residents.animals});
+  const Habitat(this.place, {this.residents = Residents.animals, this.ownName});
 
   final PlaceKind place;
+
+  /// A name of its own, when it is not its place's.
+  final String? ownName;
+
+  /// What it is called inside (and on its door): its place's name, or its own.
+  String get label => ownName ?? place.label;
 
   /// Who lives there, which decides how we talk about them.
   final Residents residents;
@@ -26,12 +36,16 @@ enum Habitat {
 
 /// Animals (and bugs) are counted 隻 and move in (住進); vehicles are
 /// counted 台 and drive in (開進); plants are counted 棵 and are planted
-/// (種到); the shop's goods are counted 個 and go on its shelves (上架到).
+/// (種到); the shop's goods are counted 個 and go on its shelves (上架到);
+/// space's rockets and planets fly there (飛到); the night market's snacks
+/// and the polar sea's mix of animals, snowmen and sleds simply come (來到).
 enum Residents {
   animals('隻', '牠', '住進'),
   vehicles('台', '它', '開進'),
   plants('棵', '它', '種到'),
-  goods('個', '它', '上架到');
+  goods('個', '它', '上架到'),
+  space('個', '它', '飛到'),
+  visitors('個', '它', '來到');
 
   const Residents(this.counter, this.pronoun, this.verb);
 
@@ -42,8 +56,10 @@ enum Residents {
 
 /// How a creature gets around its scene: [drive] along the road, [rail]
 /// on the railway track; plants stay where they grow and [sway]; the
-/// shop's goods stand on a [shelf] until a customer buys them.
-enum Motion { walk, hop, swim, float, crawl, fly, drive, rail, sway, shelf }
+/// shop's goods stand on a [shelf] until a customer buys them; in space
+/// things [drift] about, turning slowly; penguins waddle and then [slide]
+/// on their bellies.
+enum Motion { walk, hop, swim, float, crawl, fly, drive, rail, sway, shelf, drift, slide }
 
 /// The coloring pages of the places you can go into, made in
 /// docs/design/v5 (same names), facing right.
@@ -94,7 +110,32 @@ enum Creature {
   bread('麵包', Habitat.shop, Motion.shelf, 100),
   iceCream('冰淇淋', Habitat.shop, Motion.shelf, 70),
   bubbleTea('珍珠奶茶', Habitat.shop, Motion.shelf, 68),
-  pudding('布丁', Habitat.shop, Motion.shelf, 125);
+  pudding('布丁', Habitat.shop, Motion.shelf, 125),
+  rocket('火箭', Habitat.space, Motion.fly, 110),
+  astronaut('太空人', Habitat.space, Motion.drift, 120),
+  alien('外星人', Habitat.space, Motion.drift, 115),
+  ufo('飛碟', Habitat.space, Motion.fly, 160),
+  moon('月亮', Habitat.space, Motion.drift, 130),
+  star('星星', Habitat.space, Motion.drift, 110),
+  saturn('土星', Habitat.space, Motion.drift, 190),
+  spaceCat('太空貓', Habitat.space, Motion.drift, 115),
+  // The night market's snacks stand on the stalls; the goldfish swim in their pool.
+  friedChicken('雞排', Habitat.nightMarket, Motion.shelf, 100),
+  sausage('烤香腸', Habitat.nightMarket, Motion.shelf, 36),
+  tanghulu('糖葫蘆', Habitat.nightMarket, Motion.shelf, 36),
+  cottonCandy('棉花糖', Habitat.nightMarket, Motion.shelf, 85),
+  sweetPotatoBalls('地瓜球', Habitat.nightMarket, Motion.shelf, 85),
+  shavedIce('刨冰', Habitat.nightMarket, Motion.shelf, 115),
+  takoyaki('章魚燒', Habitat.nightMarket, Motion.shelf, 125),
+  goldfish('金魚', Habitat.nightMarket, Motion.swim, 110),
+  penguin('企鵝', Habitat.polar, Motion.slide, 110),
+  polarBear('北極熊', Habitat.polar, Motion.walk, 140),
+  seal('海豹', Habitat.polar, Motion.crawl, 150),
+  snowman('雪人', Habitat.polar, Motion.sway, 140),
+  arcticFox('雪狐', Habitat.polar, Motion.hop, 120),
+  orca('虎鯨', Habitat.polar, Motion.swim, 220),
+  sled('雪橇', Habitat.polar, Motion.drive, 150),
+  igloo('冰屋', Habitat.polar, Motion.sway, 190);
 
   const Creature(this.label, this.habitat, this.motion, this.size);
 

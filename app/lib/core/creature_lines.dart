@@ -92,6 +92,51 @@ const _forSale = [
   '叮咚！有客人來了嗎？',
 ];
 
+/// What anything floating in space may say.
+const _inSpace = [
+  '你好呀！我在太空跟你揮手！',
+  '我好喜歡我的新顏色！',
+  '謝謝你把我畫得這麼漂亮！',
+  '在太空裡，我輕飄飄的～',
+  '你看，地球藍藍的、圓圓的！',
+  '星星一閃一閃，好漂亮！',
+  '我們是好朋友！',
+  '咻～我轉了一圈！',
+  '你今天開心嗎？',
+  '太空好安靜喔～',
+  '我們去月亮上散步吧！',
+];
+
+/// What the night market's snacks and goldfish may say.
+const _atMarket = [
+  '歡迎來夜市！',
+  '我好喜歡我的新顏色！',
+  '謝謝你把我畫得這麼漂亮！',
+  '燈籠亮亮的，好漂亮！',
+  '香香的味道飄過來了～',
+  '要不要來套圈圈？',
+  '我們是好朋友！',
+  '夜市好熱鬧喔！',
+  '你今天開心嗎？',
+  '慢慢吃，小心燙喔！',
+  '老闆說今天大放送！',
+];
+
+/// What anyone at the polar sea may say.
+const _inSnow = [
+  '你好呀！這裡好冷喔～',
+  '我好喜歡我的新顏色！',
+  '謝謝你把我畫得這麼漂亮！',
+  '下雪了，白白的好漂亮！',
+  '你看，天上有綠色的極光！',
+  '我們來堆雪人吧！',
+  '我們是好朋友！',
+  '冰冰的，滑溜溜的！',
+  '你今天開心嗎？',
+  '要穿暖暖的衣服喔！',
+  '我們來打雪仗！',
+];
+
 /// What each creature likes to say about itself.
 const _own = <Creature, List<String>>{
   Creature.elephant: ['我的鼻子長長的～', '噗噗～我會噴水喔！', '我的耳朵像大扇子！', '我走路咚咚咚～'],
@@ -140,11 +185,37 @@ const _own = <Creature, List<String>>{
   Creature.iceCream: ['我是冰淇淋，涼涼的！', '要快點吃，我會融化喔！', '上面還有一顆櫻桃！'],
   Creature.bubbleTea: ['我是珍珠奶茶！', '我的珍珠QQ的！', '吸管插進來，咻咻咻～'],
   Creature.pudding: ['我是軟綿綿的布丁！', '你看我會抖抖抖～', '我頭上有焦糖喔！'],
+  Creature.rocket: ['3、2、1，發射！', '我要飛到月亮上！', '點我一下，我就起飛喔！'],
+  Creature.astronaut: ['我是太空人，我會飄喔！', '我的頭盔圓圓的！', '從這裡看地球好漂亮！'],
+  Creature.alien: ['嗶嗶嗶～地球的朋友你好！', '我有三隻眼睛喔！', '我從很遠很遠的星星來！'],
+  Creature.ufo: ['我是飛碟，咻咻咻！', '我的燈會一閃一閃！', '要不要坐上來兜一圈？'],
+  Creature.moon: ['我是月亮，晚上才出來！', '我有時候圓圓的，有時候彎彎的！', '我身上有好多坑洞！'],
+  Creature.star: ['我是一閃一閃的小星星！', '晚上抬頭就看得到我！', '許個願吧！'],
+  Creature.saturn: ['我有一個漂亮的大圈圈！', '我是土星，好大好大！', '我的圈圈是冰和石頭做的！'],
+  Creature.spaceCat: ['喵～我是太空貓！', '我在太空抓星星！', '我的頭盔裡有我的鬍鬚！'],
+  Creature.friedChicken: ['我是大大的雞排！', '我脆脆的、香香的！', '我比你的臉還大喔！'],
+  Creature.sausage: ['我是烤香腸，油亮亮的！', '配一顆大蒜更好吃！', '烤得香香的喔！'],
+  Creature.tanghulu: ['我是糖葫蘆，甜甜的！', '我身上有一層亮亮的糖！', '一顆、兩顆、三顆、四顆！'],
+  Creature.cottonCandy: ['我是棉花糖，軟綿綿！', '我像一朵粉紅色的雲！', '舔一口就化掉了！'],
+  Creature.sweetPotatoBalls: ['我是地瓜球，QQ的！', '我圓圓的、膨膨的！', '一口一個，剛剛好！'],
+  Creature.shavedIce: ['我是刨冰，冰冰涼涼！', '上面有芒果和草莓醬！', '夏天吃我最舒服了！'],
+  Creature.takoyaki: ['我是章魚燒，三顆好朋友！', '我裡面有章魚喔！', '小心燙，吹一吹再吃！'],
+  Creature.goldfish: ['我是小金魚，游來游去！', '我的尾巴像一把扇子！', '吐泡泡給你看，啵啵啵！'],
+  Creature.penguin: ['我會用肚子滑冰喔！', '我走路搖搖擺擺的！', '我是不會飛的鳥！'],
+  Creature.polarBear: ['我是北極熊，毛白白的！', '我很會游泳喔！', '我的圍巾暖暖的！'],
+  Creature.seal: ['我是海豹，喜歡躺在冰上！', '我的鬍鬚長長的！', '拍拍手，啪啪啪！'],
+  Creature.snowman: ['我是雪人，鼻子是胡蘿蔔！', '天氣冷冷的我最開心！', '我的帽子好看嗎？'],
+  Creature.arcticFox: ['我是雪狐，躲在雪裡看不到我！', '我的尾巴蓬蓬的，好暖和！', '我的耳朵會聽雪的聲音！'],
+  Creature.orca: ['我是虎鯨，黑白黑白的！', '我游得好快！', '噗～我在噴水！'],
+  Creature.sled: ['坐上來，我們滑下山！', '咻～好快好快！', '我載了一份禮物喔！'],
+  Creature.igloo: ['我是用雪做的房子！', '裡面暖暖的喔！', '請進請進～'],
 };
 
 /// When it just moved in.
 List<String> _arrival(Residents residents) => switch (residents) {
       Residents.goods => ['我上架了！', '請多多指教～', '我站在架子上了，看得到我嗎？'],
+      Residents.space => ['我飛到太空了！大家好～', '哇，這裡好多星星！', '我飄起來了！'],
+      Residents.visitors => ['我來囉！大家好～', '這裡好好玩喔！', '謝謝你帶我來這裡！'],
       Residents.vehicles => ['我開進來了！大家好～', '這裡好漂亮喔！', '我可以停在這裡嗎？好開心！'],
       Residents.plants => ['我種好了！大家好～', '這裡的陽光好舒服！', '我會在這裡慢慢長大！'],
       Residents.animals => ['我搬來了！大家好～', '這裡好漂亮喔！', '謝謝你帶我來這裡！'],
@@ -203,11 +274,14 @@ List<String> linesOf(Creature creature, [Moment? moment]) {
   }.toList();
 }
 
-List<String> _shared(Creature creature) => switch (creature.habitat.residents) {
-      Residents.animals => _anyone,
-      Residents.vehicles => _riders,
-      Residents.plants => _growing,
-      Residents.goods => _forSale,
+List<String> _shared(Creature creature) => switch (creature.habitat) {
+      Habitat.zoo || Habitat.aquarium || Habitat.dinoPark || Habitat.insects => _anyone,
+      Habitat.transport => _riders,
+      Habitat.botanical => _growing,
+      Habitat.shop => _forSale,
+      Habitat.space => _inSpace,
+      Habitat.nightMarket => _atMarket,
+      Habitat.polar => _inSnow,
     };
 
 /// One thing [creature] says at [moment]: what is going on comes first
@@ -243,3 +317,9 @@ String wantToBuy(Creature item, math.Random random) =>
 /// a new one is back on the shelf.
 const soldLines = ['謝謝光臨！', '要好好享用喔！', '下次再來喔！'];
 const restockedLines = ['又補貨囉！', '我回來了！'];
+
+/// Space: a rocket counts down when tapped, then takes off.
+const countdown = '3、2、1，發射！';
+
+/// The night market: what the snacks say when the child's ring lands on them.
+const ringed = ['套中了！好厲害！', '耶！被你套到了！', '好準喔！'];

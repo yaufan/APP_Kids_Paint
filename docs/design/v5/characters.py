@@ -5,7 +5,7 @@ around y = 700.
 """
 import re
 
-from kawaii import (BLUE, BROWN, CREAM, DARK, DETAIL, GRAY, GREEN, INK, LEAF, ORANGE, PINK, PURPLE, RED, SKY, WHITE, YELLOW,
+from kawaii import (BLUE, BROWN, CREAM, DARK, DETAIL, GRAY, GREEN, INK, LEAF, ORANGE, OUTLINE, PINK, PURPLE, RED, SKY, WHITE, YELLOW,
                     cheek, circle, ellipse, eye, line, mirror, nostril, rect, scallop, shape, smile, tube)
 
 CHARACTERS = {}
@@ -894,4 +894,424 @@ def pudding():
         eye(262, 530, 17), eye(338, 530, 17),
         cheek(228, 574), cheek(372, 574),
         smile(300, 572, 32, 10),
+    ]
+
+
+# ---------------------------------------------------------------- space (0.13)
+
+
+@character
+def rocket():
+    body, red, glass = "#F2F5FA", "#FF5E5B", "#A9E0FF"
+    fin = [shape("M212 400 C 150 430, 128 500, 140 590 L 214 530 Z", red)]
+    return [
+        shape("M250 560 Q 300 715 350 560 Z", ORANGE), shape("M276 560 Q 300 650 324 560 Z", YELLOW, w=DETAIL),
+        *fin, mirror(fin),
+        rect(240, 518, 120, 46, 12, GRAY),
+        shape("M300 110 C 382 175, 412 300, 402 525 L 198 525 C 188 300, 218 175, 300 110 Z", body),
+        shape("M300 110 C 350 148, 378 196, 392 250 L 208 250 C 222 196, 250 148, 300 110 Z", red),
+        circle(300, 345, 74, GRAY), circle(300, 345, 58, glass, w=DETAIL),
+        eye(276, 338, 14), eye(324, 338, 14),
+        cheek(260, 370, 11, 7), cheek(340, 370, 11, 7),
+        smile(300, 368, 22, 7),
+        line("M300 430 V 500"),
+    ]
+
+
+@character
+def astronaut():
+    suit, skin = WHITE, "#FFE2CC"
+    return [
+        rect(168, 300, 264, 250, 44, GRAY),
+        tube("M218 455 Q 160 505 168 565", 52, suit), circle(170, 580, 30, SKY),
+        tube("M382 455 Q 452 425 460 360", 52, suit), circle(462, 345, 30, SKY),
+        rect(212, 590, 74, 112, 30, suit), rect(314, 590, 74, 112, 30, suit),
+        line("M222 672 H 276 M324 672 H 378"),
+        shape("M208 440 C 208 405, 392 405, 392 440 L 402 600 C 402 632, 198 632, 198 600 Z", suit),
+        rect(254, 468, 92, 62, 14, SKY, sw=DETAIL), circle(280, 499, 10, RED, w=5), circle(320, 499, 10, YELLOW, w=5),
+        tube("M392 196 L 424 148", 10, GRAY), circle(428, 140, 15, RED),
+        circle(300, 292, 132, suit),
+        ellipse(300, 300, 94, 80, skin),
+        line("M232 262 Q 246 236 272 228", w=5),
+        eye(266, 298, 15), eye(334, 298, 15),
+        cheek(244, 330, 12, 8), cheek(356, 330, 12, 8),
+        smile(300, 330, 26, 8),
+    ]
+
+
+@character
+def alien():
+    skin = "#8ED36B"
+    antenna = [tube("M262 228 Q 238 168 212 136", 12, skin), circle(208, 128, 22, PINK)]
+    return [
+        *antenna, mirror(antenna),
+        tube("M218 540 Q 160 560 150 615", 36, skin), tube("M382 540 Q 440 520 455 465", 36, skin),
+        rect(236, 630, 54, 76, 26, skin), rect(310, 630, 54, 76, 26, skin),
+        ellipse(300, 560, 102, 112, skin),
+        ellipse(300, 572, 52, 62, "#C5EDB0", w=DETAIL),
+        ellipse(300, 330, 152, 128, skin),
+        eye(238, 345, 27), eye(362, 345, 27), eye(300, 282, 18),
+        cheek(210, 392, 14, 9), cheek(390, 392, 14, 9),
+        smile(300, 400, 46, 13),
+    ]
+
+
+@character
+def ufo():
+    saucer, dome, beam = "#B8C2D6", "#BFE3FF", "#FFF3B0"
+    lights = [circle(x, y, 15, YELLOW, w=DETAIL) for x, y in ((150, 404), (224, 426), (300, 434), (376, 426), (450, 404))]
+    return [
+        shape("M232 450 L 368 450 L 448 700 L 152 700 Z", beam, w=DETAIL),
+        ellipse(300, 440, 150, 42, "#8E9AB2"),
+        ellipse(300, 400, 222, 70, saucer),
+        *lights,
+        shape("M186 372 C 186 222, 414 222, 414 372 Z", dome),
+        line("M216 312 Q 228 272 262 254", w=5),
+        eye(266, 322, 16), eye(334, 322, 16),
+        cheek(246, 352, 12, 8), cheek(354, 352, 12, 8),
+        smile(300, 350, 24, 8),
+    ]
+
+
+@character
+def moon():
+    gold = "#FFE27A"
+    craters = [circle(x, y, r, "#F4C85A", w=DETAIL) for x, y, r in ((150, 520, 24), (232, 604, 16), (118, 258, 15))]
+    return [
+        shape("M342 143 A 260 260 0 1 0 488 580 A 230 230 0 0 1 342 143 Z", gold),
+        *craters,
+        eye(112, 378, 15), eye(162, 372, 15),
+        cheek(96, 414, 12, 8), cheek(180, 404, 12, 8),
+        smile(138, 418, 24, 8),
+    ]
+
+
+@character
+def star():
+    import math
+    pts = []
+    for k in range(10):
+        a = math.radians(-90 + k * 36)
+        r = 250 if k % 2 == 0 else 112
+        pts.append(f"{300 + r * math.cos(a):.0f} {440 + r * math.sin(a):.0f}")
+    little = []
+    for k in range(10):
+        a = math.radians(-90 + k * 36)
+        r = 62 if k % 2 == 0 else 28
+        little.append(f"{500 + r * math.cos(a):.0f} {150 + r * math.sin(a):.0f}")
+    return [
+        shape("M" + " L".join(little) + " Z", "#FFF1A8"),
+        shape("M" + " L".join(pts) + " Z", YELLOW),
+        eye(262, 432, 17), eye(338, 432, 17),
+        cheek(242, 470, 13, 9), cheek(358, 470, 13, 9),
+        smile(300, 468, 30, 10),
+    ]
+
+
+@character
+def saturn():
+    planet, ring = "#FF9F45", "#FFD07A"
+    band = '<path d="M30 452 a 270 72 0 1 0 540 0 a 270 72 0 1 0 -540 0 Z M110 452 a 190 40 0 1 0 380 0 a 190 40 0 1 0 -380 0 Z" fill-rule="evenodd" '
+    band_svg = (band + f'fill="{ring}" stroke="{INK}" stroke-width="{OUTLINE}" stroke-linejoin="round"/>')
+    return [
+        band_svg,
+        circle(300, 400, 160, planet),
+        line("M190 290 Q 300 266 410 290", w=DETAIL),
+        clip("ringfront", '<rect x="0" y="452" width="600" height="348"/>', [band_svg]),
+        eye(258, 352, 17), eye(342, 352, 17),
+        cheek(234, 390, 13, 9), cheek(366, 390, 13, 9),
+        smile(300, 388, 28, 9),
+    ]
+
+
+@character
+def spaceCat():
+    fur, suit, glass = "#FFB35C", WHITE, "#DFF3FF"
+    ear = [shape("M214 300 L 222 200 L 286 262 Z", fur), shape("M228 278 L 232 226 L 266 258 Z", PINK, w=DETAIL)]
+    return [
+        tube("M396 612 Q 486 604 474 512", 34, fur),
+        shape("M200 512 C 200 490, 400 490, 400 512 L 410 652 C 410 690, 190 690, 190 652 Z", suit),
+        ellipse(240, 690, 46, 22, suit), ellipse(360, 690, 46, 22, suit),
+        circle(300, 330, 172, glass),
+        *ear, mirror(ear),
+        ellipse(300, 352, 120, 104, fur),
+        eye(260, 348, 16), eye(340, 348, 16),
+        shape("M290 382 L 310 382 L 300 394 Z", PINK, w=4),
+        line("M300 394 Q 288 410 276 402 M300 394 Q 312 410 324 402", w=5),
+        line("M196 372 L 236 380 M196 396 L 236 392 M404 372 L 364 380 M404 396 L 364 392", w=4),
+        line("M178 280 Q 188 222 232 190", w=5),
+        rect(170, 474, 260, 44, 22, GRAY),
+    ]
+
+
+# ---------------------------------------------------------------- the night market (0.13)
+
+
+@character
+def friedChicken():
+    import math
+    bag, band, crust = "#F2DDB0", "#FF5E5B", "#E8A64C"
+    # a big bumpy cutlet, wider than its paper bag
+    pts = []
+    for k in range(18):
+        a = 2 * math.pi * k / 18
+        r = 1 + 0.05 * math.sin(5 * a) + (0.05 if k % 2 else -0.02)
+        pts.append((300 + 205 * r * math.cos(a), 250 + 150 * r * math.sin(a)))
+    mids = [((x0 + x1) / 2, (y0 + y1) / 2) for (x0, y0), (x1, y1) in zip(pts, pts[1:] + pts[:1])]
+    cutlet = f"M{mids[-1][0]:.0f} {mids[-1][1]:.0f} " + " ".join(
+        f"Q {x:.0f} {y:.0f} {mx:.0f} {my:.0f}" for (x, y), (mx, my) in zip(pts, mids)) + " Z"
+    return [
+        shape(cutlet, crust),
+        line("M200 220 l 14 10 M262 180 l 12 12 M352 176 l 10 14 M412 232 l -12 12 M190 290 l 12 -10 M420 300 l -14 -6", w=5),
+        shape("M175 330 L 425 330 L 400 700 L 200 700 Z", bag),
+        shape("M175 330 L 425 330 L 420 380 L 180 380 Z", band, w=DETAIL),
+        eye(262, 510, 16), eye(338, 510, 16),
+        cheek(232, 552), cheek(368, 552),
+        smile(300, 550, 30, 10),
+    ]
+
+
+@character
+def sausage():
+    meat, stick = "#E85A4F", "#D9B07A"
+    return [
+        tube("M300 110 L 300 720", 18, stick),
+        shape("M250 180 C 250 130, 350 130, 350 180 C 372 300, 372 420, 350 540 C 350 590, 250 590, 250 540 C 228 420, 228 300, 250 180 Z", meat),
+        line("M262 250 L 338 228 M258 330 L 342 306 M260 410 L 340 386", w=DETAIL),
+        eye(278, 470, 14), eye(322, 470, 14),
+        cheek(258, 502, 10, 7), cheek(342, 502, 10, 7),
+        smile(300, 500, 20, 7),
+    ]
+
+
+@character
+def tanghulu():
+    fruit, shine, stick = "#FF4D6A", "#FFFFFF", "#D9B07A"
+    balls = [circle(300, y, 70, fruit) for y in (170, 300, 430)]
+    return [
+        tube("M300 120 L 300 720", 16, stick),
+        *balls,
+        circle(300, 560, 70, fruit),
+        line("M262 132 Q 270 116 288 112 M262 262 Q 270 246 288 242 M262 392 Q 270 376 288 372", w=5),
+        eye(274, 300, 14), eye(326, 300, 14),
+        cheek(254, 332, 11, 7), cheek(346, 332, 11, 7),
+        smile(300, 330, 22, 8),
+    ]
+
+
+@character
+def cottonCandy():
+    fluff, stick = "#FFB3D9", "#F2F5FA"
+    return [
+        shape("M282 430 L 318 430 L 306 720 L 294 720 Z", stick),
+        shape(scallop(300, 310, 150, 190, 11), fluff),
+        eye(262, 300, 17), eye(338, 300, 17),
+        cheek(238, 342, 13, 9), cheek(362, 342, 13, 9),
+        smile(300, 340, 30, 10),
+    ]
+
+
+@character
+def sweetPotatoBalls():
+    cup, ball, stick = "#FFF4DD", "#FFC46B", "#D9B07A"
+    balls = [circle(x, y, 46, ball) for x, y in ((220, 330), (300, 300), (380, 330), (260, 250), (340, 250))]
+    return [
+        tube("M380 300 L 470 150", 10, stick),
+        *balls,
+        shape("M160 350 L 440 350 L 410 700 L 190 700 Z", cup),
+        line("M176 400 H 424", w=DETAIL),
+        eye(262, 520, 16), eye(338, 520, 16),
+        cheek(232, 562), cheek(368, 562),
+        smile(300, 560, 30, 10),
+    ]
+
+
+@character
+def shavedIce():
+    bowl, ice, syrup, mango = "#BFE3FF", WHITE, "#FF8FB1", "#FFC94A"
+    cubes = [rect(x, y, 44, 38, 8, mango, sw=DETAIL) for x, y in ((232, 262), (300, 232), (350, 276))]
+    return [
+        rect(250, 640, 100, 50, 12, bowl),
+        shape("M120 520 L 480 520 C 470 620, 400 660, 300 660 C 200 660, 130 620, 120 520 Z", bowl),
+        shape("M132 520 C 150 400, 230 250, 300 232 C 370 250, 450 400, 468 520 Z", ice),
+        shape("M206 350 C 236 270, 364 270, 394 350 Q 378 380 356 356 Q 334 392 312 360 Q 290 394 268 360 Q 246 390 226 358 Q 214 376 206 350 Z", syrup, w=DETAIL),
+        *cubes,
+        eye(262, 440, 16), eye(338, 440, 16),
+        cheek(232, 480), cheek(368, 480),
+        smile(300, 478, 30, 10),
+    ]
+
+
+@character
+def takoyaki():
+    tray, ball = "#E8B987", "#E8A64C"
+    return [
+        shape("M90 520 L 510 520 L 470 640 L 130 640 Z", tray),
+        circle(180, 470, 70, ball), circle(420, 470, 70, ball),
+        circle(300, 440, 92, ball),
+        line("M130 452 l 28 -16 l 28 16 l 28 -16 M372 452 l 28 -16 l 28 16 l 28 -16", w=5),
+        line("M226 360 q 18 -18 36 0 t 36 0 t 36 0", w=5),
+        eye(268, 440, 16), eye(332, 440, 16),
+        cheek(244, 480, 12, 8), cheek(356, 480, 12, 8),
+        smile(300, 478, 28, 9),
+        tube("M450 400 L 520 230", 10, "#D9B07A"),
+    ]
+
+
+@character
+def goldfish():
+    body, fin = "#FF8A3D", "#FFB35C"
+    return [
+        shape("M210 400 C 120 300, 60 330, 70 400 C 60 470, 120 500, 210 400 Z", fin),
+        line("M80 370 L 180 400 M80 430 L 180 404", w=5),
+        shape("M300 260 C 330 200, 380 200, 380 250 Z", fin),
+        ellipse(330, 400, 150, 112, body),
+        shape("M300 500 C 300 560, 260 580, 240 560 C 260 540, 270 520, 270 500 Z", fin),
+        line("M290 320 Q 270 400 290 480", w=DETAIL),
+        eye(400, 380, 18),
+        cheek(424, 424, 13, 9),
+        smile(440, 438, 22, 8),
+        circle(510, 300, 16, WHITE, w=5), circle(540, 250, 11, WHITE, w=5),
+    ]
+
+
+# ---------------------------------------------------------------- the polar sea (0.13)
+
+
+@character
+def penguin():
+    coat, beak = "#3D4A66", ORANGE
+    flipper = [ellipse(168, 480, 42, 104, coat, rot=18)]
+    return [
+        ellipse(248, 690, 52, 22, beak), ellipse(352, 690, 52, 22, beak),
+        *flipper, mirror(flipper),
+        ellipse(300, 460, 150, 222, coat),
+        ellipse(300, 530, 102, 152, WHITE),
+        ellipse(300, 350, 106, 82, WHITE),
+        eye(262, 346, 16), eye(338, 346, 16),
+        shape("M282 378 L 318 378 L 300 404 Z", beak, w=6),
+        cheek(234, 382, 13, 9), cheek(366, 382, 13, 9),
+    ]
+
+
+@character
+def polarBear():
+    fur, scarf = WHITE, SKY
+    ear = [circle(196, 222, 40, fur), circle(196, 222, 20, PINK, w=DETAIL)]
+    return [
+        rect(194, 590, 82, 112, 36, fur), rect(324, 590, 82, 112, 36, fur),
+        line("M206 672 Q 235 664 264 672 M336 672 Q 365 664 394 672"),
+        ellipse(300, 548, 160, 128, fur),
+        *ear, mirror(ear),
+        circle(300, 330, 140, fur),
+        shape("M190 432 C 240 466, 360 466, 410 432 L 404 472 C 360 500, 240 500, 196 472 Z", scarf),
+        rect(338, 470, 46, 92, 16, scarf),
+        ellipse(300, 380, 62, 46, CREAM, w=DETAIL),
+        ellipse(300, 362, 22, 15, INK, w=4),
+        line("M300 377 V 396 M300 396 Q 286 410 274 402 M300 396 Q 314 410 326 402", w=5),
+        eye(246, 318, 15), eye(354, 318, 15),
+        cheek(224, 360, 13, 9), cheek(376, 360, 13, 9),
+    ]
+
+
+@character
+def seal():
+    skin, belly = "#B8C6D8", "#DCE6F2"
+    return [
+        shape("M120 610 L 46 560 L 66 622 L 40 680 Z", skin),
+        shape("M100 620 C 120 540, 210 470, 330 440 C 440 414, 520 470, 520 560 C 520 640, 420 690, 300 690 C 200 690, 120 670, 100 620 Z", skin),
+        shape("M170 650 C 240 690, 400 690, 470 630 C 420 660, 240 666, 170 650 Z", belly, w=DETAIL),
+        ellipse(330, 650, 56, 22, skin, rot=18),
+        eye(410, 520, 16), eye(468, 514, 16),
+        ellipse(444, 556, 18, 12, INK, w=4),
+        line("M444 568 Q 432 582 420 574 M444 568 Q 456 582 468 574", w=5),
+        line("M400 560 L 360 552 M402 576 L 362 580 M490 556 L 530 548 M488 572 L 528 576", w=4),
+        cheek(392, 560, 12, 8),
+    ]
+
+
+@character
+def snowman():
+    snow, hat, scarf, carrot = WHITE, RED, GREEN, ORANGE
+    return [
+        tube("M178 500 L 96 430 M96 430 L 80 396 M96 430 L 62 432", 10, BROWN),
+        tube("M422 500 L 504 430 M504 430 L 520 396 M504 430 L 538 432", 10, BROWN),
+        circle(300, 562, 142, snow),
+        circle(300, 330, 106, snow),
+        rect(208, 214, 184, 24, 10, hat),
+        rect(236, 112, 128, 112, 16, hat),
+        rect(236, 186, 128, 22, 0, YELLOW, sw=DETAIL),
+        shape("M206 418 C 250 446, 350 446, 394 418 L 392 456 C 350 482, 250 482, 208 456 Z", scarf),
+        rect(330, 452, 44, 96, 14, scarf),
+        shape("M300 336 L 370 352 L 300 364 Z", carrot, w=6),
+        eye(262, 312, 15), eye(330, 310, 15),
+        cheek(244, 350, 12, 8), cheek(352, 352, 12, 8),
+        smile(296, 378, 26, 8),
+        circle(300, 540, 13, DARK, w=5), circle(300, 600, 13, DARK, w=5),
+    ]
+
+
+@character
+def arcticFox():
+    fur, ear_in = "#F2F7FC", PINK
+    ear = [shape("M206 300 L 200 156 L 290 246 Z", fur), shape("M218 280 L 214 196 L 268 250 Z", ear_in, w=DETAIL)]
+    return [
+        shape("M388 640 C 560 650, 610 430, 486 350 C 470 420, 500 500, 440 540 C 418 556, 398 580, 388 600 Z", fur),
+        shape("M520 420 C 560 470, 556 520, 530 560 C 540 510, 536 460, 520 420 Z", WHITE, w=DETAIL),
+        ellipse(300, 566, 122, 132, fur),
+        rect(220, 640, 64, 64, 28, fur), rect(316, 640, 64, 64, 28, fur),
+        *ear, mirror(ear),
+        shape("M180 330 C 180 240, 420 240, 420 330 C 420 400, 360 440, 300 450 C 240 440, 180 400, 180 330 Z", fur),
+        eye(256, 330, 15), eye(344, 330, 15),
+        ellipse(300, 392, 18, 12, INK, w=4),
+        line("M300 404 Q 290 418 280 410 M300 404 Q 310 418 320 410", w=5),
+        cheek(232, 372, 12, 8), cheek(368, 372, 12, 8),
+    ]
+
+
+@character
+def orca():
+    dark = "#2F3540"
+    return [
+        shape("M96 420 L 30 356 L 40 430 L 30 504 Z", dark),
+        shape("M276 312 L 300 196 L 352 306 Z", dark),
+        ellipse(300, 432, 232, 132, dark),
+        shape("M110 470 C 200 566, 420 566, 506 466 C 420 516, 200 516, 110 470 Z", WHITE),
+        ellipse(398, 392, 50, 32, WHITE, rot=-10),
+        ellipse(310, 524, 52, 24, dark, rot=30),
+        eye(394, 398, 15),
+        cheek(452, 440, 13, 9),
+        smile(470, 466, 22, 8),
+    ]
+
+
+@character
+def sled():
+    wood, runner, gift, ribbon = BROWN, RED, GREEN, YELLOW
+    return [
+        tube("M110 610 L 470 610 Q 530 610 530 548", 16, runner),
+        rect(166, 496, 26, 120, 8, wood), rect(287, 496, 26, 120, 8, wood), rect(408, 496, 26, 120, 8, wood),
+        rect(120, 430, 380, 76, 18, "#D69B66"),
+        line("M140 468 H 480", w=DETAIL),
+        rect(214, 250, 172, 182, 18, gift),
+        rect(284, 250, 32, 182, 0, ribbon, sw=DETAIL),
+        shape("M300 250 C 250 190, 220 230, 300 250 C 380 230, 350 190, 300 250 Z", ribbon, w=6),
+        eye(260, 336, 15), eye(340, 336, 15),
+        cheek(240, 372, 12, 8), cheek(360, 372, 12, 8),
+        smile(300, 370, 24, 8),
+    ]
+
+
+@character
+def igloo():
+    ice, door = "#EAF5FF", "#5C7DA6"
+    return [
+        ellipse(300, 640, 240, 34, "#DCEEFB"),
+        shape("M100 630 C 100 330, 500 330, 500 630 Z", ice),
+        line("M112 528 Q 300 508 488 528", w=DETAIL),
+        line("M182 446 V 520 M418 446 V 520 M172 530 V 628 M428 530 V 628", w=DETAIL),
+        shape("M240 630 C 240 530, 360 530, 360 630 Z", door),
+        eye(262, 458, 15), eye(338, 458, 15),
+        cheek(240, 490, 12, 8), cheek(360, 490, 12, 8),
+        smile(300, 486, 24, 8),
     ]

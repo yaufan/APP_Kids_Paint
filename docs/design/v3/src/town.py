@@ -472,6 +472,47 @@ def travel():
                + '<rect x="326" y="1004" width="54" height="18" rx="5" fill="#FF8A3D" stroke="#C9692A" stroke-width="1.4"/>')
 
 
+def space():
+    """The space center on the left mountain (0.13): a launch tower with a
+    rocket, an observatory dome, stars over them."""
+    stars = "".join(f'<path d="M{x} {y - 6} l1.8 4.2 4.2 1.8 -4.2 1.8 -1.8 4.2 -1.8 -4.2 -4.2 -1.8 4.2 -1.8z" fill="#FFD23F"/>'
+                    for x, y in [(30, 62), (176, 70), (96, 52), (150, 112)])
+    return ('<ellipse cx="100" cy="214" rx="86" ry="14" fill="#C9C2E6" opacity=".9"/>' + stars
+            + '<circle cx="48" cy="96" r="13" fill="#FF8FB1" stroke="#E0668C" stroke-width="1.4"/><ellipse cx="48" cy="96" rx="22" ry="5" fill="none" stroke="#FFC94A" stroke-width="2.4"/>'
+            # the observatory
+            + '<rect x="28" y="180" width="70" height="34" rx="4" fill="#EAF2FF" stroke="#8E9AB2" stroke-width="1.6"/>'
+            + '<path d="M28 182 C 28 144, 98 144, 98 182 Z" fill="#F7FAFF" stroke="#8E9AB2" stroke-width="1.6"/>'
+            + '<path d="M58 150 L 66 150 L 66 182 L 58 182 Z" fill="#5C7DA6"/><path d="M62 160 L 84 140" stroke="#5C7DA6" stroke-width="5" stroke-linecap="round"/>'
+            + '<rect x="54" y="194" width="18" height="20" rx="3" fill="#9FB3C8"/>'
+            # the launch tower and its rocket
+            + '<rect x="160" y="96" width="6" height="118" fill="#8A97A8"/><rect x="178" y="96" width="6" height="118" fill="#8A97A8"/>'
+            + "".join(f'<path d="M163 {y} L181 {y + 14} M181 {y} L163 {y + 14}" stroke="#8A97A8" stroke-width="2"/>' for y in range(100, 210, 14))
+            + '<path d="M136 92 C 150 102, 154 130, 152 176 H 120 C 118 130, 122 102, 136 92 Z" fill="#F2F5FA" stroke="#9FB3C8" stroke-width="1.6"/>'
+            + '<path d="M136 92 C 143 98, 148 106, 150 116 H 122 C 124 106, 129 98, 136 92 Z" fill="#FF5E5B"/>'
+            + '<circle cx="136" cy="136" r="8" fill="#A9E0FF" stroke="#9FB3C8" stroke-width="1.4"/>'
+            + '<path d="M121 160 L 110 180 L 122 176 Z M151 160 L 162 180 L 150 176 Z" fill="#FF5E5B"/>'
+            + '<rect x="126" y="176" width="20" height="8" rx="2" fill="#8A97A8"/><rect x="112" y="206" width="60" height="8" rx="3" fill="#5D6470"/>'
+            + (glow(136, 136, 14) if PHASE == "night" else ""))
+
+
+def polar():
+    """The polar sea on the right mountain (0.13): a snowy peak with an
+    igloo, a penguin and a little flag."""
+    return ('<path d="M612 214 L 660 112 L 690 150 L 716 96 L 766 214 Z" fill="#F4FBFF" stroke="#9FC4E6" stroke-width="1.8"/>'
+            + '<path d="M660 112 L 672 138 L 664 164 M716 96 L 730 130 L 722 160" stroke="#CFE5F7" stroke-width="5" fill="none"/>'
+            + '<ellipse cx="690" cy="216" rx="86" ry="12" fill="#DCEEFB"/>'
+            # the igloo
+            + '<path d="M628 210 C 628 168, 690 168, 690 210 Z" fill="#EAF5FF" stroke="#8EB4D8" stroke-width="1.6"/>'
+            + '<path d="M634 196 Q 659 190 684 196 M644 182 Q 659 178 674 182" stroke="#BFD7EE" stroke-width="1.4" fill="none"/>'
+            + '<path d="M650 210 C 650 194, 668 194, 668 210 Z" fill="#5C7DA6"/>'
+            # the penguin
+            + '<ellipse cx="722" cy="196" rx="12" ry="17" fill="#3D4A66"/><ellipse cx="722" cy="200" rx="8" ry="12" fill="#FFFFFF"/>'
+            + '<circle cx="719" cy="190" r="1.6" fill="#222"/><circle cx="725" cy="190" r="1.6" fill="#222"/><path d="M720.5 194 h3 l-1.5 2.4 z" fill="#FF9F45"/>'
+            + '<path d="M716 213 h5 M723 213 h5" stroke="#FF9F45" stroke-width="2.6" stroke-linecap="round"/>'
+            + '<path d="M748 212 V 176" stroke="#8A6A4A" stroke-width="2.4"/><path d="M748 176 l 14 5 l -14 5 Z" fill="#FF5E5B"/>'
+            + (glow(659, 202, 12) if PHASE == "night" else ""))
+
+
 # kind -> (building layer, lot rect in world coords, pin anchor in world coords)
 SLOTS = {
     "home": (home, None, (OX + 78, 344)),
@@ -486,6 +527,8 @@ SLOTS = {
     "transport": (transport, None, (682, 520)),
     "botanical": (botanical, None, (101, 930)),
     "insects": (insects, None, (680, 918)),
+    "space": (space, None, (100, 206)),
+    "polar": (polar, None, (690, 206)),
     "grandma": (grandma, (OX + 24, 892, 164, 124), (OX + 84, 932)),
     "travel": (travel, (OX + 232, 892, 158, 136), (OX + 299, 896)),
     # scenery that is always there: only a pin anchor
@@ -493,11 +536,12 @@ SLOTS = {
     "mountain": (None, None, (OX + 60, 200)),
     "station": (None, None, (OX + 298, 286)),
 }
-ORDER = ["home", "school", "park", "shop", "food", "temple", "zoo", "aquarium", "dinoPark", "transport", "botanical", "insects", "grandma", "travel"]
+ORDER = ["space", "polar", "home", "school", "park", "shop", "food", "temple", "zoo", "aquarium", "dinoPark", "transport", "botanical", "insects",
+         "grandma", "travel"]
 # Places you can go into (scenes in the app), always built: kind -> tap area.
 ATTRACTIONS = {"zoo": (596, 690, 172, 124), "aquarium": (12, 690, 178, 128), "dinoPark": (12, 476, 178, 170),
                "transport": (596, 476, 172, 170), "botanical": (12, 878, 178, 168), "insects": (596, 878, 172, 168),
-               "shop": (OX + 230, 548, 90, 76)}
+               "shop": (OX + 230, 548, 90, 76), "food": (OX + 12, 680, 172, 120), "space": (12, 44, 176, 180), "polar": (600, 70, 172, 154)}
 
 
 def lot(kind):
@@ -571,7 +615,7 @@ def export(app_dir):
     lines += ["};", "", "/// Back to front.", "const townLayerOrder = [" + ", ".join(f"'{k}'" for k in ORDER) + "];", "",
               "/// Festivals with a decoration layer (`festival_<name>_<phase>.svg`).",
               "const townFestivalLayers = {" + ", ".join(f"'{k}'" for k in festivals.DECOR) + "};", "",
-              "/// Places you can go into (the zoo, the aquarium, the dinosaur park, the transport museum, the botanical garden, the insect museum, the shop): always built; tapping opens their scene.",
+              "/// Places you can go into (the zoo, the aquarium, the dinosaur park, the transport museum, the botanical garden, the insect museum, the shop, the night market, space, the polar sea): always built; tapping opens their scene.",
               "const townAttractions = <String, Rect>{",
               *[f"  '{k}': Rect.fromLTWH({x}, {y}, {w}, {h})," for k, (x, y, w, h) in ATTRACTIONS.items()],
               "};", "",

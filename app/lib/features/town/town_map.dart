@@ -8,6 +8,7 @@ import '../../app/art.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
+import '../../core/creatures.dart';
 import '../../core/db/database.dart';
 import '../../core/festivals.dart';
 import '../../core/places.dart';
@@ -234,7 +235,7 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
             rect: Rect.fromLTWH(rect.left * s, rect.top * s, rect.width * s, rect.height * s),
             child: Semantics(
               button: true,
-              label: Strings.enter(PlaceKind.byName(name).label),
+              label: Strings.enter(_door(PlaceKind.byName(name))),
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: widget.onAttraction == null ? null : () => widget.onAttraction!(PlaceKind.byName(name)),
@@ -353,7 +354,7 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
       top: y,
       child: Semantics(
         button: true,
-        label: Strings.goTo(kind.label),
+        label: Strings.goTo(_door(kind)),
         excludeSemantics: true,
         child: Pressable(
           onTap: () => _panTo(rect.center, viewport, s),
@@ -373,6 +374,10 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
       ),
     );
   }
+
+  /// What a place you can go into is called on its door (the night market
+  /// is where 好吃的店 postcards go).
+  static String _door(PlaceKind kind) => Habitat.of(kind)?.label ?? kind.label;
 
   Widget _svg(String name) => ExcludeSemantics(child: SvgPicture.asset(Art.town(name, widget.phase), fit: BoxFit.fill));
 

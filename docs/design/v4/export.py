@@ -22,6 +22,9 @@ SCENES = {
     "botanical": 2,
     "insects": 2,
     "shop": 3,
+    "space": 2,
+    "nightMarket": 3,
+    "polar": 1,
 }
 
 # Parts of a scene's layout put back over its painting (scene units, 1000

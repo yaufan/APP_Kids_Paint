@@ -31,7 +31,10 @@ import 'motion.dart';
 ///
 /// In the shop customers come in now and then (the child's own animals, or
 /// the buddies), ask for one of the goods, take it home and pay a coin;
-/// the shelf is filled again right away.
+/// the shelf is filled again right away. In space a tapped rocket counts
+/// down and takes off (now and then one does by itself) and the stars
+/// twinkle; at the night market the lanterns glow and a tapped snack gets
+/// a ring thrown over it; at the polar sea it snows.
 class SceneScreen extends ConsumerStatefulWidget {
   const SceneScreen({super.key, required this.habitat, this.arrived});
 
@@ -78,6 +81,23 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
 
   bool get _shop => widget.habitat == Habitat.shop;
 
+  /// The shelves goods stand on here, if any.
+  List<double>? get _shelves => switch (widget.habitat) {
+        Habitat.shop => shopBoards,
+        Habitat.nightMarket => marketCounters,
+        _ => null,
+      };
+
+  // Space: a rocket taking off (an artwork id).
+  late final AnimationController _liftoff = AnimationController(vsync: this, duration: const Duration(milliseconds: 3800));
+  int? _launching;
+  Timer? _launches;
+
+  // The night market: a ring thrown at a snack (an artwork id), landing at
+  // [at] (scene units, around the snack) and as wide as [width].
+  late final AnimationController _throw = AnimationController(vsync: this, duration: const Duration(milliseconds: 1700));
+  ({int id, Offset at, double width})? _ring;
+
   @override
   void initState() {
     super.initState();
@@ -92,6 +112,18 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
     _hello = Timer(Duration(milliseconds: widget.arrived != null ? 1600 : 2500), () {
       final arrived = _residents.where((a) => a.id == widget.arrived).firstOrNull;
       arrived != null ? _say(arrived) : _chat();
+    });
+    if (widget.habitat == Habitat.space) {
+      _launches = Timer.periodic(const Duration(seconds: 17), (_) {
+        final rockets = [for (final a in _residents) if (a.template == Creature.rocket.name) a];
+        if (rockets.isNotEmpty) _launch(rockets[_random.nextInt(rockets.length)]);
+      });
+      _liftoff.addStatusListener((status) {
+        if (status == AnimationStatus.completed && mounted) setState(() => _launching = null);
+      });
+    }
+    _throw.addStatusListener((status) {
+      if (status == AnimationStatus.completed && mounted) setState(() => _ring = null);
     });
     if (_shop) {
       _firstCustomer = Timer(const Duration(milliseconds: 5000), _startSale);
@@ -112,7 +144,10 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
     _hush?.cancel();
     _customers?.cancel();
     _firstCustomer?.cancel();
+    _launches?.cancel();
     _visit.dispose();
+    _liftoff.dispose();
+    _throw.dispose();
     _voice?.stop();
     super.dispose();
   }
@@ -158,6 +193,35 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
     });
   }
 
+  /// A rocket counts down and takes off, and lands again a moment later.
+  void _launch(Artwork rocket) {
+    if (!mounted || _launching != null) return;
+    setState(() => _launching = rocket.id);
+    _speak(rocket.id, countdown);
+    _liftoff.forward(from: 0);
+  }
+
+  /// How high the launching rocket is (scene units), and whether its engine
+  /// is burning, at [t] of the launch: the countdown, up and away, then
+  /// back down from the top.
+  static ({double lift, bool flame, double shake}) _flight(double t) {
+    if (t < 0.32) return (lift: 0, flame: t > 0.22, shake: t > 0.12 ? math.sin(t * 160) * 3 : 0);
+    if (t < 0.62) return (lift: 1500 * Curves.easeIn.transform((t - 0.32) / 0.3), flame: true, shake: 0);
+    if (t < 0.72) return (lift: 1500, flame: false, shake: 0);
+    return (lift: 1500 * (1 - Curves.easeOut.transform((t - 0.72) / 0.28)), flame: t < 0.95, shake: 0);
+  }
+
+  /// A ring flies over a snack at the night market; it says something when
+  /// it lands.
+  void _toss(Artwork snack, Pose pose, Creature creature) {
+    if (!mounted || _ring != null) return;
+    setState(() => _ring = (id: snack.id, at: pose.at - const Offset(0, 34), width: math.max(70.0, creature.size * 1.15)));
+    _throw.forward(from: 0);
+    Timer(const Duration(milliseconds: 900), () {
+      if (mounted && _ring?.id == snack.id) _speak(snack.id, ringed[_random.nextInt(ringed.length)]);
+    });
+  }
+
   /// A customer comes in for one of the goods on the shelves.
   void _startSale() {
     if (!mounted || _sale != null || _shelved.isEmpty) return;
@@ -190,7 +254,7 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
     }
   }
 
-  String get _place => widget.habitat.place.label;
+  String get _place => widget.habitat.label;
 
   Future<void> _draw(int childId, Creature creature) async {
     if (_opening) return;
@@ -295,7 +359,8 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
                 final t = _clock.lastElapsedDuration?.inMicroseconds ?? 0;
                 final seconds = t / 1e6;
                 final placed = <({Artwork art, Creature creature, Pose pose})>[];
-                final spots = _shop ? shelfSpots(view) : const <Offset>[];
+                final shelves = _shelves;
+                final spots = shelves == null ? const <Offset>[] : shelfSpots(view, boards: shelves);
                 final shelved = <Artwork>[];
                 for (final art in residents) {
                   final creature = Creature.byName(art.template);
@@ -315,7 +380,10 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
                 final sold = sale == null ? null : placed.where((p) => p.art.id == sale.item.id).firstOrNull;
                 // Farther back (higher up) first, so nearer creatures pass in front.
                 placed.sort((a, b) => a.pose.at.dy.compareTo(b.pose.at.dy));
+                final flight = _launching == null ? null : _flight(_liftoff.value);
                 return Stack(clipBehavior: Clip.none, children: [
+                  if (widget.habitat == Habitat.space || widget.habitat == Habitat.nightMarket)
+                    Positioned.fill(child: IgnorePointer(child: CustomPaint(painter: _Glow(widget.habitat, view, seconds)))),
                   for (final p in placed)
                     _Resident(
                       key: ValueKey(p.art.id),
@@ -326,8 +394,18 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
                       arrived: p.art.id == widget.arrived,
                       saying: _saying?.id == p.art.id ? _saying!.text : null,
                       presence: sale != null && sale.item.id == p.art.id ? sale.presence(_visit.value) : 1,
-                      onTap: () => _say(p.art, tapped: true),
+                      lift: _launching == p.art.id ? flight!.lift : 0,
+                      flame: _launching == p.art.id && flight!.flame,
+                      shake: _launching == p.art.id ? flight!.shake : 0,
+                      onTap: () => switch (p.creature) {
+                        Creature.rocket => _launch(p.art),
+                        _ when widget.habitat == Habitat.nightMarket && p.creature.motion == Motion.shelf => _toss(p.art, p.pose, p.creature),
+                        _ => _say(p.art, tapped: true),
+                      },
                     ),
+                  if (_ring case final ring?) _Ring(ring: ring, t: _throw.value, view: view),
+                  if (widget.habitat == Habitat.polar)
+                    Positioned.fill(child: IgnorePointer(child: CustomPaint(painter: _Snow(view, seconds)))),
                   if (sale != null && sold != null)
                     _Customer(
                       sale: sale,
@@ -467,7 +545,7 @@ class _Title extends StatelessWidget {
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           ArtSvg(Art.place(habitat.place), size: 42),
           const SizedBox(width: 6),
-          Text(habitat.place.label, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
+          Text(habitat.label, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
         ]),
       );
 }
@@ -483,6 +561,9 @@ class _Resident extends StatefulWidget {
     this.arrived = false,
     this.saying,
     this.presence = 1,
+    this.lift = 0,
+    this.flame = false,
+    this.shake = 0,
     this.onTap,
   });
 
@@ -498,6 +579,12 @@ class _Resident extends StatefulWidget {
   /// How much of it is there: 0 while a customer has it, growing back to 1
   /// when the shelf is filled again.
   final double presence;
+
+  /// A rocket taking off: how high it is (scene units), whether its engine
+  /// burns, and how much it shakes before it goes.
+  final double lift;
+  final bool flame;
+  final double shake;
   final VoidCallback? onTap;
 
   @override
@@ -564,8 +651,13 @@ class _ResidentState extends State<_Resident> with TickerProviderStateMixin {
                       ),
                     ),
                   ),
+                if (widget.flame)
+                  Positioned(
+                    bottom: -width * 0.45 + widget.lift * view.scale,
+                    child: _Flame(width: width * 0.36, flicker: math.sin(DateTime.now().millisecondsSinceEpoch / 40)),
+                  ),
                 Transform.translate(
-                  offset: Offset(0, -hop),
+                  offset: Offset(widget.shake * view.scale, -hop - widget.lift * view.scale),
                   child: Transform.scale(
                     scale: (0.2 + 0.8 * grow) * widget.presence,
                     alignment: Alignment.bottomCenter,
@@ -754,4 +846,124 @@ class _Coin extends StatelessWidget {
         ),
         child: KidIcon('star', size: size * 0.5, color: Colors.white, solid: true),
       );
+}
+
+/// A rocket's flame.
+class _Flame extends StatelessWidget {
+  const _Flame({required this.width, required this.flicker});
+
+  final double width;
+  final double flicker;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: width,
+        height: width * (1.5 + 0.15 * flicker),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(width * 0.2), bottom: Radius.circular(width)),
+            gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [KidColors.sun, KidColors.coral, Color(0x00FF5E5B)]),
+          ),
+        ),
+      );
+}
+
+/// A ring thrown at a snack: it flies up from the bottom of the screen in
+/// an arc, then lies around the snack for a moment.
+class _Ring extends StatelessWidget {
+  const _Ring({required this.ring, required this.t, required this.view});
+
+  final ({int id, Offset at, double width}) ring;
+  final double t;
+  final SceneView view;
+
+  static const _flying = 0.5;
+
+  @override
+  Widget build(BuildContext context) {
+    final v = view.visible;
+    final start = Offset(v.center.dx, v.bottom + 40);
+    final f = (t / _flying).clamp(0.0, 1.0), e = Curves.easeOut.transform(f);
+    final at = Offset.lerp(start, ring.at, e)! - Offset(0, 300 * 4 * f * (1 - f));
+    final landed = t >= _flying;
+    final width = (landed ? ring.width : 80 + (ring.width - 80) * e) * view.scale;
+    final height = landed ? width * 0.32 : width * (1 - 0.68 * e);
+    final fade = t < 0.85 ? 1.0 : (1 - (t - 0.85) / 0.15).clamp(0.0, 1.0);
+    final screen = view.toScreen(at);
+    return Positioned(
+      left: screen.dx - width / 2,
+      top: screen.dy - height / 2,
+      child: IgnorePointer(
+        child: Opacity(
+          opacity: fade,
+          child: Container(
+            width: width,
+            height: height,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.all(Radius.elliptical(width / 2, height / 2)),
+              border: Border.all(color: KidColors.coral, width: 7 * view.scale + 2),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Space's twinkling stars, or the night market's glowing lanterns.
+class _Glow extends CustomPainter {
+  _Glow(this.habitat, this.view, this.seconds);
+
+  final Habitat habitat;
+  final SceneView view;
+  final double seconds;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint();
+    if (habitat == Habitat.nightMarket) {
+      for (final (i, lantern) in marketLanterns.indexed) {
+        final glow = 0.25 + 0.15 * math.sin(seconds * 2.2 + i * 1.7);
+        paint.shader = RadialGradient(colors: [const Color(0xFFFFE08A).withValues(alpha: glow), const Color(0x00FFE08A)])
+            .createShader(Rect.fromCircle(center: view.toScreen(lantern), radius: 46 * view.scale));
+        canvas.drawCircle(view.toScreen(lantern), 46 * view.scale, paint);
+      }
+      return;
+    }
+    final r = math.Random(11);
+    for (var i = 0; i < 40; i++) {
+      final at = view.toScreen(Offset(r.nextDouble() * 1000, r.nextDouble() * 720));
+      final twinkle = 0.5 + 0.5 * math.sin(seconds * (1.5 + r.nextDouble() * 2) + i);
+      paint
+        ..shader = null
+        ..color = Colors.white.withValues(alpha: 0.2 + 0.7 * twinkle);
+      canvas.drawCircle(at, (1.2 + 2.2 * twinkle) * view.scale + 0.6, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_Glow old) => old.seconds != seconds;
+}
+
+/// Snow falling gently over the polar sea.
+class _Snow extends CustomPainter {
+  _Snow(this.view, this.seconds);
+
+  final SceneView view;
+  final double seconds;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = math.Random(5);
+    final paint = Paint()..color = Colors.white.withValues(alpha: 0.85);
+    for (var i = 0; i < 70; i++) {
+      final speed = 18 + r.nextDouble() * 30, x0 = r.nextDouble() * 1000, y0 = r.nextDouble() * 1000;
+      final y = (y0 + seconds * speed) % 1040 - 20;
+      final x = x0 + 14 * math.sin(seconds * 0.8 + i);
+      canvas.drawCircle(view.toScreen(Offset(x, y)), (2 + r.nextDouble() * 3.5) * view.scale + 0.8, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_Snow old) => old.seconds != seconds;
 }

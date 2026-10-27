@@ -393,3 +393,122 @@ def shop_scene():
 
 
 SCENES["shop"] = shop_scene
+
+
+# ---------------------------------------------------------------- 0.13: space, night market, polar
+
+
+def space_scene():
+    """Space (太空): a starry sky with the Earth and a ringed planet, and
+    the Moon's grey ground with craters and a launch tower below. Things
+    drift about the sky; rockets and flying saucers fly."""
+    defs = ('<linearGradient id="spsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#151A45"/>'
+            '<stop offset=".7" stop-color="#3A2F7D"/><stop offset="1" stop-color="#5A3F94"/></linearGradient>')
+    s = ['<rect width="1000" height="1000" fill="url(#spsky)"/>']
+    for i in range(90):  # stars, the same every time
+        x, y = (i * 137.5) % 1000, (i * 71.3 + 40) % 760
+        s.append(f'<circle cx="{x:.0f}" cy="{y:.0f}" r="{1.4 + (i % 3) * 1.1:.1f}" fill="#FFF6C9" opacity="{0.5 + (i % 4) * 0.15:.2f}"/>')
+    for x, y in [(120, 90), (430, 60), (690, 420), (300, 520), (900, 560)]:
+        s.append(f'<path d="M{x} {y - 14} L{x + 4} {y - 4} L{x + 14} {y} L{x + 4} {y + 4} L{x} {y + 14} L{x - 4} {y + 4} L{x - 14} {y} L{x - 4} {y - 4} Z" fill="#FFE27A"/>')
+    # the Earth, a ringed planet, a little pink planet
+    s.append('<circle cx="810" cy="210" r="92" fill="#4DA8FF"/>'
+             '<path d="M760 160 C 790 140, 830 150, 820 185 C 810 215, 770 205, 765 230 C 740 210, 735 180, 760 160 Z" fill="#6BCB77"/>'
+             '<path d="M840 230 C 870 220, 895 240, 880 270 C 860 290, 835 275, 840 230 Z" fill="#6BCB77"/>'
+             '<circle cx="810" cy="210" r="92" fill="none" stroke="#BFE3FF" stroke-width="8" opacity=".6"/>')
+    s.append('<ellipse cx="190" cy="330" rx="105" ry="26" fill="none" stroke="#FFD07A" stroke-width="12" transform="rotate(-15 190 330)"/>'
+             '<circle cx="190" cy="330" r="58" fill="#FF9F45"/>'
+             '<path d="M140 318 Q 190 300 240 316 M136 344 Q 190 330 244 342" stroke="#E07A2A" stroke-width="7" fill="none"/>'
+             '<path d="M88 352 A 105 26 -15 0 0 292 298" fill="none" stroke="#FFD07A" stroke-width="12"/>')
+    s.append('<circle cx="560" cy="150" r="30" fill="#FF8FB1"/><circle cx="550" cy="142" r="7" fill="#E0668C"/>')
+    # the Moon's ground
+    s.append('<path d="M0 800 C 160 760, 300 780, 480 800 C 660 820, 820 770, 1000 790 V1000 H0 Z" fill="#B9BED6"/>'
+             '<path d="M0 860 C 200 830, 420 850, 600 870 C 780 890, 900 850, 1000 860 V1000 H0 Z" fill="#CDD1E6"/>')
+    for x, y, rx in [(160, 900, 60), (430, 950, 44), (700, 905, 70), (880, 960, 40), (330, 845, 30), (600, 830, 26)]:
+        s.append(f'<ellipse cx="{x}" cy="{y}" rx="{rx}" ry="{rx * 0.32:.0f}" fill="#A3A9C6"/><ellipse cx="{x}" cy="{y - rx * 0.06:.0f}" rx="{rx * 0.8:.0f}" ry="{rx * 0.2:.0f}" fill="#9298B8"/>')
+    # a launch tower on the left, a little moon base on the right
+    s.append('<rect x="70" y="600" width="16" height="200" fill="#8A97A8"/><rect x="124" y="600" width="16" height="200" fill="#8A97A8"/>'
+             + "".join(f'<path d="M78 {y} L132 {y + 40} M132 {y} L78 {y + 40}" stroke="#8A97A8" stroke-width="6"/>' for y in range(610, 790, 40))
+             + '<rect x="50" y="790" width="110" height="16" rx="6" fill="#5D6470"/><rect x="66" y="586" width="80" height="16" rx="6" fill="#FF6B6B"/>')
+    s.append('<path d="M780 800 C 780 720, 940 720, 940 800 Z" fill="#EAF2FF" stroke="#9FB3C8" stroke-width="5"/>'
+             '<circle cx="830" cy="765" r="14" fill="#A9E0FF"/><circle cx="890" cy="765" r="14" fill="#A9E0FF"/>'
+             '<path d="M860 720 V 680 M860 680 l26 10 l-26 10" stroke="#FF6B6B" stroke-width="5" fill="#FF6B6B"/>')
+    return _scene("".join(s), defs)
+
+
+SCENES["space"] = space_scene
+
+MARKET_COUNTERS = (800, 620, 460)  # where the snacks stand, lowest first (motion.dart's marketCounters)
+MARKET_LANTERNS = [(x, round(150 + 50 * (1 - ((x - 500) / 520) ** 2))) for x in range(40, 1000, 92)]
+
+
+def night_market_scene():
+    """The night market (夜市): lanterns over a row of stalls with striped
+    awnings (snacks on their counters and shelves), a long table in front,
+    and a goldfish pool where the goldfish swim."""
+    defs = ('<linearGradient id="nmsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3B2B6E"/>'
+            '<stop offset=".6" stop-color="#8E4E8E"/><stop offset="1" stop-color="#F08A6B"/></linearGradient>'
+            '<pattern id="nmfloor" width="60" height="30" patternUnits="userSpaceOnUse"><rect width="60" height="30" fill="#C9775A"/>'
+            '<path d="M0 0 H60 M0 15 H60 M30 0 V15 M0 15 V30 M60 15 V30" stroke="#B0624A" stroke-width="2"/></pattern>')
+    s = ['<rect width="1000" height="420" fill="url(#nmsky)"/>', '<rect y="400" width="1000" height="600" fill="url(#nmfloor)"/>']
+    # the lantern string
+    s.append('<path d="M-20 140 Q 500 250 1020 140" fill="none" stroke="#3A2A2A" stroke-width="4"/>')
+    for i, (x, y) in enumerate(MARKET_LANTERNS):
+        c = "#FF5E5B" if i % 2 == 0 else "#FFC94A"
+        s.append(f'<path d="M{x} {y - 16} V {y - 6}" stroke="#3A2A2A" stroke-width="3"/>'
+                 f'<ellipse cx="{x}" cy="{y + 14}" rx="20" ry="24" fill="{c}"/><rect x="{x - 10}" y="{y - 12}" width="20" height="6" rx="2" fill="#8A4B2A"/>'
+                 f'<rect x="{x - 10}" y="{y + 36}" width="20" height="6" rx="2" fill="#8A4B2A"/><path d="M{x} {y + 42} v 12" stroke="{c}" stroke-width="4"/>')
+    # the stalls: striped awnings, wooden backs, a shelf and a counter each
+    for i, x in enumerate(range(0, 1000, 250)):
+        a, b = [("#FF5E5B", "#FFFFFF"), ("#FFC94A", "#FFFFFF"), ("#4DA8FF", "#FFFFFF"), ("#6BCB77", "#FFFFFF")][i % 4]
+        s.append(f'<rect x="{x + 10}" y="330" width="230" height="300" fill="#E8B987"/>'
+                 f'<rect x="{x + 10}" y="330" width="230" height="300" fill="none" stroke="#B97A4B" stroke-width="6"/>')
+        for k in range(5):
+            s.append(f'<path d="M{x + 5 + k * 48} 300 h 48 v 40 q -24 22 -48 0 z" fill="{a if k % 2 == 0 else b}"/>')
+        s.append(f'<rect x="{x}" y="292" width="250" height="12" fill="#8A4B2A"/>')
+        s.append(f'<rect x="{x + 10}" y="460" width="230" height="16" fill="#B97A4B"/>')
+        s.append(f'<rect x="{x}" y="620" width="250" height="30" rx="6" fill="#A86E43"/><rect x="{x}" y="620" width="250" height="10" rx="4" fill="#C98F5E"/>')
+    # the long table in front, with a red cloth
+    s.append('<rect x="0" y="800" width="1000" height="22" rx="6" fill="#A86E43"/><rect x="0" y="820" width="1000" height="44" fill="#E2483F"/>'
+             + "".join(f'<path d="M{x} 864 l 25 0 l -12 14 z" fill="#E2483F"/>' for x in range(0, 1000, 25)))
+    # the goldfish pool
+    s.append('<rect x="240" y="890" width="520" height="104" rx="22" fill="#4DA8FF" stroke="#2C7FD6" stroke-width="8"/>'
+             '<path d="M270 930 q 20 -10 40 0 t 40 0 M560 960 q 20 -10 40 0 t 40 0" stroke="#BFE3FF" stroke-width="5" fill="none" stroke-linecap="round"/>')
+    return _scene("".join(s), defs)
+
+
+SCENES["nightMarket"] = night_market_scene
+
+
+def polar_scene():
+    """The polar sea (極地): northern lights in a dark sky, icebergs far
+    away, the icy sea with floes for the orcas, and snowy ground for the
+    penguins, polar bears and snowmen."""
+    defs = ('<linearGradient id="posky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16244F"/>'
+            '<stop offset="1" stop-color="#3B6FA8"/></linearGradient>'
+            '<linearGradient id="posea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2C6FB0"/><stop offset="1" stop-color="#1F4F8A"/></linearGradient>')
+    s = ['<rect width="1000" height="520" fill="url(#posky)"/>']
+    for i in range(50):
+        x, y = (i * 151.3) % 1000, (i * 53.7 + 20) % 380
+        s.append(f'<circle cx="{x:.0f}" cy="{y:.0f}" r="{1.3 + (i % 3) * 0.9:.1f}" fill="#FFFFFF" opacity="{0.45 + (i % 4) * 0.12:.2f}"/>')
+    # northern lights
+    for color, y0, amp in [("#6BF2B0", 140, 40), ("#B59CFF", 200, 30), ("#6BF2B0", 250, 24)]:
+        s.append(f'<path d="M-20 {y0} C 200 {y0 - amp}, 380 {y0 + amp}, 560 {y0} S 900 {y0 - amp}, 1020 {y0}" fill="none" stroke="{color}" stroke-width="46" opacity=".35"/>')
+    # icebergs far away
+    s.append('<path d="M0 520 L 70 420 L 130 470 L 210 380 L 290 520 Z M600 520 L 680 430 L 740 470 L 820 360 L 900 450 L 1000 400 V520 Z" fill="#E6F4FF"/>'
+             '<path d="M210 380 L 250 450 L 230 520 M820 360 L 850 430 L 830 520" stroke="#BFDDF5" stroke-width="10" fill="none"/>')
+    # the sea and its floes
+    s.append('<rect y="500" width="1000" height="210" fill="url(#posea)"/>')
+    for x, y, rx in [(140, 560, 90), (520, 600, 70), (840, 570, 100), (320, 660, 60), (700, 680, 80)]:
+        s.append(f'<ellipse cx="{x}" cy="{y}" rx="{rx}" ry="{rx * 0.22:.0f}" fill="#F4FBFF"/><ellipse cx="{x}" cy="{y + rx * 0.12:.0f}" rx="{rx}" ry="{rx * 0.12:.0f}" fill="#BFDDF5"/>')
+    s.append('<path d="M60 610 q 20 -8 40 0 t 40 0 M420 560 q 20 -8 40 0 t 40 0 M620 640 q 20 -8 40 0 t 40 0" stroke="#7FB8E8" stroke-width="5" fill="none" stroke-linecap="round"/>')
+    # the snowy ground
+    s.append('<path d="M0 720 C 200 690, 380 710, 520 730 C 700 750, 860 700, 1000 720 V1000 H0 Z" fill="#F4FBFF"/>'
+             '<path d="M0 720 C 200 690, 380 710, 520 730 C 700 750, 860 700, 1000 720" stroke="#BFDDF5" stroke-width="8" fill="none"/>')
+    for x, y, rx in [(150, 860, 140), (560, 930, 180), (880, 840, 120)]:
+        s.append(f'<ellipse cx="{x}" cy="{y}" rx="{rx}" ry="{rx * 0.18:.0f}" fill="#DCEEFB"/>')
+    s.append('<path d="M930 760 V 680" stroke="#8A6A4A" stroke-width="6"/><path d="M930 680 l 40 14 l -40 14 Z" fill="#FF5E5B"/>'
+             + "".join(f'<rect x="{x}" y="{y}" width="34" height="22" rx="4" fill="#E6F4FF" stroke="#BFDDF5" stroke-width="3"/>' for x, y in [(40, 760), (74, 760), (57, 738)]))
+    return _scene("".join(s), defs)
+
+
+SCENES["polar"] = polar_scene

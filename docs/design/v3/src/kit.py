@@ -405,7 +405,7 @@ def duck(x, y, s=1.0, flip=False):
 PLACE_TYPES = [("home", "家"), ("grandma", "阿公阿嬤家"), ("school", "幼兒園"), ("park", "公園"),
                ("food", "好吃的店"), ("shop", "商店"), ("zoo", "動物園"), ("water", "河邊海邊"),
                ("mountain", "山上"), ("temple", "廟"), ("station", "車站"), ("travel", "去旅行"), ("aquarium", "海洋館"), ("dinoPark", "恐龍樂園"),
-               ("transport", "交通車館"), ("botanical", "植物園"), ("insects", "昆蟲館")]
+               ("transport", "交通車館"), ("botanical", "植物園"), ("insects", "昆蟲館"), ("space", "太空"), ("polar", "極地")]
 PLACE_NAMES = dict(PLACE_TYPES)
 
 
@@ -486,6 +486,19 @@ def place_icon(kind, size=64):
                   '<path d="M24 22 v-6 a3 3 0 0 1 3 -3 h10 a3 3 0 0 1 3 3 v6" stroke="#8A5A3A" stroke-width="3" fill="none"/>'
                   '<rect x="18" y="30" width="10" height="8" rx="2" fill="#fff" transform="rotate(-8 23 34)"/><circle cx="42" cy="40" r="5" fill="#4DA8FF"/>'
                   '<path d="M17 46 h14" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><circle cx="18" cy="56" r="2.6" fill="#5A3A20"/><circle cx="46" cy="56" r="2.6" fill="#5A3A20"/>',
+        # a rocket among the stars
+        "space": g + '<circle cx="32" cy="30" r="26" fill="#2B2490"/>'
+                 '<path d="M14 18 l1.5 3 3 1.5 -3 1.5 -1.5 3 -1.5 -3 -3 -1.5 3 -1.5z M50 40 l1.2 2.4 2.4 1.2 -2.4 1.2 -1.2 2.4 -1.2 -2.4 -2.4 -1.2 2.4 -1.2z" fill="#FFE27A"/>'
+                 '<path d="M32 10 C 40 16, 42 28, 40 40 H 24 C 22 28, 24 16, 32 10 Z" fill="#F2F5FA" stroke="#9FB3C8" stroke-width="1.4"/>'
+                 '<path d="M32 10 C 36 13, 38 17, 39 21 H 25 C 26 17, 28 13, 32 10 Z" fill="#FF5E5B"/>'
+                 '<circle cx="32" cy="28" r="4.5" fill="#A9E0FF" stroke="#9FB3C8" stroke-width="1.2"/>'
+                 '<path d="M24 34 L 18 44 L 25 41 Z M40 34 L 46 44 L 39 41 Z" fill="#FF5E5B"/><path d="M28 40 Q 32 52 36 40 Z" fill="#FFB020"/>',
+        # a penguin on a snowy peak
+        "polar": g + '<path d="M6 52 L 26 18 L 36 30 L 44 22 L 58 52 Z" fill="#E6F4FF" stroke="#9FC4E6" stroke-width="1.4"/>'
+                 '<path d="M26 18 L 31 27 L 28 34 M44 22 L 47 30" stroke="#BFDDF5" stroke-width="2" fill="none"/>'
+                 '<ellipse cx="32" cy="44" rx="9" ry="12" fill="#3D4A66"/><ellipse cx="32" cy="47" rx="6" ry="8.5" fill="#FFFFFF"/>'
+                 '<circle cx="29.5" cy="40" r="1.4" fill="#222"/><circle cx="34.5" cy="40" r="1.4" fill="#222"/>'
+                 '<path d="M30.5 43 h3 l-1.5 2.2 z" fill="#FF9F45"/><path d="M27 56 h5 M32 56 h5" stroke="#FF9F45" stroke-width="2.6" stroke-linecap="round"/>',
     }[kind]
     return f'<svg width="{size}" height="{size}" viewBox="0 0 64 64" aria-hidden="true">{art}</svg>'
 
