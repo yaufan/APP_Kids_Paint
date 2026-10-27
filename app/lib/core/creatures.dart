@@ -6,14 +6,16 @@ enum Habitat {
   zoo(PlaceKind.zoo),
   aquarium(PlaceKind.aquarium),
   dinoPark(PlaceKind.dinoPark),
-  transport(PlaceKind.transport, vehicles: true);
+  transport(PlaceKind.transport, residents: Residents.vehicles),
+  botanical(PlaceKind.botanical, residents: Residents.plants),
+  insects(PlaceKind.insects);
 
-  const Habitat(this.place, {this.vehicles = false});
+  const Habitat(this.place, {this.residents = Residents.animals});
 
   final PlaceKind place;
 
-  /// Its residents are vehicles: counted 台, not 隻, and they drive in.
-  final bool vehicles;
+  /// Who lives there, which decides how we talk about them.
+  final Residents residents;
 
   List<Creature> get creatures => [for (final c in Creature.values) if (c.habitat == this) c];
 
@@ -21,12 +23,27 @@ enum Habitat {
   static Habitat? of(PlaceKind kind) => values.where((h) => h.place == kind).firstOrNull;
 }
 
+/// Animals (and bugs) are counted 隻 and move in (住進); vehicles are
+/// counted 台 and drive in (開進); plants are counted 棵 and are planted
+/// (種到).
+enum Residents {
+  animals('隻', '牠', '住進'),
+  vehicles('台', '它', '開進'),
+  plants('棵', '它', '種到');
+
+  const Residents(this.counter, this.pronoun, this.verb);
+
+  final String counter;
+  final String pronoun;
+  final String verb;
+}
+
 /// How a creature gets around its scene: [drive] along the road, [rail]
-/// on the railway track.
-enum Motion { walk, hop, swim, float, crawl, fly, drive, rail }
+/// on the railway track; plants stay where they grow and [sway].
+enum Motion { walk, hop, swim, float, crawl, fly, drive, rail, sway }
 
 /// The coloring pages of the places you can go into, made in
-/// docs/design/v3/src/animals.py and vehicles.py (same names), facing right.
+/// docs/design/v4 (same names), facing right.
 enum Creature {
   elephant('大象', Habitat.zoo, Motion.walk, 190),
   giraffe('長頸鹿', Habitat.zoo, Motion.walk, 190),
@@ -53,7 +70,19 @@ enum Creature {
   scooter('機車', Habitat.transport, Motion.drive, 140),
   train('火車', Habitat.transport, Motion.rail, 230),
   airplane('飛機', Habitat.transport, Motion.fly, 200),
-  helicopter('直升機', Habitat.transport, Motion.fly, 190);
+  helicopter('直升機', Habitat.transport, Motion.fly, 190),
+  sunflower('向日葵', Habitat.botanical, Motion.sway, 150),
+  tulip('鬱金香', Habitat.botanical, Motion.sway, 110),
+  cactus('仙人掌', Habitat.botanical, Motion.sway, 130),
+  lotus('荷花', Habitat.botanical, Motion.sway, 140),
+  strawberry('草莓', Habitat.botanical, Motion.sway, 130),
+  rose('玫瑰', Habitat.botanical, Motion.sway, 110),
+  butterfly('蝴蝶', Habitat.insects, Motion.fly, 130),
+  ladybug('瓢蟲', Habitat.insects, Motion.crawl, 100),
+  bee('蜜蜂', Habitat.insects, Motion.fly, 110),
+  beetle('獨角仙', Habitat.insects, Motion.crawl, 140),
+  dragonfly('蜻蜓', Habitat.insects, Motion.fly, 150),
+  mantis('螳螂', Habitat.insects, Motion.walk, 150);
 
   const Creature(this.label, this.habitat, this.motion, this.size);
 

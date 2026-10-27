@@ -32,6 +32,7 @@ class PrivacyScreen extends ConsumerWidget {
     await ref.read(settingsRepositoryProvider).deleteEverything();
     await ref.read(artworkStoreProvider).deleteAll();
     ref.invalidate(currentChildProvider);
+    ref.invalidate(welcomedProvider); // a fresh start: name the town again
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(Strings.deleted)));
     context.go('/');

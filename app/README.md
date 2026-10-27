@@ -8,11 +8,11 @@
 
 畫面設計見 [design-v3.md](../docs/design-v3.md)，地圖規則見 [town-map.md](../docs/town-map.md)。
 
-1. **小鎮地圖（首頁）**：小朋友自己的小鎮，可以拖動。第一天只有家，其他是空地；作品是圖釘，今天寄的會發光。點圖釘會看到這個地方的明信片。
+1. **小鎮地圖（首頁）**：小朋友自己的小鎮，可以拖動。第一次打開時先幫小鎮取名字（「小宇的小鎮」）、選一個動物好朋友。第一天只有家，其他是空地；作品是圖釘，今天寄的會發光。點圖釘會看到這個地方的明信片。
    - 跟著手機時間變成白天、黃昏、晚上（窗戶亮燈、咕咕睡覺）。
    - 節日有裝飾，咕咕會送來節日著色圖。
    - 右下角的白紙可以直接畫畫。
-   - 動物園、海洋館、恐龍樂園、交通車館可以走進去：選一隻 APP 提供的動物（或一台車）來畫，畫好就住進去，自己走路、游泳、飛、開車，還會說話（用手機的語音念出來）。著色圖以開源圖案 Twemoji 為底。
+   - 動物園、海洋館、恐龍樂園、交通車館、植物園、昆蟲館可以走進去：選一隻 APP 提供的動物（或一台車、一棵植物）來畫，畫好就住進去，自己走路、游泳、飛、開車、跟著風搖，還會說話（用手機的語音念出來）。著色圖和背景是在開發電腦上用開源 AI 模型畫好、再描成線的（`docs/design/v4/`）。
 2. **拍照**：用相機拍或從相簿選一張照片。
 3. **魔法變身**：等待轉換時，小朋友的動物揮魔法棒，星星代替進度條。
 4. **選風格**：「真實」和「可愛」兩張明信片，點一張就開始畫。
@@ -53,23 +53,25 @@ lib/
     providers.dart          依賴注入（Riverpod）；時鐘也在這裡，測試可以換成晚上或節日
     town_time.dart          白天、黃昏、晚上（台北的日出日落表）
     festivals.dart          台灣節日和日期（農曆節日內建 2026～2037 年）
-    creatures.dart          動物園、海洋館、恐龍樂園、交通車館和裡面的 18 隻角色、8 台車
+    creatures.dart          可以走進去的 6 個地方和裡面的 24 隻動物、8 台車、6 種植物
     creature_lines.dart     角色會說的話
     voice.dart              用手機內建的語音念出角色說的話
   features/                 各功能
+    welcome/                第一次打開：幫小鎮取名字、選動物好朋友
     town/                   小鎮地圖（首頁）、圖釘、地點卡；town_layout_data.dart 由設計程式產生
     capture/                拍照、選相簿
     lineart/                轉換引擎介面、TEED 描線（teed.dart、teed_engine.dart、raster.dart）、塗色區塊圖、魔法變身與選風格
     canvas/                 明信片著色畫面、油漆桶、魔法蠟筆、復原
     send/                   寄到哪裡、寄出慶祝
     album/                  明信片冊
-    scene/                  動物園、海洋館：背景、動物的動作（motion.dart）
+    scene/                  可以走進去的地方：背景、角色的動作（motion.dart）
     parent/                 家長確認、家長模式、隱私與安全
 test/                       自動測試（含手機／平板完整模擬操作與截圖）
 integration_test/           在模擬器或真機上跑的同一套模擬操作
 assets/fonts/               jf open 粉圓（OFL 授權）
 assets/art/                 自己畫的向量圖（由 docs/design/v3/src/export_art.py 產生；小鎮每一層有白天、黃昏、晚上三版）
-assets/pages/               節日和動物的著色圖（黑線白底 PNG，同一支程式產生）
+assets/pages/               著色圖（黑線白底 PNG）：節日的由同一支程式產生，角色的由 docs/design/v4/export.py 產生
+assets/scenes/              可以走進去的地方的背景（JPEG，docs/design/v4/export.py）
 assets/models/              TEED 描線模型的權重和授權（由 prototypes/lineart/export_teed.py 產生）
 ```
 

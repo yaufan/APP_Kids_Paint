@@ -15,7 +15,7 @@ void main() {
         expect(pose.at.dy, inInclusiveRange(area.top - 70, area.bottom + 1), reason: '$motion at $t');
         turned |= pose.left;
       }
-      if (motion != Motion.float && motion != Motion.crawl) expect(turned, isTrue, reason: '$motion');
+      if (![Motion.float, Motion.crawl, Motion.sway].contains(motion)) expect(turned, isTrue, reason: '$motion');
     }
   });
 
@@ -33,9 +33,9 @@ void main() {
     }
   });
 
-  test('each scene has six animals, or eight vehicles, to color', () {
+  test('each scene has six animals or plants, or eight vehicles, to color', () {
     for (final habitat in Habitat.values) {
-      expect(habitat.creatures, hasLength(habitat.vehicles ? 8 : 6));
+      expect(habitat.creatures, hasLength(habitat.residents == Residents.vehicles ? 8 : 6));
       expect(Habitat.of(habitat.place), habitat);
     }
   });
@@ -54,6 +54,20 @@ void main() {
           default:
             expect(y, lessThan(600), reason: '$creature');
         }
+      }
+    }
+  });
+
+  test('plants stay where they grow, in the garden beds', () {
+    final view = SceneView(const Size(390, 844));
+    for (final creature in Habitat.botanical.creatures) {
+      final area = roamArea(creature, view);
+      final start = poseAt(creature.motion, 0, 5, area).at;
+      for (var t = 0.0; t < 60; t += 0.7) {
+        final pose = poseAt(creature.motion, t, 5, area);
+        expect(pose.at, start, reason: '$creature');
+        expect(pose.tilt.abs(), lessThan(0.1), reason: '$creature');
+        expect(pose.at.dy, inInclusiveRange(720, 950), reason: '$creature');
       }
     }
   });

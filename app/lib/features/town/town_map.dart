@@ -47,6 +47,9 @@ Map<PlaceKind, TownSpot> townSpots(List<Postcard> postcards, DateTime now) {
   };
 }
 
+/// The grass at the bottom edge of the land layer, for what comes below it.
+const _grass = {DayPhase.day: Color(0xFFA6DE97), DayPhase.dusk: Color(0xFFACBC80), DayPhase.night: Color(0xFF3D6381)};
+
 /// The child's town: drawn layers (sky, scenery, one building or empty lot
 /// per kind of place, a festival's decorations) with the child's postcards
 /// pinned on top. Every layer is drawn for day, dusk and night. Pans with a
@@ -65,6 +68,7 @@ class TownMap extends StatefulWidget {
     this.phase = DayPhase.day,
     this.festival,
     this.interactive = true,
+    this.bottomInset = 0,
   });
 
   final Map<PlaceKind, TownSpot> spots;
@@ -88,6 +92,10 @@ class TownMap extends StatefulWidget {
   /// Decorations up (and fireworks over 101 on New Year's Eve).
   final Festival? festival;
   final bool interactive;
+
+  /// Screen points covered at the bottom (the buttons): the map goes on
+  /// below its last row in grass, so that row can scroll up clear of them.
+  final double bottomInset;
 
   /// How many world points a screen of [width] shows across.
   static double scaleFor(Size viewport) {
@@ -130,7 +138,7 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
 
   /// Slides the map so [world] (a world point) is in the middle of [viewport].
   void _panTo(Offset world, Size viewport, double s) {
-    final map = townSize * s;
+    final map = townSize * s + Offset(0, widget.bottomInset);
     final tx = (viewport.width / 2 - world.dx * s).clamp(math.min(0.0, viewport.width - map.width), 0.0).toDouble();
     final ty = (viewport.height * 0.45 - world.dy * s).clamp(math.min(0.0, viewport.height - map.height), 0.0).toDouble();
     _panning = Matrix4Tween(begin: _view.value.clone(), end: Matrix4.translationValues(tx, ty, 0))
@@ -142,7 +150,7 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
   void _place(Size viewport, double s) {
     if (_laidOutFor == viewport) return;
     _laidOutFor = viewport;
-    final map = townSize * s;
+    final map = townSize * s + Offset(0, widget.bottomInset);
     var tx = (viewport.width - map.width) / 2;
     // Wide screens show little height: start at the mountains, not the sky.
     var ty = viewport.width > viewport.height ? -170 * s : 0.0;
@@ -271,39 +279,70 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
           constrained: false,
           scaleEnabled: false,
           panEnabled: widget.interactive,
-          child: map,
+          child: widget.bottomInset == 0
+              ? map
+              : Column(mainAxisSize: MainAxisSize.min, children: [
+                  map,
+                  Container(width: size.width, height: widget.bottomInset, color: _grass[widget.phase]),
+                ]),
         ),
-        // A round sign at the screen's edge for the zoo or aquarium when it is
-        // off screen; tapping slides the map over to it.
+        // A round sign at the screen's edge for each place you can go into
+        // that is off screen; tapping slides the map over to it.
         if (widget.interactive)
           AnimatedBuilder(
             animation: _view,
             builder: (context, _) {
               final shift = _view.value.getTranslation();
-              return Stack(children: [
-                for (final MapEntry(key: name, value: rect) in townAttractions.entries)
-                  ?_edgeSign(name, rect, viewport, s, Offset(shift.x, shift.y)),
-              ]);
+              return Stack(children: _edgeSigns(viewport, s, Offset(shift.x, shift.y)));
             },
           ),
       ]);
     });
   }
 
-  /// A sign at the screen's edge pointing to an attraction that is off
+  /// Signs at the screen's edge pointing to the attractions that are off
   /// screen: left or right first, else top or bottom (clear of the dock).
-  Widget? _edgeSign(String name, Rect rect, Size viewport, double s, Offset shift) {
-    final center = rect.center * s + shift;
-    final left = center.dx < 0, right = center.dx > viewport.width;
-    final up = center.dy < 0, down = center.dy > viewport.height;
-    if (!left && !right && !up && !down) return null;
-    const size = 76.0;
-    final side = left || right;
-    final double x = side ? (left ? 8.0 : viewport.width - size - 8) : (center.dx - size / 2).clamp(8.0, viewport.width - size - 8);
-    final double y = side
-        ? (center.dy - size / 2).clamp(120.0, math.max(120.0, viewport.height - 300))
-        : (up ? 120.0 : viewport.height - 190 - size);
-    final angle = left ? math.pi : (right ? 0.0 : (up ? -math.pi / 2 : math.pi / 2));
+  /// Signs on the same edge move apart so none covers another.
+  List<Widget> _edgeSigns(Size viewport, double s, Offset shift) {
+    const size = 76.0, gap = 10.0;
+    final minY = 120.0, maxY = math.max(120.0, viewport.height - math.max(widget.bottomInset, 180) - size - gap);
+    final signs = <({String name, Rect rect, int edge, double x, double y})>[];
+    for (final MapEntry(key: name, value: rect) in townAttractions.entries) {
+      final center = rect.center * s + shift;
+      final left = center.dx < 0, right = center.dx > viewport.width;
+      final up = center.dy < 0, down = center.dy > viewport.height - widget.bottomInset; // under the dock too
+      if (!left && !right && !up && !down) continue;
+      final side = left || right;
+      signs.add((
+        name: name,
+        rect: rect,
+        edge: left ? 0 : (right ? 1 : (up ? 2 : 3)),
+        x: side ? (left ? 8.0 : viewport.width - size - 8) : (center.dx - size / 2).clamp(8.0, viewport.width - size - 8),
+        y: side ? (center.dy - size / 2).clamp(minY, maxY) : (up ? minY : maxY),
+      ));
+    }
+    final out = <Widget>[];
+    for (final edge in [0, 1, 2, 3]) {
+      final group = [for (final g in signs) if (g.edge == edge) g];
+      final along = edge < 2; // left and right signs spread up and down
+      group.sort((a, b) => (along ? a.y : a.x).compareTo(along ? b.y : b.x));
+      final at = [for (final g in group) along ? g.y : g.x];
+      final hi = along ? maxY : viewport.width - size - 8;
+      for (var i = 1; i < at.length; i++) {
+        at[i] = math.max(at[i], at[i - 1] + size + gap);
+      }
+      for (var i = at.length - 1; i >= 0; i--) {
+        at[i] = math.min(at[i], i == at.length - 1 ? hi : at[i + 1] - size - gap);
+      }
+      for (final (i, g) in group.indexed) {
+        out.add(_edgeSign(g.name, g.rect, edge, along ? g.x : at[i], along ? at[i] : g.y, size, viewport, s));
+      }
+    }
+    return out;
+  }
+
+  Widget _edgeSign(String name, Rect rect, int edge, double x, double y, double size, Size viewport, double s) {
+    final angle = [math.pi, 0.0, -math.pi / 2, math.pi / 2][edge];
     final kind = PlaceKind.byName(name);
     return Positioned(
       key: ValueKey('edge-$name'),

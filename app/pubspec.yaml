@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.9.0+1
+version: 0.10.0+1
 
 environment:
   sdk: ^3.13.7
@@ -75,20 +75,22 @@ flutter:
 
   assets:
     - assets/fonts/OFL-jf-openhuninn.txt
-    # v3 art (docs/design/v3/src/export_art.py): drawn for this app, creatures,
-    # vehicles and scene decorations made from Twemoji (CC BY 4.0, TWEMOJI-LICENSE.txt).
+    # v3 art (docs/design/v3/src/export_art.py): drawn for this app, town
+    # decorations made from Twemoji (CC BY 4.0, TWEMOJI-LICENSE.txt).
     - assets/art/
     - assets/art/animals/
-    - assets/art/creatures/
     - assets/art/festivals/
     - assets/art/icons/
     - assets/art/places/
-    - assets/art/scenes/
     - assets/art/stamps/
     - assets/art/tools/
     - assets/art/town/
     - assets/art/ui/
+    # Coloring pages: festivals (v3) and creatures, painted on this machine
+    # with Stable Diffusion and traced (docs/design/v4).
     - assets/pages/
+    # The places you go into, painted the same way (docs/design/v4).
+    - assets/scenes/
     # TEED edge-detection weights (MIT), from prototypes/lineart/export_teed.py.
     - assets/models/
 

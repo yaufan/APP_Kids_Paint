@@ -1,3 +1,5 @@
+import '../core/creatures.dart';
+
 /// Text shown to parents (Traditional Chinese). Children's screens use
 /// pictures and voice; these strings are their accessibility labels and the
 /// words a character "says".
@@ -6,6 +8,16 @@ abstract final class Strings {
 
   // Town map (home).
   static String townOf(String name) => '$name的小鎮';
+
+  // The welcome screen (first launch): name the town, pick a buddy.
+  static const welcome = '歡迎來到畫畫小鎮！';
+  static const welcomeHint = '幫你的小鎮取個名字，再選一個好朋友。';
+  static const townName = '小鎮的名字';
+  static const townSuffix = '的小鎮';
+  static const pickBuddy = '選一個好朋友';
+  static const letsGo = '出發！';
+  static String buddySays(String buddy) => '我是$buddy，一起來蓋小鎮吧！';
+  static const editTown = '改名字和好朋友';
   static String postcardsSent(int n) => '已經寄了 $n 張明信片';
   static const takePhoto = '拍照畫畫';
   static const album = '明信片冊';
@@ -23,13 +35,15 @@ abstract final class Strings {
   static String goTo(String place) => '去$place';
   static String enter(String place) => '進去$place';
 
-  // The zoo, the aquarium, the dinosaur park and the transport museum
-  // ([vehicles]: counted 台, and they drive in).
-  static String sceneEmpty(String place, {bool vehicles = false}) =>
-      vehicles ? '選一台來畫，\n畫好它就會開進$place喔！' : '選一隻來畫，\n畫好牠就會住進$place喔！';
-  static String movedIn(String creature, String place, {bool vehicles = false}) =>
-      vehicles ? '$creature開進$place了！' : '$creature住進$place了！';
-  static String drawNew(String place, {bool vehicles = false}) => vehicles ? '畫一台新的，開進$place' : '畫一隻新的，住進$place';
+  // The places you can go into: the zoo, the aquarium, the dinosaur park,
+  // the transport museum, the botanical garden, the insect museum. The
+  // words follow who lives there ([Residents]).
+  static String sceneEmpty(String place, {Residents residents = Residents.animals}) =>
+      '選一${residents.counter}來畫，\n畫好${residents.pronoun}就會${residents.verb}$place喔！';
+  static String movedIn(String creature, String place, {Residents residents = Residents.animals}) =>
+      '$creature${residents.verb}$place了！';
+  static String drawNew(String place, {Residents residents = Residents.animals}) =>
+      '畫一${residents.counter}新的，${residents.verb}$place';
   static String drawCreature(String creature) => '畫$creature';
   static String resident(String creature) => '你畫的$creature';
   static String backTo(String place) => '回到$place';

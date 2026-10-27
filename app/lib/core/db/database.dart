@@ -13,6 +13,10 @@ class Children extends Table {
 
   /// One of [animals].
   TextColumn get avatar => text()();
+
+  /// What the town is called: the name in front of 的小鎮. Null until the child (with a
+  /// parent's help) names it; the avatar's name stands in until then.
+  TextColumn get name => text().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
@@ -74,7 +78,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'kids_paint'));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -98,6 +102,12 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 3) {
             await m.addColumn(artworks, artworks.template);
+          }
+          if (from < 4) {
+            await m.addColumn(children, children.name);
+            // They already have a town: no first-day welcome (a parent can
+            // still name it in the parent page).
+            await into(settings).insertOnConflictUpdate(const Setting(key: 'welcomed', value: '1'));
           }
         },
         beforeOpen: (details) async {

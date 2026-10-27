@@ -9,6 +9,7 @@ import '../../app/version.dart';
 import '../../core/db/database.dart';
 import '../../core/places.dart';
 import '../../core/providers.dart';
+import '../../core/repositories.dart';
 
 /// Parent mode (behind the parent gate): children, time limit, the town's
 /// places, privacy and data.
@@ -62,6 +63,66 @@ class _ParentScreenState extends ConsumerState<ParentScreen> {
       ),
     );
     if (picked != null) await ref.read(childRepositoryProvider).add(picked);
+  }
+
+  /// A child's town name and animal friend; [taken] are other children's animals.
+  Future<void> _editChild(Child c, List<String> taken) async {
+    final controller = TextEditingController(text: c.name ?? '');
+    var avatar = c.avatar;
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => StatefulBuilder(
+        builder: (dialog, setDialog) => AlertDialog(
+          title: const Text(Strings.editTown),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            Row(children: [
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  autofocus: true,
+                  maxLength: 8,
+                  decoration: InputDecoration(labelText: Strings.townName, hintText: animalNames[avatar], counterText: ''),
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(Strings.townSuffix, style: TextStyle(fontSize: 17)),
+            ]),
+            const SizedBox(height: 16),
+            Wrap(spacing: 8, runSpacing: 8, alignment: WrapAlignment.center, children: [
+              for (final a in animals.where((a) => a == c.avatar || !taken.contains(a)))
+                Semantics(
+                  button: true,
+                  selected: a == avatar,
+                  label: animalNames[a],
+                  excludeSemantics: true,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () => setDialog(() => avatar = a),
+                    child: Container(
+                      width: 58,
+                      height: 58,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: a == avatar ? const Color(0xFFFFE08A) : Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: a == avatar ? KidColors.sunDark : KidColors.line, width: 2),
+                      ),
+                      child: AnimalArt(a, size: 44),
+                    ),
+                  ),
+                ),
+            ]),
+          ]),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(dialog).pop(false), child: const Text(Strings.cancel)),
+            FilledButton(onPressed: () => Navigator.of(dialog).pop(true), child: const Text(Strings.save)),
+          ],
+        ),
+      ),
+    );
+    final name = controller.text;
+    controller.dispose();
+    if (saved == true) await ref.read(childRepositoryProvider).update(c.id, name: name, avatar: avatar);
   }
 
   Future<void> _rename(Place place) async {
@@ -149,7 +210,8 @@ class _ParentScreenState extends ConsumerState<ParentScreen> {
                     decoration: const BoxDecoration(color: Color(0xFFFFF1DA), shape: BoxShape.circle),
                     child: AnimalArt(c.avatar, size: 40),
                   ),
-                  animalNames[c.avatar] ?? c.avatar,
+                  Strings.townOf(c.townName),
+                  onTap: () => _editChild(c, [for (final o in children) if (o.id != c.id) o.avatar]),
                 ),
               if (children.length < animals.length)
                 row(const KidIcon('plus', size: 22, color: KidColors.skyDark), Strings.addChild,

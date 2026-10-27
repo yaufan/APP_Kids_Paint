@@ -44,6 +44,18 @@ const _own = <Creature, List<String>>{
   Creature.train: ['嘟嘟～火車要開囉！', '轟隆轟隆，我在鐵軌上跑！'],
   Creature.airplane: ['咻～我要飛到很遠的地方！', '從天上看，房子好小喔！'],
   Creature.helicopter: ['我的螺旋槳轉呀轉！', '我可以停在空中喔！'],
+  Creature.sunflower: ['我最喜歡看太陽了！', '我的種子就是葵瓜子喔！'],
+  Creature.tulip: ['我長得像一個小杯子！', '我有好多種顏色喔！'],
+  Creature.cactus: ['我不怕熱，也不太需要喝水！', '我身上有刺，要輕輕看喔！'],
+  Creature.lotus: ['我住在池塘裡！', '我的葉子好大，青蛙會坐在上面！'],
+  Creature.strawberry: ['我紅紅的、甜甜的！', '我身上有好多小小的種子喔！'],
+  Creature.rose: ['我好香喔，你聞聞看！', '我的莖上有刺，要小心喔！'],
+  Creature.butterfly: ['我以前是毛毛蟲喔！', '我最喜歡在花上跳舞！'],
+  Creature.ladybug: ['我身上有黑色的點點！', '我小小的、圓圓的！'],
+  Creature.bee: ['嗡嗡嗡～我在採花蜜！', '我會做好吃的蜂蜜喔！'],
+  Creature.beetle: ['我頭上有一支大大的角！', '我是很有力氣的獨角仙！'],
+  Creature.dragonfly: ['我的翅膀亮晶晶的！', '我飛得好快，還可以停在空中！'],
+  Creature.mantis: ['我的手像兩把小鐮刀！', '我會靜靜地站著，一動也不動！'],
 };
 
 /// What any vehicle may say.
@@ -60,10 +72,28 @@ const _riders = [
   '再畫一台車陪我好不好？',
 ];
 
+/// What any plant may say.
+const _growing = [
+  '你好呀！',
+  '我好喜歡我的新顏色！',
+  '謝謝你把我畫得這麼漂亮！',
+  '太陽暖暖的，好舒服～',
+  '幫我澆澆水好不好？',
+  '風吹過來，我搖呀搖～',
+  '我們是好朋友！',
+  '我會慢慢長大喔！',
+  '你今天開心嗎？',
+  '再畫一棵陪我好不好？',
+];
+
 /// Everything [creature] may say.
 List<String> linesOf(Creature creature) => [...?_own[creature], ..._shared(creature)];
 
-List<String> _shared(Creature creature) => creature.habitat.vehicles ? _riders : _anyone;
+List<String> _shared(Creature creature) => switch (creature.habitat.residents) {
+      Residents.animals => _anyone,
+      Residents.vehicles => _riders,
+      Residents.plants => _growing,
+    };
 
 /// One thing [creature] says, its own lines a little more often.
 String lineFor(Creature creature, math.Random random) {

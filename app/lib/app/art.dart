@@ -20,8 +20,9 @@ abstract final class Art {
 
   /// A built-in coloring page (a festival's, a creature's): black lines on white.
   static String page(String name) => 'assets/pages/$name.png';
-  static String creature(Creature c) => '$_dir/creatures/${c.name}.svg';
-  static String scene(Habitat h) => '$_dir/scenes/${h.name}.svg';
+
+  /// A place you go into, painted (docs/design/v4/draw_scenes.py).
+  static String scene(Habitat h) => 'assets/scenes/${h.name}.jpg';
 
   static const pigeon = '$_dir/pigeon.svg';
   static const pigeonFlying = '$_dir/pigeon_flying.svg';

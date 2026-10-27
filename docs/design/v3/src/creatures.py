@@ -1,9 +1,9 @@
 """The places you can go into: their creatures and vehicles, and scenes.
 
-The coloring pages are in animals.py and vehicles.py (Twemoji line art);
-this file gathers them and draws the scenes they roam in.
-
-    python3 export_art.py   # writes assets/pages/<id>.png, art/creatures/, art/scenes/
+Since 0.10 the app's creature pages and scenes are painted and traced in
+docs/design/v4: the scenes here are the layouts it paints over (where the
+ground, the road and the track are), and the Twemoji line art in
+animals.py and vehicles.py (0.9's pages) is kept for reference.
 """
 import math
 
@@ -280,3 +280,68 @@ def transport_scene():
 
 
 SCENES["transport"] = transport_scene
+
+
+# ---------------------------------------------------------------- the botanical garden
+
+
+def botanical_scene():
+    """The botanical garden: a big glass greenhouse, palms and tall plants,
+    flower beds along a path, a little pond with lily pads."""
+    defs = ('<linearGradient id="bsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8ED3FF"/><stop offset="1" stop-color="#E8F7FF"/></linearGradient>'
+            '<pattern id="bgrass" width="26" height="22" patternUnits="userSpaceOnUse"><path d="M5 14 l2 -6 l2 6 M17 20 l2 -5 l2 5" stroke="#8FC56A" stroke-width="1.6" fill="none"/></pattern>')
+    s = ['<rect width="1000" height="620" fill="url(#bsky)"/>',
+         '<g transform="translate(160 120)"><circle r="64" fill="#FFE27A" opacity=".35"/><circle r="40" fill="#FFD23F"/></g>',
+         _cloud(560, 80, 1.4), _cloud(820, 170, 1.0)]
+    # the greenhouse
+    s.append('<path d="M170 600 V 380 Q 500 120 830 380 V 600 Z" fill="#E6F8EE" stroke="#7CC69A" stroke-width="6"/>')
+    s.append("".join(f'<path d="M{x} 600 V {380 - (1 - ((x - 500) / 330) ** 2) * 130:.0f}" stroke="#A6DDB8" stroke-width="4"/>' for x in range(230, 800, 60)))
+    s.append('<path d="M176 450 H 824 M172 520 H 828" stroke="#A6DDB8" stroke-width="4"/>')
+    s += [deco("1f334", x, y, size, flip=f) for x, y, size, f in [(280, 300, 240, False), (480, 260, 280, True)]]
+    s.append(deco("1f333", 620, 360, 200))
+    s.append('<rect x="440" y="500" width="120" height="100" rx="10" fill="#B9E6C9" stroke="#7CC69A" stroke-width="5"/>')
+    s.append('<rect y="600" width="1000" height="400" fill="#BDE38F"/><rect y="600" width="1000" height="400" fill="url(#bgrass)"/>')
+    # flower beds and a path
+    s.append('<path d="M380 1000 C 420 860, 460 760, 500 620 C 540 760, 580 860, 620 1000 Z" fill="#EBD9B4"/>')
+    for x0, x1, y in [(40, 340, 660), (660, 960, 660)]:
+        s.append(f'<rect x="{x0}" y="{y}" width="{x1 - x0}" height="40" rx="18" fill="#8A5A36"/>')
+        s += [deco(code, x, y - 34, 50) for x, code in zip(range(x0 + 10, x1 - 40, 60), ["1f337", "1f33c", "1f337", "1f33b", "1f33c"])]
+    s.append('<ellipse cx="170" cy="880" rx="140" ry="44" fill="#7CCFFF" stroke="#43A9E0" stroke-width="3"/>'
+             '<ellipse cx="130" cy="876" rx="26" ry="10" fill="#5FCB79"/><ellipse cx="210" cy="890" rx="22" ry="8" fill="#5FCB79"/>')
+    s += [deco("1f33f", x, y, size, flip=f) for x, y, size, f in [(-30, 840, 180, False), (850, 820, 180, True)]]
+    return _scene("".join(s), defs)
+
+
+SCENES["botanical"] = botanical_scene
+
+
+# ---------------------------------------------------------------- the insect museum
+
+
+def insect_scene():
+    """The insect museum's meadow: tall grass and wild flowers, a log and a
+    tree stump, the round museum house behind, butterflies' sky."""
+    defs = ('<linearGradient id="isky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9ADBFF"/><stop offset="1" stop-color="#EFFAFF"/></linearGradient>'
+            '<pattern id="igrass" width="26" height="22" patternUnits="userSpaceOnUse"><path d="M5 14 l2 -6 l2 6 M17 20 l2 -5 l2 5" stroke="#86BF5C" stroke-width="1.6" fill="none"/></pattern>')
+    s = ['<rect width="1000" height="620" fill="url(#isky)"/>',
+         '<g transform="translate(840 120)"><circle r="64" fill="#FFE27A" opacity=".35"/><circle r="40" fill="#FFD23F"/></g>',
+         _cloud(80, 110, 1.5), _cloud(430, 60, 1.1)]
+    s.append('<path d="M0 470 C 160 410, 340 420, 500 460 C 660 410, 840 410, 1000 450 V620 H0 Z" fill="#B5D57E"/>')
+    # the museum: a round red house with black spots
+    s.append('<path d="M320 600 C 320 380, 680 380, 680 600 Z" fill="#FF5E5B" stroke="#C9423F" stroke-width="6"/>'
+             '<path d="M500 410 V 600" stroke="#2F3540" stroke-width="8"/>'
+             + "".join(f'<circle cx="{x}" cy="{y}" r="{r}" fill="#2F3540"/>' for x, y, r in [(410, 470, 22), (590, 470, 22), (380, 545, 16), (620, 545, 16)])
+             + '<path d="M420 420 C 430 340, 570 340, 580 420 Z" fill="#2F3540"/>'
+             + '<rect x="465" y="520" width="70" height="80" rx="30" fill="#FFF4E2" stroke="#C9A06B" stroke-width="5"/>')
+    s += [deco("1f333", x, y, size) for x, y, size in [(60, 380, 220), (760, 400, 200)]]
+    s.append('<rect y="600" width="1000" height="400" fill="#C3E596"/><rect y="600" width="1000" height="400" fill="url(#igrass)"/>')
+    # wild flowers, a log, a stump, tall grass
+    for x, y, code, size in [(60, 660, "1f33c", 50), (160, 700, "1f337", 56), (300, 650, "1f33b", 70), (640, 660, "1f33c", 50),
+                             (760, 700, "1f337", 56), (880, 650, "1f33b", 70), (240, 900, "1f33c", 44), (700, 920, "1f337", 48)]:
+        s.append(deco(code, x, y, size))
+    s.append(deco("1fab5", 420, 700, 120, flip=True) + deco("1f344", 560, 760, 60) + deco("1f344", 600, 790, 44, flip=True))
+    s += [deco("1f33e", x, y, size, flip=f) for x, y, size, f in [(-20, 820, 200, False), (840, 820, 200, True)]]
+    return _scene("".join(s), defs)
+
+
+SCENES["insects"] = insect_scene

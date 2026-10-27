@@ -15,6 +15,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image/image.dart' as img;
 import 'package:kids_paint/app/app.dart';
 import 'package:kids_paint/app/strings.dart';
 import 'package:kids_paint/core/artwork_service.dart';
@@ -33,30 +34,16 @@ const _captionHeight = 84.0;
 const _fps = 10;
 
 /// Creatures colored "before" the video starts, so the places are already
-/// lived in: the biggest area of each page gets the first color, the other
-/// areas take turns with the rest.
-const _residents = <Creature, List<int>>{
-  Creature.giraffe: [0xFFFFD166, 0xFFA0673F],
-  Creature.lion: [0xFFFFC56B, 0xFFA0673F, 0xFFFFE2B0],
-  Creature.monkey: [0xFFA0673F, 0xFFFFD2B8],
-  Creature.zebra: [0xFFFFFFFF, 0xFFFFFFFF], // white between its black stripes
-  Creature.clownfish: [0xFFFF9F45, 0xFFFFFFFF, 0xFF4DA3FF],
-  Creature.octopus: [0xFF8C6CFF, 0xFFFFC2DA],
-  Creature.turtle: [0xFF5FCB79, 0xFFB6E08A, 0xFF2EC4B6],
-  Creature.jellyfish: [0xFFFF8FB1, 0xFFFFD6E5],
-  Creature.crab: [0xFFFF5E5B, 0xFFFFB4A8],
-  Creature.triceratops: [0xFF5FCB79, 0xFFFFD166, 0xFFFFFFFF],
-  Creature.brachiosaurus: [0xFF4DA3FF, 0xFFFFD166],
-  Creature.stegosaurus: [0xFFFF8FB1, 0xFFFFD166],
-  Creature.pterosaur: [0xFFFF9F45, 0xFF8C6CFF],
-  Creature.babyDino: [0xFF5FCB79, 0xFFFFF1DA, 0xFFFFD166],
-  Creature.fireTruck: [0xFFFF5E5B, 0xFFA0E1FF, 0xFF34413A, 0xFFFFD166],
-  Creature.bus: [0xFFFFD166, 0xFFA0E1FF, 0xFF34413A],
-  Creature.train: [0xFFFF5E5B, 0xFF34413A, 0xFFFFD166],
-  Creature.airplane: [0xFF4DA3FF, 0xFFFFFFFF],
-  Creature.helicopter: [0xFFFFD166, 0xFFA0E1FF, 0xFF34413A],
-  Creature.scooter: [0xFF4DA3FF, 0xFF34413A, 0xFFFFD166],
-};
+/// lived in: each area takes the color its subject really has there
+/// (docs/design/v4/colors/, the painting each page was traced from).
+const _residents = [
+  Creature.giraffe, Creature.lion, Creature.monkey, Creature.zebra, //
+  Creature.clownfish, Creature.octopus, Creature.turtle, Creature.jellyfish, Creature.crab,
+  Creature.triceratops, Creature.brachiosaurus, Creature.stegosaurus, Creature.pterosaur, Creature.babyDino,
+  Creature.fireTruck, Creature.bus, Creature.train, Creature.airplane, Creature.helicopter, Creature.scooter,
+  Creature.tulip, Creature.cactus, Creature.rose, Creature.lotus,
+  Creature.bee, Creature.dragonfly, Creature.beetle, Creature.mantis,
+];
 
 void main() {
   testWidgets('demo video', (tester) async {
@@ -166,8 +153,23 @@ void main() {
       }
     }
 
+    // 0. The first day: name the town, pick a friend.
+    caption.value = '第一天：幫小鎮取名字，再選一個好朋友';
+    await until(find.text(Strings.welcome));
+    await seconds(2);
+    await tap(find.byKey(const ValueKey('buddy-rabbit')));
+    await seconds(1.5);
+    await tap(find.byKey(const ValueKey('buddy-bear')));
+    await seconds(1);
+    await tester.enterText(find.byKey(const ValueKey('town-name')), '小宇');
+    await seconds(1.5);
+    caption.value = '按「出發！」';
+    await tester.ensureVisible(find.bySemanticsLabel(Strings.letsGo));
+    await frames(3);
+    await tap(find.bySemanticsLabel(Strings.letsGo));
+
     // 1. The town.
-    caption.value = '小鎮地圖：小朋友自己的小鎮\n（今天白天，手指可以拖動地圖）';
+    caption.value = '小鎮地圖：「小宇的小鎮」\n（今天白天，手指可以拖動地圖）';
     await until(find.bySemanticsLabel(Strings.takePhoto));
     await seconds(2.5);
     await stroke([for (var i = 0; i <= 10; i++) Offset(300 - i * 16.0, 520 - i * 4.0)]);
@@ -292,19 +294,39 @@ void main() {
       await seconds(1.5);
     }
     await tap(find.bySemanticsLabel(Strings.enter(PlaceKind.transport.label)));
-    await until(find.bySemanticsLabel(Strings.drawNew(PlaceKind.transport.label, vehicles: true)));
+    await until(find.bySemanticsLabel(Strings.drawNew(PlaceKind.transport.label, residents: Residents.vehicles)));
     caption.value = '汽車在馬路上開、火車在鐵軌上跑\n飛機和直升機在天上飛';
     await seconds(4);
     caption.value = '點一下火車：它會跳起來、說一句話';
     await tap(find.bySemanticsLabel(Strings.resident(Creature.train.label)));
     await seconds(2.5);
-    await tap(find.bySemanticsLabel(Strings.drawNew(PlaceKind.transport.label, vehicles: true)));
+    await tap(find.bySemanticsLabel(Strings.drawNew(PlaceKind.transport.label, residents: Residents.vehicles)));
     caption.value = '畫一台新的：8 台車可以選';
     await seconds(3);
     await touch(const Offset(195, 150)); // outside the sheet: it slides away
     await seconds(1);
 
-    // 4d. The album as one timeline.
+    // 4d. The botanical garden and the insect museum.
+    for (final (place, words) in [
+      (PlaceKind.botanical, '新地方：植物園（小鎮左下角）\n植物種在花圃裡，跟著風輕輕搖'),
+      (PlaceKind.insects, '新地方：昆蟲館（小鎮右下角）\n蜜蜂、蜻蜓會飛，獨角仙在地上爬'),
+    ]) {
+      caption.value = words.split('\n').first;
+      await tap(find.bySemanticsLabel(Strings.backToTown));
+      await until(find.bySemanticsLabel(Strings.blankPaper));
+      await seconds(1);
+      final placeSign = find.bySemanticsLabel(Strings.goTo(place.label));
+      if (placeSign.evaluate().isNotEmpty) {
+        await tap(placeSign);
+        await seconds(1.5);
+      }
+      await tap(find.bySemanticsLabel(Strings.enter(place.label)));
+      await until(find.bySemanticsLabel(Strings.drawNew(place.label, residents: Habitat.of(place)!.residents)));
+      caption.value = words;
+      await seconds(4);
+    }
+
+    // 4e. The album as one timeline.
     caption.value = '明信片冊：右上角切換「依時間看」';
     await tap(find.bySemanticsLabel(Strings.backToTown));
     await until(find.bySemanticsLabel(Strings.album));
@@ -391,20 +413,27 @@ Future<void> _colorResidents(File dbFile, Directory store) async {
   final db = AppDatabase(NativeDatabase(dbFile));
   final service = ArtworkService(ArtworkRepository(db), ArtworkStore(store));
   final child = await ChildRepository(db).ensureDefault();
-  for (final (i, MapEntry(key: c, value: colors)) in _residents.entries.indexed) {
+  for (final (i, c) in _residents.indexed) {
     final art = await service.saveTemplate(childId: child.id, template: c.name, png: File('assets/pages/${c.name}.png').readAsBytesSync());
     final page = await service.load(art.id);
     final regions = page.document.regions;
     final outside = regions.labelAt(0, 0);
-    final area = <int, int>{}, first = <int, int>{};
+    final real = img.decodeJpg(File('../docs/design/v4/colors/${c.name}.jpg').readAsBytesSync())!;
+    final sum = <int, List<int>>{}, first = <int, int>{};
     for (var i = 0; i < regions.labels.length; i++) {
       final l = regions.labels[i];
-      area[l] = (area[l] ?? 0) + 1;
+      if (l == outside) continue;
+      final p = real.getPixel((i % regions.width) * real.width ~/ regions.width, (i ~/ regions.width) * real.height ~/ regions.height);
+      final s = sum.putIfAbsent(l, () => [0, 0, 0, 0]);
+      s[0] += p.r.toInt();
+      s[1] += p.g.toInt();
+      s[2] += p.b.toInt();
+      s[3]++;
       first.putIfAbsent(l, () => i);
     }
-    final order = [for (final l in area.keys) if (l != outside && area[l]! > 300) l]..sort((a, b) => area[b]!.compareTo(area[a]!));
-    for (final (k, l) in order.indexed) {
-      final color = k == 0 ? colors[0] : colors[1 + (k - 1) % (colors.length - 1)];
+    for (final MapEntry(key: l, value: s) in sum.entries) {
+      if (s[3] < 30) continue;
+      final color = 0xFF000000 | (s[0] ~/ s[3]) << 16 | (s[1] ~/ s[3]) << 8 | (s[2] ~/ s[3]);
       page.document.fill((first[l]! % regions.width).toDouble(), (first[l]! ~/ regions.width).toDouble(), color);
     }
     await service.send(page, await PlaceRepository(db).defaultPlace(child.id, c.habitat.place));

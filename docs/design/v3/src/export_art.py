@@ -1,4 +1,4 @@
-"""Writes the v3 art into the app: app/assets/art/** and lib/features/town/town_layout_data.dart.
+"""Writes the v3 art into the app: app/assets/art/**, the festival pages and lib/features/town/town_layout_data.dart.
 
     python3 export_art.py
 """
@@ -11,7 +11,6 @@ import tempfile
 
 from PIL import Image
 
-import creatures
 import festivals
 import kit
 import screens
@@ -82,10 +81,8 @@ def main():
     write("ui/mini_paper.svg", screens.mini_paper(46))
     for name in festivals.DECOR:
         write(f"festivals/{name}.svg", festivals.icon(name))
-    for cid in creatures.CREATURES:
-        write(f"creatures/{cid}.svg", creatures.outline(cid))
-    for habitat, scene in creatures.SCENES.items():
-        write(f"scenes/{habitat}.svg", scene())
+    # The creatures' pages and the scenes are painted and traced in
+    # docs/design/v4 (export.py); their vector versions here are its layouts.
     export_pages()
     # Tools in the chosen color: the generator's shades of a token color are
     # replaced by tokens the app fills in.
@@ -102,12 +99,11 @@ def main():
 
 
 def export_pages():
-    """Coloring pages as grayscale PNGs: app/assets/pages/<festival or creature>.png."""
+    """Festival coloring pages as grayscale PNGs: app/assets/pages/<festival>.png."""
     out = APP / "assets" / "pages"
     out.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
-        pages = {**festivals.PAGES, **{cid: draw for cid, (_, draw) in creatures.CREATURES.items()}}
-        for name, page in pages.items():
+        for name, page in festivals.PAGES.items():
             src = pathlib.Path(tmp) / f"{name}.svg"
             png = pathlib.Path(tmp) / f"{name}.png"
             src.write_text(page())

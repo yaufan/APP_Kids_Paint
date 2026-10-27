@@ -48,6 +48,17 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
     ),
   ));
 
+  // 0. The very first time: name the town and pick a friend.
+  await waitFor(tester, find.text(Strings.welcome));
+  await idle(tester, 800);
+  await tester.enterText(find.byKey(const ValueKey('town-name')), '小宇');
+  await tester.tap(find.byKey(const ValueKey('buddy-bear')));
+  await idle(tester, 800);
+  await shot('00_welcome');
+  await tester.ensureVisible(find.bySemanticsLabel(Strings.letsGo));
+  await idle(tester, 300);
+  await tester.tap(find.bySemanticsLabel(Strings.letsGo));
+
   // 1. Day one: the town has only home; the big camera button invites a photo.
   await waitFor(tester, find.bySemanticsLabel(Strings.takePhoto));
   await idle(tester);
@@ -289,7 +300,33 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   }
   await shot('24_transport');
 
-  // 17. The album as one timeline.
+  // 17. The botanical garden: a sunflower and a tulip, swaying where they grow.
+  await tester.tap(find.bySemanticsLabel(Strings.backToTown));
+  await waitFor(tester, find.bySemanticsLabel(Strings.blankPaper));
+  await idle(tester, 800);
+  await enterScene(tester, PlaceKind.botanical);
+  for (final (i, creature) in [Creature.sunflower, Creature.tulip].indexed) {
+    await colorCreature(tester, creature, i == 0 ? [kidPalette[2], kidPalette[3], kidPalette[8]] : [kidPalette[0], kidPalette[3], kidPalette[7]]);
+    await tester.tap(find.bySemanticsLabel(Strings.done));
+    await waitFor(tester, find.bySemanticsLabel(Strings.resident(creature.label)));
+    await idle(tester, 1800);
+  }
+  await shot('25_botanical');
+
+  // 18. The insect museum: a butterfly that flies, a ladybug that crawls.
+  await tester.tap(find.bySemanticsLabel(Strings.backToTown));
+  await waitFor(tester, find.bySemanticsLabel(Strings.blankPaper));
+  await idle(tester, 800);
+  await enterScene(tester, PlaceKind.insects);
+  for (final (i, creature) in [Creature.butterfly, Creature.ladybug].indexed) {
+    await colorCreature(tester, creature, i == 0 ? [kidPalette[1], kidPalette[6], kidPalette[11]] : [kidPalette[0], kidPalette[11], kidPalette[3]]);
+    await tester.tap(find.bySemanticsLabel(Strings.done));
+    await waitFor(tester, find.bySemanticsLabel(Strings.resident(creature.label)));
+    await idle(tester, 1800);
+  }
+  await shot('26_insects');
+
+  // 19. The album as one timeline.
   await tester.tap(find.bySemanticsLabel(Strings.backToTown));
   await waitFor(tester, find.bySemanticsLabel(Strings.album));
   await idle(tester, 600);
@@ -319,12 +356,12 @@ Future<void> enterScene(WidgetTester tester, PlaceKind place) async {
     await idle(tester, 1000);
   }
   await tester.tap(find.bySemanticsLabel(Strings.enter(place.label)));
-  await waitFor(tester, find.bySemanticsLabel(Strings.drawNew(place.label, vehicles: Habitat.of(place)!.vehicles)));
+  await waitFor(tester, find.bySemanticsLabel(Strings.drawNew(place.label, residents: Habitat.of(place)!.residents)));
 }
 
 /// Picks [creature] in its scene and bucket-fills a few areas with [colors].
 Future<void> colorCreature(WidgetTester tester, Creature creature, List<int> colors) async {
-  await tester.tap(find.bySemanticsLabel(Strings.drawNew(creature.habitat.place.label, vehicles: creature.habitat.vehicles)));
+  await tester.tap(find.bySemanticsLabel(Strings.drawNew(creature.habitat.place.label, residents: creature.habitat.residents)));
   await waitFor(tester, find.byKey(ValueKey('creature-${creature.name}')));
   await idle(tester, 500);
   await tester.tap(find.byKey(ValueKey('creature-${creature.name}')));

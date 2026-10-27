@@ -18,6 +18,7 @@ import '../../core/providers.dart';
 import '../../core/repositories.dart';
 import '../../core/town_time.dart';
 import '../parent/parent_gate.dart';
+import '../welcome/welcome_screen.dart';
 import 'place_sheet.dart';
 import 'town_map.dart';
 
@@ -131,13 +132,15 @@ class _TownScreenState extends ConsumerState<TownScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // The first day starts by naming the town.
+    if (ref.watch(welcomedProvider).value == false) return const WelcomeScreen();
     final child = ref.watch(currentChildProvider).value;
     final postcards = child == null ? const <Postcard>[] : ref.watch(postcardsProvider(child.id)).value ?? const [];
     final now = ref.watch(clockProvider)();
     final spots = townSpots(postcards, now);
     final store = ref.watch(artworkStoreProvider);
     final avatar = child?.avatar ?? animals.first;
-    final name = animalNames[avatar] ?? '';
+    final name = child?.townName ?? animalNames[avatar] ?? '';
     final festival = festivalOn(now);
     // Gugu brings the festival's page until the child opens it.
     final letter = child != null &&
@@ -162,6 +165,7 @@ class _TownScreenState extends ConsumerState<TownScreen> {
             onPin: (kind) => Habitat.of(kind) != null ? _enter(kind) : _openPlace(kind, postcards),
             onLot: (_) => _say(Strings.emptyLot),
             onAttraction: _enter,
+            bottomInset: 180, // the dock
           ),
         ),
         if (widget.grow != null) const Positioned.fill(child: Confetti()),
@@ -241,7 +245,7 @@ class _ChildPill extends ConsumerWidget {
                       child: Wrap(spacing: 18, runSpacing: 18, alignment: WrapAlignment.center, children: [
                         for (final c in children)
                           ChunkyButton(
-                            label: animalNames[c.avatar] ?? c.avatar,
+                            label: Strings.townOf(c.townName),
                             width: 96,
                             height: 96,
                             radius: 30,

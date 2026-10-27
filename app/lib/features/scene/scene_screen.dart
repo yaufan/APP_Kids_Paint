@@ -4,7 +4,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/art.dart';
@@ -141,7 +140,7 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with SingleTickerProv
                   Navigator.of(sheet).pop();
                   _draw(childId, c);
                 },
-                child: ArtSvg(Art.creature(c), width: 84, height: 108),
+                child: ExcludeSemantics(child: Image.asset(Art.page(c.name), width: 84, height: 108, cacheWidth: 168)),
               ),
           ]),
         ),
@@ -185,8 +184,8 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with SingleTickerProv
     final arrived = residents.where((a) => a.id == widget.arrived).firstOrNull;
     final arrivedCreature = Creature.byName(arrived?.template);
     final bubble = _welcome && arrivedCreature != null
-        ? Strings.movedIn(arrivedCreature.label, _place, vehicles: widget.habitat.vehicles)
-        : (child != null && residents.isEmpty ? Strings.sceneEmpty(_place, vehicles: widget.habitat.vehicles) : null);
+        ? Strings.movedIn(arrivedCreature.label, _place, residents: widget.habitat.residents)
+        : (child != null && residents.isEmpty ? Strings.sceneEmpty(_place, residents: widget.habitat.residents) : null);
 
     return Scaffold(
       body: LayoutBuilder(builder: (context, box) {
@@ -198,7 +197,7 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with SingleTickerProv
             top: origin.dy,
             width: 1000 * view.scale,
             height: 1000 * view.scale,
-            child: ExcludeSemantics(child: SvgPicture.asset(Art.scene(widget.habitat), fit: BoxFit.fill)),
+            child: ExcludeSemantics(child: Image.asset(Art.scene(widget.habitat), fit: BoxFit.fill, gaplessPlayback: true)),
           ),
           Positioned.fill(
             child: AnimatedBuilder(
@@ -281,7 +280,7 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with SingleTickerProv
                 child: Breathing(
                   child: Semantics(
                     button: true,
-                    label: Strings.drawNew(_place, vehicles: widget.habitat.vehicles),
+                    label: Strings.drawNew(_place, residents: widget.habitat.residents),
                     excludeSemantics: true,
                     child: Pressable(
                       onTap: child == null ? null : () => _pick(child.id),

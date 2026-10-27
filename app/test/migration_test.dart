@@ -22,7 +22,27 @@ CREATE TABLE "artworks" ("id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "child
 CREATE TABLE "settings" ("key" TEXT NOT NULL, "value" TEXT NOT NULL, PRIMARY KEY ("key"));
 ''';
 
+/// Version 3: artworks know the page they were colored from.
+final v3Schema = v2Schema.replaceFirst('"sent_at" INTEGER NULL,', '"template" TEXT NULL, "sent_at" INTEGER NULL,');
+
 void main() {
+  test('a version 3 database upgrades: the town keeps its animal name and skips the first-day welcome', () async {
+    final dir = Directory.systemTemp.createTempSync('kp_migration3');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final db = AppDatabase(NativeDatabase(File('${dir.path}/db.sqlite'), setup: (raw) {
+      if (raw.userVersion != 0) return;
+      raw.execute(v3Schema);
+      raw.execute("INSERT INTO children (avatar) VALUES ('cat')");
+      raw.userVersion = 3;
+    }));
+    addTearDown(db.close);
+    final kid = (await ChildRepository(db).watchAll().first).single;
+    expect((kid.name, kid.townName), (null, '小貓'));
+    expect(await SettingsRepository(db).welcomed(), isTrue);
+    await ChildRepository(db).update(kid.id, name: ' 小美 ');
+    expect((await ChildRepository(db).watchAll().first).single.townName, '小美');
+  });
+
   test('a version 2 database upgrades: artworks get a template column, postcards stay', () async {
     final dir = Directory.systemTemp.createTempSync('kp_migration2');
     addTearDown(() => dir.deleteSync(recursive: true));

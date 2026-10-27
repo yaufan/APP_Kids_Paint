@@ -64,6 +64,10 @@ Pose poseAt(Motion motion, double t, int seed, Rect area) {
       final glide = t * 0.8 * pace + wobble;
       // Wings beat: a quick squash, and a slow rise and fall.
       return (at: Offset(w.x, laneY(40) + 40 * math.sin(glide)), left: w.left, tilt: 0.06 * math.cos(glide), squash: 1 + 0.08 * math.sin(t * 9));
+    case Motion.sway:
+      // Rooted where it grows, rocking in the breeze.
+      final breeze = t * 1.3 * pace + wobble;
+      return (at: Offset(area.left + area.width * phase, laneY()), left: false, tilt: 0.06 * math.sin(breeze), squash: 1 + 0.02 * math.sin(2 * breeze));
   }
 }
 
@@ -102,6 +106,7 @@ Rect roamArea(Creature creature, SceneView view, {double top = 110, double botto
     Motion.fly => (260.0, 520.0),
     Motion.drive => (790.0, 930.0),
     Motion.rail => (648.0, 648.0),
+    Motion.sway => (720.0, 950.0),
   };
   // Swimmers and floaters are drawn up from their bottom, so leave room above.
   final y0 = math.max(lo, minY + creature.size * view.creatureScale * 0.7);

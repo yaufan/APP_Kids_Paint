@@ -208,7 +208,7 @@ def land():
                  '<circle cx="298" cy="303" r="7" fill="#FFFFFF" stroke="#4DA8FF" stroke-width="2.2"/><path d="M294 303 h8" stroke="#4DA8FF" stroke-width="2.2"/>'))
     # trees that belong to no place, the tower, and the wings' own houses
     s.append(mid(tree(26, 414, 12), tree(178, 400, 11, "#58C46B"), tree(372, 430, 11), tower101(320, 626), tower_lights(320, 626), glow(298, 303, 18),
-                 tree(30, 1030, 12), tree(200, 1040, 10, "#58C46B", "pine"), tree(380, 1030, 12)))
+                 tree(200, 1040, 10, "#58C46B", "pine"), tree(380, 1030, 12)))
     s.append(wings())
     return "".join(s)
 
@@ -234,13 +234,8 @@ def wings():
     s.append(house(24, 420, "#E3F6E8") + house(76, 412, "#FFE3EA") + house(128, 424, "#E8EEFF"))
     s.append(tree(16, 380, 10) + tree(176, 396, 9, "#58C46B"))
     s.append(tree(30, 850, 12, "#4DB860", "pine") + tree(160, 846, 11, "#58C46B", "pine"))
-    s.append(house(30, 960, "#FFE7A3") + house(100, 972, "#E3F6E8") + tree(160, 950, 11))
-    # right wing: houses by the river, a windmill farm (the transport museum is its own layer)
+    # right wing: houses by the river (the transport museum, the zoo and the insect museum are their own layers)
     s.append(house(606, 418, "#FFE3EA") + house(660, 426, "#FFE7A3") + house(714, 414, "#E3F6E8"))
-    s.append('<g transform="translate(720 980)"><rect x="-5" y="-60" width="10" height="60" fill="#FFF4E2" stroke="#C9A06B" stroke-width="1.4"/>'
-             + "".join(f'<path d="M0 -60 L{26 * math.cos(math.radians(a)):.1f} {-60 + 26 * math.sin(math.radians(a)):.1f}" stroke="#FF8FB1" stroke-width="6" stroke-linecap="round"/>' for a in (15, 105, 195, 285))
-             + '<circle cx="0" cy="-60" r="4" fill="#C98B5E"/></g>')
-    s.append(tree(620, 960, 12) + tree(660, 1000, 10, "#58C46B", "pine") + tree(760, 1030, 11))
     return "".join(s)
 
 
@@ -419,6 +414,40 @@ def transport():
             + tree(752, 616, 10))
 
 
+def botanical():
+    """The botanical garden in the bottom left: a glass greenhouse with a
+    palm inside, flower beds and a sunflower out front."""
+    panes = "".join(f'<path d="M{x} 1004 V {960 - abs(x - 101) * 0.35:.0f}" stroke="#9AD4AC" stroke-width="1.6"/>' for x in range(40, 170, 20))
+    beds = "".join(flower_patch(x, 1018, c) for x, c in [(36, ("#FF8FB1", "#FFD166", "#FFFFFF")), (82, ("#FF5E5B", "#FFFFFF", "#FF8FB1")),
+                                                          (128, ("#B79CFF", "#FFD166", "#FFFFFF"))])
+    return ('<rect x="12" y="878" width="178" height="168" rx="20" fill="#CFEBC2"/>'
+            '<path d="M26 1006 V 950 Q 101 880 176 950 V 1006 Z" fill="#E4F7EA" stroke="#6FBF86" stroke-width="1.8"/>'
+            + panes + '<path d="M28 972 H 174 M30 990 H 172" stroke="#9AD4AC" stroke-width="1.4"/>'
+            + tree(101, 1000, 13, "#3FB37A", "palm")
+            + '<rect x="88" y="976" width="26" height="30" rx="3" fill="#9AD4AC" stroke="#6FBF86" stroke-width="1.4"/>'
+            + '<rect x="20" y="1006" width="162" height="6" rx="2" fill="#C9A06B"/>' + beds
+            + '<path d="M168 1030 V 1000" stroke="#3FA052" stroke-width="3"/><circle cx="168" cy="996" r="8" fill="#FFD23F" stroke="#E0A21C" stroke-width="1.4"/>'
+            + '<circle cx="168" cy="996" r="3.4" fill="#A86E43"/><path d="M168 1018 q-8 -4 -10 2 q6 2 10 -2 z" fill="#5FCB79"/>')
+
+
+def insects():
+    """The insect museum in the bottom right: a round house shaped like a
+    ladybug, a butterfly over the flowers and a dragonfly over the pond."""
+    spots = "".join(f'<circle cx="{x}" cy="{y}" r="{r}" fill="#2F3540"/>' for x, y, r in [(652, 962, 7), (708, 962, 7), (646, 988, 5), (714, 988, 5)])
+    butterfly = ('<g transform="translate(626 900)"><path d="M0 0 C -10 -14, -22 -8, -16 2 C -12 8, -4 6, 0 2 Z M0 0 C 10 -14, 22 -8, 16 2 C 12 8, 4 6, 0 2 Z" fill="#FF9F45" stroke="#D9692A" stroke-width="1"/>'
+                 '<ellipse cx="0" cy="2" rx="1.6" ry="6" fill="#5A4636"/></g>')
+    dragonfly = ('<g transform="translate(748 928)"><path d="M-14 -3 h28 M-12 3 h24" stroke="#A9DCFF" stroke-width="5" stroke-linecap="round"/>'
+                 '<path d="M0 -6 V 14" stroke="#2EC4B6" stroke-width="3" stroke-linecap="round"/><circle cx="0" cy="-7" r="2.6" fill="#2EC4B6"/></g>')
+    return ('<rect x="596" y="878" width="172" height="168" rx="20" fill="#D8EDB8"/>'
+            '<path d="M630 1004 C 630 930, 730 930, 730 1004 Z" fill="#FF5E5B" stroke="#C9423F" stroke-width="1.8"/>'
+            '<path d="M680 930 V 1004" stroke="#2F3540" stroke-width="3"/>' + spots
+            + '<path d="M650 934 C 652 912, 708 912, 710 934 Z" fill="#2F3540"/><circle cx="668" cy="924" r="3.4" fill="#fff"/><circle cx="692" cy="924" r="3.4" fill="#fff"/>'
+            + '<path d="M672 914 q-6 -12 -14 -14 M688 914 q6 -12 14 -14" stroke="#2F3540" stroke-width="2.4" fill="none" stroke-linecap="round"/>'
+            + '<rect x="668" y="980" width="24" height="24" rx="10" fill="#FFF4E2" stroke="#C9A06B" stroke-width="1.4"/>'
+            + '<ellipse cx="748" cy="1024" rx="16" ry="7" fill="#7CCFFF"/>' + butterfly + dragonfly
+            + flower_patch(612, 1020) + flower_patch(712, 1028, ("#FFFFFF", "#FF8FB1", "#FFD166")) + tree(752, 980, 11, "#58C46B"))
+
+
 def grandma():
     return mid(box(36, 960, 96, 52, 8, "#E8836B", roof="gable", roof_h=24, windows=[(10, 14, 16, 14), (70, 14, 16, 14)], door=(40, 16, 30, "#7A4A2A")),
                '<path d="M58 990 c-2-3-6-1-4 2 l4 3 4-3 c2-3-2-5-4-2z M118 990 c-2-3-6-1-4 2 l4 3 4-3 c2-3-2-5-4-2z" fill="#FF8FB1"/>',
@@ -449,6 +478,8 @@ SLOTS = {
     "aquarium": (aquarium, None, (100, 700)),
     "dinoPark": (dino_park, None, (96, 500)),
     "transport": (transport, None, (682, 520)),
+    "botanical": (botanical, None, (101, 930)),
+    "insects": (insects, None, (680, 918)),
     "grandma": (grandma, (OX + 24, 892, 164, 124), (OX + 84, 932)),
     "travel": (travel, (OX + 232, 892, 158, 136), (OX + 299, 896)),
     # scenery that is always there: only a pin anchor
@@ -456,10 +487,10 @@ SLOTS = {
     "mountain": (None, None, (OX + 60, 200)),
     "station": (None, None, (OX + 298, 286)),
 }
-ORDER = ["home", "school", "park", "shop", "food", "temple", "zoo", "aquarium", "dinoPark", "transport", "grandma", "travel"]
+ORDER = ["home", "school", "park", "shop", "food", "temple", "zoo", "aquarium", "dinoPark", "transport", "botanical", "insects", "grandma", "travel"]
 # Places you can go into (scenes in the app), always built: kind -> tap area.
 ATTRACTIONS = {"zoo": (596, 690, 172, 124), "aquarium": (12, 690, 178, 128), "dinoPark": (12, 476, 178, 170),
-               "transport": (596, 476, 172, 170)}
+               "transport": (596, 476, 172, 170), "botanical": (12, 878, 178, 168), "insects": (596, 878, 172, 168)}
 
 
 def lot(kind):
@@ -533,7 +564,7 @@ def export(app_dir):
     lines += ["};", "", "/// Back to front.", "const townLayerOrder = [" + ", ".join(f"'{k}'" for k in ORDER) + "];", "",
               "/// Festivals with a decoration layer (`festival_<name>_<phase>.svg`).",
               "const townFestivalLayers = {" + ", ".join(f"'{k}'" for k in festivals.DECOR) + "};", "",
-              "/// Places you can go into (the zoo, the aquarium, the dinosaur park, the transport museum): always built; tapping opens their scene.",
+              "/// Places you can go into (the zoo, the aquarium, the dinosaur park, the transport museum, the botanical garden, the insect museum): always built; tapping opens their scene.",
               "const townAttractions = <String, Rect>{",
               *[f"  '{k}': Rect.fromLTWH({x}, {y}, {w}, {h})," for k, (x, y, w, h) in ATTRACTIONS.items()],
               "};", "",

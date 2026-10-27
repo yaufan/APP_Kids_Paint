@@ -90,6 +90,9 @@ final residentsProvider = StreamProvider.family<List<Artwork>, ({int childId, Ha
 /// The phone's speech engine; tests use a silent one.
 final systemVoiceProvider = Provider<Voice>((ref) => SystemVoice());
 
+/// Whether the town has been named yet (else the welcome screen shows).
+final welcomedProvider = FutureProvider<bool>((ref) => ref.watch(settingsRepositoryProvider).welcomed());
+
 /// Whether parents left the creatures' voices on.
 final voiceOnProvider = NotifierProvider<VoiceOn, bool>(VoiceOn.new);
 

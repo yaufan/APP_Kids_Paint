@@ -11,12 +11,14 @@ import 'package:kids_paint/core/db/database.dart';
 import 'package:kids_paint/core/festivals.dart';
 import 'package:kids_paint/core/places.dart';
 import 'package:kids_paint/core/providers.dart';
+import 'package:kids_paint/core/repositories.dart';
 import 'package:kids_paint/core/storage/artwork_store.dart';
 
 void main() {
-  Future<void> pumpApp(WidgetTester tester, DateTime now) async {
+  Future<void> pumpApp(WidgetTester tester, DateTime now, {bool welcomed = true}) async {
     final db = AppDatabase(NativeDatabase.memory());
     addTearDown(db.close);
+    if (welcomed) await tester.runAsync(() => SettingsRepository(db).setWelcomed());
     await tester.pumpWidget(ProviderScope(
       overrides: [
         databaseProvider.overrideWithValue(db),
@@ -26,6 +28,31 @@ void main() {
       child: const KidsPaintApp(),
     ));
   }
+
+  testWidgets('the first day starts by naming the town and picking a friend', (tester) async {
+    await pumpApp(tester, DateTime(2026, 10, 25, 10), welcomed: false);
+    for (var i = 0; i < 20 && find.text(Strings.welcome).evaluate().isEmpty; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.text(Strings.welcome), findsOneWidget);
+    await tester.enterText(find.byKey(const ValueKey('town-name')), '小美');
+    await tester.tap(find.byKey(const ValueKey('buddy-rabbit')));
+    await tester.pump(const Duration(milliseconds: 300));
+    // The button sits below the fold on the small test screen.
+    await tester.ensureVisible(find.bySemanticsLabel(Strings.letsGo));
+    await tester.pump();
+    await tester.tap(find.bySemanticsLabel(Strings.letsGo));
+    for (var i = 0; i < 20 && find.text(Strings.townOf('小美')).evaluate().isEmpty; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.text(Strings.townOf('小美')), findsOneWidget);
+    expect(find.text(Strings.welcome), findsNothing);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(milliseconds: 100));
+  });
 
   testWidgets('home is the town map with picture buttons; the only words are the town name', (tester) async {
     await pumpApp(tester, DateTime(2026, 10, 25, 10));
@@ -57,9 +84,38 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text(Strings.bedtime), findsOneWidget);
-    expect(find.bySemanticsLabel(Strings.openLetter(Festival.christmas.label)), findsOneWidget);
+    // Whether the page was opened yet comes from the database.
+    final letter = find.bySemanticsLabel(Strings.openLetter(Festival.christmas.label));
+    for (var i = 0; i < 20 && letter.evaluate().isEmpty; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(letter, findsOneWidget);
     await tester.pump(const Duration(seconds: 3));
     expect(find.text(Strings.festivalLetter(Festival.christmas.label)), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(milliseconds: 10));
+  });
+
+  testWidgets('on a phone the signs to the places off screen never cover each other', (tester) async {
+    tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    await pumpApp(tester, DateTime(2026, 10, 25, 10));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final signs = [
+      for (final h in Habitat.values)
+        if (find.bySemanticsLabel(Strings.goTo(h.place.label)).evaluate().isNotEmpty)
+          tester.getRect(find.bySemanticsLabel(Strings.goTo(h.place.label))),
+    ];
+    expect(signs.length, greaterThan(2)); // the phone shows the middle of the town
+    for (final (i, a) in signs.indexed) {
+      for (final b in signs.skip(i + 1)) {
+        expect(a.overlaps(b), isFalse, reason: '$a and $b');
+      }
+    }
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 10));

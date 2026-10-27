@@ -405,7 +405,7 @@ def duck(x, y, s=1.0, flip=False):
 PLACE_TYPES = [("home", "家"), ("grandma", "阿公阿嬤家"), ("school", "幼兒園"), ("park", "公園"),
                ("food", "好吃的店"), ("shop", "商店"), ("zoo", "動物園"), ("water", "河邊海邊"),
                ("mountain", "山上"), ("temple", "廟"), ("station", "車站"), ("travel", "去旅行"), ("aquarium", "海洋館"), ("dinoPark", "恐龍樂園"),
-               ("transport", "交通車館")]
+               ("transport", "交通車館"), ("botanical", "植物園"), ("insects", "昆蟲館")]
 PLACE_NAMES = dict(PLACE_TYPES)
 
 
@@ -471,6 +471,16 @@ def place_icon(kind, size=64):
                      '<rect x="16" y="37" width="6" height="8" fill="#5A6472"/><circle cx="18" cy="54" r="3.4" fill="#2F3540"/><circle cx="28" cy="54" r="3.4" fill="#2F3540"/>'
                      '<circle cx="40" cy="54" r="3.4" fill="#2F3540"/><path d="M48 54 L 54 50 V 54 Z" fill="#FFD23F"/>'
                      '<path d="M30 21 l10 -3 l2 2 l-9 4 Z M34 19 l-2 -4 h2 l3 3 Z" fill="#4DA8FF"/>',
+        "botanical": g + '<path d="M8 54 V36 Q 32 8 56 36 V54 Z" fill="#DDF5E3" stroke="#6FBF86" stroke-width="1.6"/>'
+                     '<path d="M20 54 V30 M32 54 V20 M44 54 V30 M10 40 H54" stroke="#9AD4AC" stroke-width="1.6"/>'
+                     '<path d="M24 54 q-2 -14 8 -20 q6 10 -2 20 z" fill="#5FCB79"/><circle cx="40" cy="36" r="6" fill="#FFD23F" stroke="#E0A21C" stroke-width="1.2"/>'
+                     '<circle cx="40" cy="36" r="2.4" fill="#A86E43"/><path d="M40 42 V54" stroke="#3FA052" stroke-width="2"/>'
+                     '<circle cx="18" cy="46" r="3" fill="#FF8FB1"/><circle cx="48" cy="48" r="3" fill="#FF8FB1"/>',
+        "insects": g + '<path d="M32 30 C 22 14, 6 16, 10 30 C 12 38, 24 38, 32 34 Z" fill="#FF9F45" stroke="#D9692A" stroke-width="1.4"/>'
+                   '<path d="M32 30 C 42 14, 58 16, 54 30 C 52 38, 40 38, 32 34 Z" fill="#FF9F45" stroke="#D9692A" stroke-width="1.4"/>'
+                   '<path d="M32 34 C 24 40, 16 48, 22 52 C 28 54, 30 44, 32 38 Z M32 34 C 40 40, 48 48, 42 52 C 36 54, 34 44, 32 38 Z" fill="#FFD166" stroke="#D9692A" stroke-width="1.2"/>'
+                   '<ellipse cx="32" cy="36" rx="2.6" ry="12" fill="#5A4636"/><path d="M31 25 q-4 -8 -8 -10 M33 25 q4 -8 8 -10" stroke="#5A4636" stroke-width="1.6" fill="none" stroke-linecap="round"/>'
+                   '<circle cx="16" cy="26" r="2.4" fill="#fff"/><circle cx="48" cy="26" r="2.4" fill="#fff"/>',
         "travel": g + '<rect x="12" y="22" width="40" height="32" rx="7" fill="#FF8A3D" stroke="#D9692A" stroke-width="1.6"/>'
                   '<path d="M24 22 v-6 a3 3 0 0 1 3 -3 h10 a3 3 0 0 1 3 3 v6" stroke="#8A5A3A" stroke-width="3" fill="none"/>'
                   '<rect x="18" y="30" width="10" height="8" rx="2" fill="#fff" transform="rotate(-8 23 34)"/><circle cx="42" cy="40" r="5" fill="#4DA8FF"/>'

@@ -30,6 +30,15 @@ class $ChildrenTable extends Children with TableInfo<$ChildrenTable, Child> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -43,7 +52,7 @@ class $ChildrenTable extends Children with TableInfo<$ChildrenTable, Child> {
     defaultValue: currentDateAndTime,
   );
   @override
-  List<GeneratedColumn> get $columns => [id, avatar, createdAt];
+  List<GeneratedColumn> get $columns => [id, avatar, name, createdAt];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -66,6 +75,12 @@ class $ChildrenTable extends Children with TableInfo<$ChildrenTable, Child> {
       );
     } else if (isInserting) {
       context.missing(_avatarMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
     }
     if (data.containsKey('created_at')) {
       context.handle(
@@ -90,6 +105,10 @@ class $ChildrenTable extends Children with TableInfo<$ChildrenTable, Child> {
         DriftSqlType.string,
         data['${effectivePrefix}avatar'],
       )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -108,10 +127,15 @@ class Child extends DataClass implements Insertable<Child> {
 
   /// One of [animals].
   final String avatar;
+
+  /// What the town is called: the name in front of 的小鎮. Null until the child (with a
+  /// parent's help) names it; the avatar's name stands in until then.
+  final String? name;
   final DateTime createdAt;
   const Child({
     required this.id,
     required this.avatar,
+    this.name,
     required this.createdAt,
   });
   @override
@@ -119,6 +143,9 @@ class Child extends DataClass implements Insertable<Child> {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['avatar'] = Variable<String>(avatar);
+    if (!nullToAbsent || name != null) {
+      map['name'] = Variable<String>(name);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -127,6 +154,7 @@ class Child extends DataClass implements Insertable<Child> {
     return ChildrenCompanion(
       id: Value(id),
       avatar: Value(avatar),
+      name: name == null && nullToAbsent ? const Value.absent() : Value(name),
       createdAt: Value(createdAt),
     );
   }
@@ -139,6 +167,7 @@ class Child extends DataClass implements Insertable<Child> {
     return Child(
       id: serializer.fromJson<int>(json['id']),
       avatar: serializer.fromJson<String>(json['avatar']),
+      name: serializer.fromJson<String?>(json['name']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -148,19 +177,27 @@ class Child extends DataClass implements Insertable<Child> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'avatar': serializer.toJson<String>(avatar),
+      'name': serializer.toJson<String?>(name),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
 
-  Child copyWith({int? id, String? avatar, DateTime? createdAt}) => Child(
+  Child copyWith({
+    int? id,
+    String? avatar,
+    Value<String?> name = const Value.absent(),
+    DateTime? createdAt,
+  }) => Child(
     id: id ?? this.id,
     avatar: avatar ?? this.avatar,
+    name: name.present ? name.value : this.name,
     createdAt: createdAt ?? this.createdAt,
   );
   Child copyWithCompanion(ChildrenCompanion data) {
     return Child(
       id: data.id.present ? data.id.value : this.id,
       avatar: data.avatar.present ? data.avatar.value : this.avatar,
+      name: data.name.present ? data.name.value : this.name,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -170,44 +207,51 @@ class Child extends DataClass implements Insertable<Child> {
     return (StringBuffer('Child(')
           ..write('id: $id, ')
           ..write('avatar: $avatar, ')
+          ..write('name: $name, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, avatar, createdAt);
+  int get hashCode => Object.hash(id, avatar, name, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Child &&
           other.id == this.id &&
           other.avatar == this.avatar &&
+          other.name == this.name &&
           other.createdAt == this.createdAt);
 }
 
 class ChildrenCompanion extends UpdateCompanion<Child> {
   final Value<int> id;
   final Value<String> avatar;
+  final Value<String?> name;
   final Value<DateTime> createdAt;
   const ChildrenCompanion({
     this.id = const Value.absent(),
     this.avatar = const Value.absent(),
+    this.name = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   ChildrenCompanion.insert({
     this.id = const Value.absent(),
     required String avatar,
+    this.name = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : avatar = Value(avatar);
   static Insertable<Child> custom({
     Expression<int>? id,
     Expression<String>? avatar,
+    Expression<String>? name,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (avatar != null) 'avatar': avatar,
+      if (name != null) 'name': name,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -215,11 +259,13 @@ class ChildrenCompanion extends UpdateCompanion<Child> {
   ChildrenCompanion copyWith({
     Value<int>? id,
     Value<String>? avatar,
+    Value<String?>? name,
     Value<DateTime>? createdAt,
   }) {
     return ChildrenCompanion(
       id: id ?? this.id,
       avatar: avatar ?? this.avatar,
+      name: name ?? this.name,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -233,6 +279,9 @@ class ChildrenCompanion extends UpdateCompanion<Child> {
     if (avatar.present) {
       map['avatar'] = Variable<String>(avatar.value);
     }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -244,6 +293,7 @@ class ChildrenCompanion extends UpdateCompanion<Child> {
     return (StringBuffer('ChildrenCompanion(')
           ..write('id: $id, ')
           ..write('avatar: $avatar, ')
+          ..write('name: $name, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -1629,11 +1679,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
 typedef $$ChildrenTableCreateCompanionBuilder = ChildrenCompanion Function({
   Value<int> id,
   required String avatar,
+  Value<String?> name,
   Value<DateTime> createdAt,
 });
 typedef $$ChildrenTableUpdateCompanionBuilder = ChildrenCompanion Function({
   Value<int> id,
   Value<String> avatar,
+  Value<String?> name,
   Value<DateTime> createdAt,
 });
 
@@ -1696,6 +1748,11 @@ class $$ChildrenTableFilterComposer
 
   ColumnFilters<String> get avatar => $composableBuilder(
     column: $table.avatar,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1774,6 +1831,11 @@ class $$ChildrenTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -1794,6 +1856,9 @@ class $$ChildrenTableAnnotationComposer
 
   GeneratedColumn<String> get avatar =>
       $composableBuilder(column: $table.avatar, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -1875,19 +1940,28 @@ class $$ChildrenTableTableManager
               $$ChildrenTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$ChildrenTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<int> id = const Value.absent(),
-            Value<String> avatar = const Value.absent(),
-            Value<DateTime> createdAt = const Value.absent(),
-          }) => ChildrenCompanion(id: id, avatar: avatar, createdAt: createdAt),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> avatar = const Value.absent(),
+                Value<String?> name = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => ChildrenCompanion(
+                id: id,
+                avatar: avatar,
+                name: name,
+                createdAt: createdAt,
+              ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
                 required String avatar,
+                Value<String?> name = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => ChildrenCompanion.insert(
                 id: id,
                 avatar: avatar,
+                name: name,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0

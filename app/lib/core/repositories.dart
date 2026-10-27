@@ -20,6 +20,13 @@ class ChildRepository {
     return (_db.select(_db.children)..where((c) => c.id.equals(id))).getSingle();
   }
 
+  /// Names the child's town and/or picks their animal.
+  Future<void> update(int id, {String? name, String? avatar}) =>
+      (_db.update(_db.children)..where((c) => c.id.equals(id))).write(ChildrenCompanion(
+        name: name == null ? const Value.absent() : Value(name.trim().isEmpty ? null : name.trim()),
+        avatar: avatar == null ? const Value.absent() : Value(avatar),
+      ));
+
   /// The first child, created on first launch so the app works right away.
   Future<Child> ensureDefault() async {
     final first = await (_db.select(_db.children)
@@ -208,6 +215,17 @@ class SettingsRepository {
   Future<void> setVoiceOn(bool on) =>
       _db.into(_db.settings).insertOnConflictUpdate(Setting(key: voiceKey, value: on ? 'on' : 'off'));
 
+  static const welcomedKey = 'welcomed';
+
+  /// Whether the town has been named on the welcome screen (first launch,
+  /// or again after a parent deleted everything).
+  Future<bool> welcomed() async {
+    final row = await (_db.select(_db.settings)..where((s) => s.key.equals(welcomedKey))).getSingleOrNull();
+    return row != null;
+  }
+
+  Future<void> setWelcomed() => _db.into(_db.settings).insertOnConflictUpdate(const Setting(key: welcomedKey, value: '1'));
+
   /// Parent mode "delete all data": every row, children included.
   Future<void> deleteEverything() => _db.transaction(() async {
         await _db.delete(_db.artworks).go();
@@ -215,4 +233,13 @@ class SettingsRepository {
         await _db.delete(_db.children).go();
         await _db.delete(_db.settings).go();
       });
+}
+
+/// What a child's town is called before 的小鎮: the name they gave it, or
+/// their animal's name until they do.
+extension TownName on Child {
+  String get townName {
+    final given = name?.trim() ?? '';
+    return given.isNotEmpty ? given : animalNames[avatar] ?? '';
+  }
 }
