@@ -60,7 +60,7 @@ void main() {
 
     await tester.pump(const Duration(milliseconds: 100));
 
-    for (final label in [Strings.takePhoto, Strings.album, Strings.blankPaper]) {
+    for (final label in [Strings.takePhoto, Strings.album, Strings.blankPaper, Strings.places]) {
       expect(find.bySemanticsLabel(label), findsOneWidget);
     }
     expect(find.byTooltip(Strings.parentMode), findsOneWidget);
@@ -98,24 +98,23 @@ void main() {
     await tester.pump(const Duration(milliseconds: 10));
   });
 
-  testWidgets('on a phone the signs to the places off screen never cover each other', (tester) async {
+  testWidgets('one button lists every place you can go into; one tap and the child is inside', (tester) async {
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
     await pumpApp(tester, DateTime(2026, 10, 25, 10));
     await tester.pump(const Duration(milliseconds: 100));
 
-    final signs = [
-      for (final h in Habitat.values)
-        if (find.bySemanticsLabel(Strings.goTo(h.place.label)).evaluate().isNotEmpty)
-          tester.getRect(find.bySemanticsLabel(Strings.goTo(h.place.label))),
-    ];
-    expect(signs.length, greaterThan(2)); // the phone shows the middle of the town
-    for (final (i, a) in signs.indexed) {
-      for (final b in signs.skip(i + 1)) {
-        expect(a.overlaps(b), isFalse, reason: '$a and $b');
-      }
+    await tester.tap(find.bySemanticsLabel(Strings.places));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    for (final h in Habitat.values) {
+      expect(find.bySemanticsLabel(Strings.goTo(h.label)), findsOneWidget, reason: h.label);
     }
+    await tester.tap(find.bySemanticsLabel(Strings.goTo(Habitat.polar.label)));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.bySemanticsLabel(Strings.drawNew(Habitat.polar.label, residents: Habitat.polar.residents)), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 10));

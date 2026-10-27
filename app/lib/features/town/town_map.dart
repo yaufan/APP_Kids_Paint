@@ -7,7 +7,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../app/art.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
-import '../../app/widgets.dart';
 import '../../core/creatures.dart';
 import '../../core/db/database.dart';
 import '../../core/festivals.dart';
@@ -110,8 +109,6 @@ class TownMap extends StatefulWidget {
 
 class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
   final _view = TransformationController();
-  late final AnimationController _pan = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
-  Animation<Matrix4>? _panning;
   Size? _laidOutFor;
   late final AnimationController _life =
       AnimationController(vsync: this, duration: const Duration(seconds: 24))..repeat();
@@ -126,7 +123,6 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    _pan.dispose();
     _view.dispose();
     _life.dispose();
     _grow.dispose();
@@ -136,17 +132,6 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
   /// Home, the zoo and the aquarium are always there; other places once a postcard arrives.
   bool _built(PlaceKind kind) =>
       kind == PlaceKind.home || townAttractions.containsKey(kind.name) || widget.spots.containsKey(kind);
-
-  /// Slides the map so [world] (a world point) is in the middle of [viewport].
-  void _panTo(Offset world, Size viewport, double s) {
-    final map = townSize * s + Offset(0, widget.bottomInset);
-    final tx = (viewport.width / 2 - world.dx * s).clamp(math.min(0.0, viewport.width - map.width), 0.0).toDouble();
-    final ty = (viewport.height * 0.45 - world.dy * s).clamp(math.min(0.0, viewport.height - map.height), 0.0).toDouble();
-    _panning = Matrix4Tween(begin: _view.value.clone(), end: Matrix4.translationValues(tx, ty, 0))
-        .animate(CurvedAnimation(parent: _pan, curve: Curves.easeInOutCubic))
-      ..addListener(() => _view.value = _panning!.value);
-    _pan.forward(from: 0);
-  }
 
   void _place(Size viewport, double s) {
     if (_laidOutFor == viewport) return;
@@ -274,8 +259,7 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
         ]),
       );
 
-      return Stack(children: [
-        InteractiveViewer(
+      return InteractiveViewer(
           transformationController: _view,
           constrained: false,
           scaleEnabled: false,
@@ -286,93 +270,8 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
                   map,
                   Container(width: size.width, height: widget.bottomInset, color: _grass[widget.phase]),
                 ]),
-        ),
-        // A round sign at the screen's edge for each place you can go into
-        // that is off screen; tapping slides the map over to it.
-        if (widget.interactive)
-          AnimatedBuilder(
-            animation: _view,
-            builder: (context, _) {
-              final shift = _view.value.getTranslation();
-              return Stack(children: _edgeSigns(viewport, s, Offset(shift.x, shift.y)));
-            },
-          ),
-      ]);
+      );
     });
-  }
-
-  /// Signs at the screen's edge pointing to the attractions that are off
-  /// screen: left or right first, else top or bottom (clear of the dock).
-  /// Signs on the same edge move apart so none covers another.
-  List<Widget> _edgeSigns(Size viewport, double s, Offset shift) {
-    const size = 76.0, gap = 10.0;
-    final minY = 120.0, maxY = math.max(120.0, viewport.height - math.max(widget.bottomInset, 180) - size - gap);
-    final signs = <({String name, Rect rect, int edge, double x, double y})>[];
-    for (final MapEntry(key: name, value: rect) in townAttractions.entries) {
-      final center = rect.center * s + shift;
-      // Where the signs themselves sit (along the edges) or under the town's
-      // name at the top counts as off screen too: hidden behind them.
-      const edge = size + 14;
-      final left = center.dx < edge, right = center.dx > viewport.width - edge;
-      final up = center.dy < 110, down = center.dy > viewport.height - widget.bottomInset; // under the dock too
-      if (!left && !right && !up && !down) continue;
-      final side = left || right;
-      signs.add((
-        name: name,
-        rect: rect,
-        edge: left ? 0 : (right ? 1 : (up ? 2 : 3)),
-        x: side ? (left ? 8.0 : viewport.width - size - 8) : (center.dx - size / 2).clamp(8.0, viewport.width - size - 8),
-        y: side ? (center.dy - size / 2).clamp(minY, maxY) : (up ? minY : maxY),
-      ));
-    }
-    final out = <Widget>[];
-    for (final edge in [0, 1, 2, 3]) {
-      final group = [for (final g in signs) if (g.edge == edge) g];
-      final along = edge < 2; // left and right signs spread up and down
-      group.sort((a, b) => (along ? a.y : a.x).compareTo(along ? b.y : b.x));
-      final at = [for (final g in group) along ? g.y : g.x];
-      final hi = along ? maxY : viewport.width - size - 8;
-      for (var i = 1; i < at.length; i++) {
-        at[i] = math.max(at[i], at[i - 1] + size + gap);
-      }
-      for (var i = at.length - 1; i >= 0; i--) {
-        at[i] = math.min(at[i], i == at.length - 1 ? hi : at[i + 1] - size - gap);
-      }
-      for (final (i, g) in group.indexed) {
-        out.add(_edgeSign(g.name, g.rect, edge, along ? g.x : at[i], along ? at[i] : g.y, size, viewport, s));
-      }
-    }
-    return out;
-  }
-
-  Widget _edgeSign(String name, Rect rect, int edge, double x, double y, double size, Size viewport, double s) {
-    final angle = [math.pi, 0.0, -math.pi / 2, math.pi / 2][edge];
-    final kind = PlaceKind.byName(name);
-    return Positioned(
-      key: ValueKey('edge-$name'),
-      left: x,
-      top: y,
-      child: Semantics(
-        button: true,
-        label: Strings.goTo(_door(kind)),
-        excludeSemantics: true,
-        child: Pressable(
-          onTap: () => _panTo(rect.center, viewport, s),
-          child: Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: KidShadows.soft()),
-            child: Stack(alignment: Alignment.center, children: [
-              ArtSvg(Art.place(kind), size: 50),
-              Align(
-                alignment: Alignment(math.cos(angle), math.sin(angle)),
-                child: Transform.rotate(angle: angle, child: const KidIcon('chevron', size: 22, color: KidColors.inkSoft)),
-              ),
-            ]),
-          ),
-        ),
-      ),
-    );
   }
 
   /// What a place you can go into is called on its door (the night market

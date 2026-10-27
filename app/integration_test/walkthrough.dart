@@ -17,7 +17,6 @@ import 'package:kids_paint/core/providers.dart';
 import 'package:kids_paint/core/storage/artwork_store.dart';
 import 'package:kids_paint/features/canvas/coloring.dart';
 import 'package:kids_paint/features/capture/capture_screen.dart';
-import 'package:kids_paint/features/town/town_map.dart';
 
 /// Captures the screen under [name].
 typedef Shot = Future<void> Function(String name);
@@ -250,7 +249,12 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
 
   // 13. The zoo: color an elephant and a monkey, and they move in.
   walkthroughNow = DateTime(2026, 10, 27, 10);
-  await enterScene(tester, PlaceKind.zoo);
+  await tester.tap(find.bySemanticsLabel(Strings.places));
+  await waitFor(tester, find.bySemanticsLabel(Strings.goTo(Habitat.zoo.label)));
+  await idle(tester, 600);
+  await shot('17b_places');
+  await tester.tap(find.bySemanticsLabel(Strings.goTo(Habitat.zoo.label)));
+  await waitFor(tester, find.bySemanticsLabel(Strings.drawNew(Habitat.zoo.label)));
   await idle(tester, 800);
   await shot('18_zoo_empty');
   for (final (i, creature) in [Creature.elephant, Creature.monkey].indexed) {
@@ -405,24 +409,13 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   });
 }
 
-/// From the town into a place you can go into: on a phone it is off screen,
-/// so the sign at the edge slides the map there first.
+/// From the town into a place you can go into, with the places button.
 Future<void> enterScene(WidgetTester tester, PlaceKind place) async {
   final habitat = Habitat.of(place)!;
-  final sign = find.bySemanticsLabel(Strings.goTo(habitat.label));
-  if (sign.evaluate().isNotEmpty) {
-    await tester.tap(sign);
-    await idle(tester, 1000);
-  }
-  // Near an edge or under the buttons (the shop, in the middle column, after
-  // the map slid to the far right): drag it to the middle, as a child would.
-  final door = find.bySemanticsLabel(Strings.enter(habitat.label));
-  final map = tester.getRect(find.byType(TownMap)), at = tester.getRect(door).center;
-  if (at.dx < map.left + 100 || at.dx > map.right - 100 || at.dy < map.top + 160 || at.dy > map.bottom - 220) {
-    await tester.dragFrom(map.center, Offset(map.center.dx - at.dx, map.top + map.height * 0.45 - at.dy));
-    await idle(tester, 800);
-  }
-  await tester.tap(door);
+  await tester.tap(find.bySemanticsLabel(Strings.places));
+  await waitFor(tester, find.bySemanticsLabel(Strings.goTo(habitat.label)));
+  await idle(tester, 500);
+  await tester.tap(find.bySemanticsLabel(Strings.goTo(habitat.label)));
   await waitFor(tester, find.bySemanticsLabel(Strings.drawNew(habitat.label, residents: habitat.residents)));
 }
 

@@ -89,6 +89,38 @@ class _TownScreenState extends ConsumerState<TownScreen> {
   /// Into the zoo or the aquarium.
   void _enter(PlaceKind kind) => context.push('/scene/${Habitat.of(kind)!.name}');
 
+  /// Every place you can go into, big, in one sheet: one tap and the child
+  /// is inside (instead of signs along the map's edges).
+  void _choosePlace() {
+    ref.read(voiceProvider).say(Strings.wherePlay);
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: KidColors.paper,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(36))),
+      builder: (sheet) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 22, 16, 20),
+          child: Wrap(spacing: 14, runSpacing: 16, alignment: WrapAlignment.center, children: [
+            for (final h in Habitat.values)
+              ChunkyButton(
+                key: ValueKey('place-${h.name}'),
+                label: Strings.goTo(h.label),
+                width: 100,
+                height: 100,
+                radius: 30,
+                onPressed: () {
+                  Navigator.of(sheet).pop();
+                  _enter(h.place);
+                },
+                child: ArtSvg(Art.place(h.place), size: 74),
+              ),
+          ]),
+        ),
+      ),
+    );
+  }
+
   Future<void> _openBlank(int childId) => _open(() => ref.read(artworkServiceProvider).saveBlank(childId: childId));
 
   Future<void> _openFestivalPage(int childId, Festival festival) => _open(() async {
@@ -180,6 +212,7 @@ class _TownScreenState extends ConsumerState<TownScreen> {
                 if (await showParentGate(context) && context.mounted) context.push('/parent');
               }),
             ),
+            Positioned(right: 12, top: 76, child: _PlacesButton(onTap: _choosePlace)),
             if (widget.grow != null)
               Positioned(
                 left: 0,
@@ -219,6 +252,32 @@ class _TownScreenState extends ConsumerState<TownScreen> {
       ]),
     );
   }
+}
+
+/// A round button with a few of the places on it: where to go and play.
+class _PlacesButton extends StatelessWidget {
+  const _PlacesButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        button: true,
+        label: Strings.places,
+        excludeSemantics: true,
+        child: Pressable(
+          onTap: onTap,
+          child: Container(
+            width: 70,
+            height: 70,
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: KidShadows.soft()),
+            child: Wrap(alignment: WrapAlignment.center, children: [
+              for (final kind in [PlaceKind.zoo, PlaceKind.aquarium, PlaceKind.space, PlaceKind.polar]) ArtSvg(Art.place(kind), size: 27),
+            ]),
+          ),
+        ),
+      );
 }
 
 class _ChildPill extends ConsumerWidget {

@@ -33,6 +33,8 @@ abstract final class Strings {
   static String latest(String date) => '最近 $date';
   static const drawHere = '在這裡再畫一張';
   static String goTo(String place) => '去$place';
+  static const places = '去哪裡玩';
+  static const wherePlay = '要去哪裡玩呢？';
   static String enter(String place) => '進去$place';
 
   // The places you can go into: the zoo, the aquarium, the dinosaur park,
