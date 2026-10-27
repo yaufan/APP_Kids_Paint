@@ -1,8 +1,9 @@
 """The coloring-page characters (0.11 on): drawn like a toddler's coloring
 book, one big friendly character per page.
 
-- Round, chunky shapes; a big head with big black eyes (a white shine),
-  blush cheeks and a small smile.
+- Round, chunky shapes; a big head with big glossy black eyes (a large
+  and a small white shine), blush cheeks and an open smile (0.14).
+- Animals mostly face you, chibi: a big head on a small body (0.14).
 - Thick, even black outlines (OUTLINE px), thinner inner lines (DETAIL px).
 - Few, large areas to color; no texture, no shading, no background.
 
@@ -10,7 +11,8 @@ Each character is drawn once with its real colors (characters.py). The
 coloring page is the same drawing with every color turned white; only
 the eyes' black (INK) stays.
 
-Pages are 600 x 800 (PAGE_W x PAGE_H); characters face right.
+Pages are 600 x 800 (PAGE_W x PAGE_H); what moves sideways (fish,
+vehicles) faces right.
 """
 import re
 
@@ -89,18 +91,35 @@ def scallop(cx, cy, r_in, r_out, n):
     return d + "Z"
 
 
+# Eyes 1.75 times as big as the sizes characters pass in (0.14), like the
+# picture-book characters children know: big, glossy and black.
+EYE_SCALE = 1.75
+
+
 def eye(x, y, r=15):
-    """A big black eye with a white shine."""
-    return (f'<ellipse cx="{x}" cy="{y}" rx="{r * 0.82:.1f}" ry="{r}" fill="{INK}"/>'
-            f'<circle cx="{x - r * 0.28:.1f}" cy="{y - r * 0.38:.1f}" r="{r * 0.34:.1f}" fill="#FFFFFF"/>')
+    """A big glossy black eye: a large white shine above, a small one below."""
+    r *= EYE_SCALE
+    return (f'<ellipse cx="{x}" cy="{y}" rx="{r * 0.84:.1f}" ry="{r}" fill="{INK}"/>'
+            f'<ellipse cx="{x - r * 0.26:.1f}" cy="{y - r * 0.34:.1f}" rx="{r * 0.36:.1f}" ry="{r * 0.31:.1f}" fill="#FFFFFF"/>'
+            f'<circle cx="{x + r * 0.32:.1f}" cy="{y + r * 0.42:.1f}" r="{r * 0.15:.1f}" fill="#FFFFFF"/>')
 
 
 def cheek(x, y, rx=15, ry=10):
     return ellipse(x, y, rx, ry, BLUSH, w=4)
 
 
+MOUTH, TONGUE = "#E85A6A", "#FF9AAE"
+
+
 def smile(x, y, w=22, h=10):
-    return line(f"M{x - w / 2} {y} Q {x} {y + h * 2} {x + w / 2} {y}")
+    """A happy open mouth (a D on its back) with a little tongue."""
+    w *= 1.3
+    d = max(h * 1.7, w * 0.48)  # how deep it opens
+    top = y - 2
+    mouth = f"M{x - w / 2:.1f} {top:.1f} Q {x:.1f} {top + 2 * d:.1f} {x + w / 2:.1f} {top:.1f} Z"
+    tongue = (f"M{x - w * 0.2:.1f} {top + d * 0.76:.1f} Q {x:.1f} {top + d * 0.42:.1f} {x + w * 0.2:.1f} {top + d * 0.76:.1f} "
+              f"Q {x:.1f} {top + d * 1.1:.1f} {x - w * 0.2:.1f} {top + d * 0.76:.1f} Z")
+    return shape(mouth, MOUTH, w=5) + shape(tongue, TONGUE, w=3)
 
 
 def nostril(x, y, r=4):

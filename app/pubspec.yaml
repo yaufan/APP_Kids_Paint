@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.13.0+1
+version: 0.14.0+1
 
 environment:
   sdk: ^3.13.7
@@ -90,6 +90,8 @@ flutter:
     # Coloring pages: festivals (v3) and creatures, drawn like a toddler's
     # coloring book (docs/design/v5).
     - assets/pages/
+    # The same creatures in their colors, small, for the cards you pick from.
+    - assets/previews/
     # The places you go into, painted with Stable Diffusion (docs/design/v4).
     - assets/scenes/
     # TEED edge-detection weights (MIT), from prototypes/lineart/export_teed.py.

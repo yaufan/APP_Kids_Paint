@@ -258,7 +258,8 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   await idle(tester, 800);
   await shot('18_zoo_empty');
   for (final (i, creature) in [Creature.elephant, Creature.monkey].indexed) {
-    await colorCreature(tester, creature, [kidPalette[i == 0 ? 5 : 8], kidPalette[i == 0 ? 7 : 9], kidPalette[2]]);
+    await colorCreature(tester, creature, [kidPalette[i == 0 ? 5 : 8], kidPalette[i == 0 ? 7 : 9], kidPalette[2]],
+        onPicker: i == 0 ? () => shot('18b_pick_creature') : null);
     if (i == 0) await shot('19_creature_page');
     await tester.tap(find.bySemanticsLabel(Strings.done));
     await waitFor(tester, find.bySemanticsLabel(Strings.resident(creature.label)));
@@ -420,10 +421,12 @@ Future<void> enterScene(WidgetTester tester, PlaceKind place) async {
 }
 
 /// Picks [creature] in its scene and bucket-fills a few areas with [colors].
-Future<void> colorCreature(WidgetTester tester, Creature creature, List<int> colors) async {
+/// [onPicker] runs while the cards to pick from are showing.
+Future<void> colorCreature(WidgetTester tester, Creature creature, List<int> colors, {Future<void> Function()? onPicker}) async {
   await tester.tap(find.bySemanticsLabel(Strings.drawNew(creature.habitat.label, residents: creature.habitat.residents)));
   await waitFor(tester, find.byKey(ValueKey('creature-${creature.name}')));
   await idle(tester, 500);
+  await onPicker?.call();
   await tester.tap(find.byKey(ValueKey('creature-${creature.name}')));
   await waitFor(tester, find.byKey(const ValueKey('page')));
   await idle(tester, 600);

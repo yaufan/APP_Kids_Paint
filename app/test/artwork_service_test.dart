@@ -78,6 +78,14 @@ void main() {
       }
     });
 
+    test('every creature has a picture in its colors to pick it by', () {
+      for (final c in Creature.values) {
+        final preview = img.decodePng(File('assets/previews/${c.name}.png').readAsBytesSync())!;
+        expect(preview.width == 256 || preview.height == 256, isTrue, reason: '${c.name}: small, the same size');
+        expect(preview.getPixel(0, 0).a, 0, reason: '${c.name}: cut out of the paper');
+      }
+    });
+
     test('blank paper is one big region', () async {
       final art = await service.saveBlank(childId: childId);
       expect(art.style, 'blank');

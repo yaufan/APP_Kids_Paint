@@ -1,7 +1,7 @@
 """The 70 characters of the places you can go into, in kawaii.py's
 coloring-book style. Each is a function returning SVG parts in page
-coordinates (600 x 800), drawn back to front, facing right; the ground is
-around y = 700.
+coordinates (600 x 800), drawn back to front: animals mostly facing you,
+what moves sideways facing right. The ground is around y = 700.
 """
 import re
 
@@ -39,76 +39,63 @@ def leg(x, y, w, h, fill, toes=True):
 
 @character
 def elephant():
-    body = GRAY
+    skin, ear = GRAY, "#97A5B9"
+    ears = [ellipse(150, 300, 100, 122, skin, rot=-10), ellipse(156, 304, 66, 88, PINK, w=DETAIL, rot=-10)]
     return [
-        line("M110 430 Q 80 470 94 520", w=10),
-        ellipse(94, 530, 14, 20, "#7D8798"),
-        leg(195, 500, 64, 170, "#97A5B9"),
-        leg(345, 500, 64, 170, "#97A5B9"),
-        ellipse(255, 455, 165, 125, body),
-        leg(145, 520, 72, 185, body),
-        leg(295, 520, 72, 185, body),
-        tube("M440 390 C 500 405 522 450 510 505 Q 503 540 535 542", 56, body),
-        circle(395, 315, 125, body),
-        ellipse(322, 330, 80, 104, body, rot=-8),
-        ellipse(327, 335, 50, 72, PINK, w=DETAIL, rot=-8),
-        eye(432, 300, 18),
-        cheek(460, 352),
-        smile(420, 398, 26, 9),
-        line("M474 455 Q 489 462 504 455"),
-        line("M480 485 Q 495 492 510 485"),
+        rect(212, 610, 76, 92, 32, skin), rect(312, 610, 76, 92, 32, skin),
+        line("M222 676 Q 250 668 278 676 M322 676 Q 350 668 378 676"),
+        ellipse(300, 560, 128, 112, skin),
+        ellipse(186, 560, 34, 52, ear, rot=20), ellipse(414, 560, 34, 52, ear, rot=-20),
+        *ears, mirror(ears),
+        circle(300, 318, 150, skin),
+        tube("M300 372 C 300 440, 298 482, 342 490", 50, skin),
+        line("M282 420 h 36 M284 450 h 32", w=5),
+        eye(244, 296, 17), eye(356, 296, 17),
+        cheek(214, 352), cheek(386, 352),
     ]
 
 
 @character
 def giraffe():
-    coat, spot = YELLOW, "#E8A048"
+    coat, spot = YELLOW, "#E8A04A"
+    spots = [ellipse(x, y, rx, ry, spot, w=DETAIL) for x, y, rx, ry in
+             ((262, 420, 18, 14), (334, 452, 16, 13), (290, 500, 14, 12), (230, 590, 26, 20), (360, 570, 28, 20), (296, 640, 22, 16))]
+    horn = [tube("M262 168 L 250 112", 18, coat), circle(248, 104, 20, BROWN)]
+    ear = [ellipse(176, 210, 50, 22, coat, rot=-24)]
     return [
-        line("M135 440 Q 110 500 112 560", w=10),
-        ellipse(112, 570, 12, 20, BROWN),
-        leg(205, 480, 40, 215, "#F2C53D", toes=False),
-        leg(330, 480, 40, 215, "#F2C53D", toes=False),
-        tube("M335 440 L 410 215", 78, coat),
-        ellipse(260, 465, 140, 88, coat),
-        leg(175, 495, 42, 210, coat, toes=False),
-        leg(300, 495, 42, 210, coat, toes=False),
-        rect(173, 672, 46, 33, 12, BROWN), rect(298, 672, 46, 33, 12, BROWN),
-        rect(203, 662, 44, 33, 12, "#8E5E36"), rect(328, 662, 44, 33, 12, "#8E5E36"),
-        ellipse(200, 455, 38, 30, spot, w=DETAIL), ellipse(290, 430, 34, 26, spot, w=DETAIL),
-        ellipse(275, 505, 30, 22, spot, w=DETAIL), ellipse(355, 470, 26, 22, spot, w=DETAIL),
-        ellipse(375, 330, 20, 26, spot, w=DETAIL, rot=18), ellipse(352, 400, 18, 22, spot, w=DETAIL, rot=18),
-        tube("M392 142 L 386 98", 16, "#F2C53D"), tube("M440 140 L 446 96", 16, "#F2C53D"),
-        circle(385, 92, 15, BROWN), circle(447, 90, 15, BROWN),
-        ellipse(368, 165, 34, 15, coat, rot=-25),
-        ellipse(425, 195, 78, 66, coat),
-        ellipse(480, 225, 48, 36, CREAM),
-        nostril(468, 218), nostril(492, 218),
-        eye(433, 180, 15),
-        cheek(412, 222, 13, 9),
-        smile(480, 245, 20, 6),
+        rect(218, 612, 70, 92, 30, coat), rect(312, 612, 70, 92, 30, coat),
+        rect(218, 676, 70, 28, 12, BROWN), rect(312, 676, 70, 28, 12, BROWN),
+        ellipse(300, 572, 126, 104, coat),
+        rect(250, 330, 100, 220, 40, coat),
+        *spots,
+        *horn, mirror(horn), *ear, mirror(ear),
+        ellipse(300, 250, 128, 112, coat),
+        ellipse(300, 304, 72, 48, CREAM),
+        nostril(282, 300), nostril(318, 300),
+        eye(248, 238, 17), eye(352, 238, 17),
+        cheek(214, 286), cheek(386, 286),
+        smile(300, 326, 26, 8),
     ]
 
 
 @character
 def lion():
-    fur = "#FFC861"
+    coat, mane, muzzle = "#FFC95C", "#E8923A", CREAM
+    ear = [circle(214, 212, 32, coat), circle(214, 212, 16, PINK, w=DETAIL)]
     return [
-        line("M110 440 Q 60 420 62 360", w=10),
-        ellipse(62, 345, 18, 24, "#D98A33"),
-        leg(170, 500, 62, 165, "#F2B64E"),
-        leg(320, 500, 62, 165, "#F2B64E"),
-        ellipse(250, 470, 160, 105, fur),
-        leg(130, 520, 70, 180, fur),
-        leg(290, 520, 70, 180, fur),
-        shape(scallop(405, 320, 140, 178, 14), "#D98A33"),
-        circle(345, 228, 30, fur), circle(470, 222, 30, fur),
-        circle(345, 228, 14, "#F2B64E", w=DETAIL), circle(470, 222, 14, "#F2B64E", w=DETAIL),
-        circle(410, 325, 102, fur),
-        ellipse(430, 372, 55, 38, CREAM),
-        eye(375, 312, 16), eye(445, 310, 16),
-        cheek(348, 352), cheek(488, 350),
-        ellipse(430, 352, 15, 11, "#8E5E36", w=DETAIL),
-        line("M430 363 L 430 378 M412 380 Q 421 392 430 378 Q 439 392 448 380"),
+        tube("M404 626 Q 486 624 474 540", 14, coat), circle(472, 526, 26, mane),
+        ellipse(300, 572, 118, 112, coat),
+        ellipse(300, 600, 66, 70, muzzle, w=DETAIL),
+        ellipse(242, 684, 50, 26, coat), ellipse(358, 684, 50, 26, coat),
+        line("M228 682 v -12 M244 684 v -14 M342 684 v -14 M358 682 v -12", w=5),
+        shape(scallop(300, 300, 152, 188, 14), mane),
+        *ear, mirror(ear),
+        circle(300, 304, 118, coat),
+        ellipse(300, 352, 58, 40, muzzle, w=DETAIL),
+        ellipse(300, 334, 18, 12, BROWN, w=5),
+        line("M300 346 V 360 M300 360 Q 286 374 274 366 M300 360 Q 314 374 326 366", w=5),
+        eye(252, 288, 16), eye(348, 288, 16),
+        cheek(222, 334), cheek(378, 334),
     ]
 
 
@@ -138,32 +125,28 @@ def panda():
 
 @character
 def zebra():
-    black = "#3A3A46"
-    body = ellipse(255, 460, 150, 90, WHITE)
-    neck = ("M345 430 L 410 280", 82)
-    stripes = [tube(f"M{x} 360 Q {x - 22} 460 {x + 6} 560", 22, black) for x in (165, 225, 285, 345)]
-    neck_stripes = [tube(f"M{x} {y} L {x + 70} {y + 22}", 18, black) for x, y in ((340, 300), (325, 350), (310, 400))]
+    black, coat, nose = "#3A3A46", WHITE, "#B8BCC8"
+    head = ellipse(300, 272, 118, 132, coat)
+    body = ellipse(300, 580, 118, 106, coat)
+    head_stripes = [tube(f"M{x} 140 Q {x + 8} 190 {x} 230", 18, black) for x in (250, 300, 350)]
+    body_stripes = [tube(f"M{x} 470 Q {x - 16} 580 {x + 4} 690", 20, black) for x in (210, 260, 340, 390)]
+    ear = [ellipse(200, 168, 26, 48, coat, rot=-30), ellipse(202, 170, 12, 28, PINK, w=DETAIL, rot=-30)]
     return [
-        line("M110 430 Q 90 490 95 545", w=10),
-        ellipse(95, 556, 13, 22, black),
-        leg(190, 480, 44, 215, "#E8EAF0", toes=False),
-        leg(320, 480, 44, 215, "#E8EAF0", toes=False),
-        tube("M318 415 L 385 245", 30, black),
-        tube("M%s" % neck[0][1:], neck[1], WHITE),
-        body,
-        leg(160, 495, 46, 210, WHITE, toes=False),
-        leg(290, 495, 46, 210, WHITE, toes=False),
-        rect(158, 672, 50, 33, 12, black), rect(288, 672, 50, 33, 12, black),
-        rect(188, 662, 48, 33, 12, black), rect(318, 662, 48, 33, 12, black),
-        clip("zebra-body", body, stripes), outline(body),
-        clip("zebra-neck", f'<path d="M318 450 L 360 425 L 430 270 L 380 250 Z"/>', neck_stripes),
-        ellipse(395, 205, 16, 32, WHITE, rot=-15),
-        ellipse(440, 255, 72, 60, WHITE),
-        ellipse(495, 282, 46, 36, "#9AA0AE"),
-        nostril(485, 276), nostril(507, 276),
-        eye(445, 240, 15),
-        cheek(420, 282, 13, 9),
-        smile(492, 300, 20, 6),
+        rect(220, 620, 66, 84, 26, coat), rect(314, 620, 66, 84, 26, coat),
+        rect(220, 680, 66, 24, 10, black), rect(314, 680, 66, 24, 10, black),
+        body, clip("zebra-body", body, body_stripes), outline(body),
+        rect(256, 360, 88, 150, 36, coat),
+        clip("zebra-neck", '<rect x="256" y="360" width="88" height="150" rx="36"/>',
+             [tube(f"M256 {y} L 344 {y + 14}", 16, black) for y in (420, 466)]),
+        rect(256, 360, 88, 150, 36, "none"),
+        *ear, mirror(ear),
+        shape(scallop(300, 128, 26, 44, 6), black),
+        head, clip("zebra-head", head, head_stripes), outline(head),
+        ellipse(300, 352, 84, 56, nose),
+        nostril(276, 346, 6), nostril(324, 346, 6),
+        eye(248, 262, 17), eye(352, 262, 17),
+        cheek(212, 310), cheek(388, 310),
+        smile(300, 374, 26, 8),
     ]
 
 
@@ -233,20 +216,19 @@ def octopus():
 
 @character
 def turtle():
-    skin, shell, patch = "#8CD47E", "#5FAF62", "#9AD58A"
+    skin, shell, patch, rim = "#8CD47E", "#5FAF62", "#9AD58A", CREAM
+    foot = [ellipse(140, 632, 52, 30, skin, rot=-20)]
     return [
-        ellipse(175, 470, 52, 26, skin, rot=30),
-        ellipse(420, 375, 72, 30, skin, rot=-35),
-        tube("M430 420 L 480 390", 52, skin),
-        circle(500, 378, 58, skin),
-        shape("M120 440 C 120 285 455 265 470 440 Z", shell),
-        ellipse(295, 372, 62, 46, patch, w=DETAIL),
-        ellipse(185, 405, 40, 32, patch, w=DETAIL), ellipse(405, 405, 40, 32, patch, w=DETAIL),
-        shape("M110 440 H 480 Q 472 474 440 474 H 150 Q 115 474 110 440 Z", CREAM),
-        ellipse(395, 500, 78, 30, skin, rot=-30),
-        eye(518, 362, 14),
-        cheek(535, 398, 12, 8),
-        smile(525, 402, 20, 7),
+        *foot, mirror(foot),
+        shape("M84 590 C 84 160 516 160 516 590 Z", shell),
+        ellipse(300, 330, 66, 44, patch, w=DETAIL),
+        ellipse(168, 456, 42, 48, patch, w=DETAIL), ellipse(432, 456, 42, 48, patch, w=DETAIL),
+        shape("M74 590 H 526 Q 518 632 484 632 H 116 Q 82 632 74 590 Z", rim),
+        circle(300, 556, 122, skin),
+        eye(254, 540, 16), eye(346, 540, 16),
+        cheek(216, 592), cheek(384, 592),
+        smile(300, 596, 36, 10),
+        ellipse(226, 688, 44, 22, skin), ellipse(374, 688, 44, 22, skin),
     ]
 
 
@@ -312,99 +294,117 @@ def crab():
 # ---------------------------------------------------------------- the dinosaur park
 
 
+def teeth(x, y, gap=16):
+    """Two little white teeth hanging from the top of an open mouth."""
+    return "".join(shape(f"M{x + dx - 7} {y} L {x + dx} {y + 11} L {x + dx + 7} {y} Z", WHITE, w=3) for dx in (-gap, gap))
+
+
 @character
 def trex():
     skin, belly = "#7ED37F", CREAM
+    arm = [ellipse(212, 548, 34, 17, skin, rot=-30)]
+    foot = [ellipse(238, 680, 56, 28, skin), line("M216 668 v 12 M238 666 v 14 M260 668 v 12", w=5)]
     return [
-        shape("M220 395 C 130 415 70 490 45 575 Q 60 602 92 578 C 140 535 190 522 248 528 Z", skin),
-        leg(285, 520, 60, 160, "#6CC06E"),
-        shape("M250 330 L 270 290 L 292 322 L 318 280 L 338 318 L 362 285 L 375 330 Z", ORANGE),
-        ellipse(290, 455, 130, 122, skin),
-        ellipse(325, 485, 66, 84, belly, w=DETAIL, rot=-15),
-        ellipse(245, 560, 62, 72, skin),
-        rect(205, 628, 100, 64, 28, skin),
-        line("M220 666 Q 232 656 244 666 M250 666 Q 262 656 274 666"),
-        tube("M392 420 Q 420 432 440 452", 24, skin),
-        ellipse(420, 285, 125, 98, skin),
-        nostril(512, 262, 5),
-        eye(430, 258, 18),
-        cheek(470, 310),
-        line("M375 335 Q 450 372 530 318"),
-        shape("M455 345 L 463 362 L 471 341 Z", WHITE, w=4),
+        shape("M380 640 C 470 640 520 590 548 500 C 566 560 552 640 480 676 C 440 694 400 690 370 676 Z", skin),
+        shape("M228 238 L 244 182 L 272 218 L 300 160 L 328 218 L 356 182 L 372 238 Z", ORANGE),
+        ellipse(300, 572, 114, 112, skin),
+        ellipse(300, 598, 66, 72, belly, w=DETAIL),
+        *arm, mirror(arm),
+        *foot, mirror(foot),
+        ellipse(300, 336, 160, 130, skin),
+        nostril(282, 338), nostril(318, 338),
+        eye(232, 310, 17), eye(368, 310, 17),
+        cheek(196, 370), cheek(404, 370),
+        smile(300, 380, 50, 14), teeth(300, 378, 18),
     ]
 
 
 @character
 def triceratops():
     skin, frill, horn = "#F4A259", "#FFC861", CREAM
+    brow = [shape("M232 236 C 214 196 196 164 168 140 C 214 146 252 180 268 226 Z", horn)]
+    foot = [rect(212, 612, 74, 90, 32, skin), line("M224 676 Q 249 668 274 676")]
     return [
-        tube("M110 460 Q 70 490 52 525", 44, skin),
-        leg(190, 500, 64, 170, "#E59448"), leg(340, 500, 64, 170, "#E59448"),
-        ellipse(250, 460, 160, 108, skin),
-        leg(140, 520, 72, 180, skin), leg(300, 520, 72, 180, skin),
-        shape(scallop(385, 325, 108, 130, 11), frill),
-        circle(385, 325, 70, "#FFDA8A", w=DETAIL),
-        ellipse(435, 365, 92, 74, skin),
-        shape("M405 305 C 405 260 418 225 438 205 C 440 240 442 275 440 306 Z", horn),
-        shape("M455 310 C 465 268 485 238 512 225 C 505 262 492 290 480 318 Z", horn),
-        shape("M505 355 C 515 335 525 322 540 315 C 540 335 535 352 522 365 Z", horn),
-        eye(450, 350, 16),
-        cheek(480, 395),
-        smile(492, 405, 22, 7),
+        tube("M396 630 Q 476 640 508 584", 40, skin),
+        *foot, mirror(foot),
+        ellipse(300, 580, 122, 100, skin),
+        ellipse(300, 604, 70, 62, "#FFD2A0", w=DETAIL),
+        shape(scallop(300, 300, 170, 204, 14), frill),
+        *[circle(300 + 146 * c, 300 + 146 * s, 14, "#FFE3A8", w=DETAIL) for c, s in
+          ((-0.94, -0.34), (-0.6, -0.8), (0, -1), (0.6, -0.8), (0.94, -0.34))],
+        *brow, mirror(brow),
+        ellipse(300, 330, 138, 120, skin),
+        ellipse(300, 392, 84, 50, "#FFC28A", w=DETAIL),
+        shape("M284 362 C 286 338 294 320 300 306 C 306 320 314 338 316 362 Z", horn, w=DETAIL),
+        nostril(276, 384), nostril(324, 384),
+        eye(240, 306, 17), eye(360, 306, 17),
+        cheek(196, 360), cheek(404, 360),
+        smile(300, 408, 40, 11),
     ]
 
 
 @character
 def brachiosaurus():
-    skin = "#7CC9B5"
+    skin, back, spot = "#7CC9B5", "#69B6A2", "#A6E0D0"
+    behind = [rect(170, 604, 62, 94, 28, back)]
+    front = [rect(222, 612, 70, 92, 30, skin), line("M234 676 Q 257 668 280 676")]
     return [
-        tube("M100 490 C 65 510 45 545 32 570", 42, skin),
-        leg(185, 520, 56, 160, "#69B6A2", toes=False), leg(310, 520, 56, 160, "#69B6A2", toes=False),
-        tube("M330 450 C 380 370 400 260 420 175", 72, skin),
-        ellipse(230, 490, 150, 96, skin),
-        leg(140, 535, 64, 165, skin, toes=False), leg(270, 535, 64, 165, skin, toes=False),
-        circle(180, 470, 18, "#A6E0D0", w=DETAIL), circle(240, 445, 14, "#A6E0D0", w=DETAIL), circle(290, 480, 16, "#A6E0D0", w=DETAIL),
-        ellipse(455, 150, 66, 46, skin),
-        nostril(505, 140, 4),
-        eye(458, 135, 14),
-        cheek(480, 168, 12, 8),
-        smile(498, 172, 18, 6),
+        tube("M404 640 Q 506 650 534 578", 40, skin),
+        *behind, mirror(behind),
+        ellipse(300, 584, 138, 100, skin),
+        circle(198, 568, 16, spot, w=DETAIL), circle(402, 568, 16, spot, w=DETAIL), circle(372, 622, 12, spot, w=DETAIL),
+        *front, mirror(front),
+        rect(254, 250, 92, 300, 44, skin),
+        circle(284, 420, 13, spot, w=DETAIL), circle(318, 486, 11, spot, w=DETAIL),
+        ellipse(300, 116, 52, 40, skin),
+        ellipse(300, 206, 126, 100, skin),
+        eye(248, 196, 16), eye(352, 196, 16),
+        cheek(210, 242), cheek(390, 242),
+        smile(300, 252, 36, 10),
     ]
 
 
 @character
 def stegosaurus():
     skin, plate = "#9BD37A", "#FF8A65"
-    plates = [shape(f"M{x} {y - h} Q {x + 32} {y - h * 0.4} {x + 26} {y} L {x - 26} {y} Q {x - 32} {y - h * 0.4} {x} {y - h} Z", plate)
-              for x, y, h in ((140, 420, 70), (210, 380, 95), (290, 368, 105), (370, 385, 90), (435, 425, 65))]
+
+    def plate_at(angle, length):
+        p = shape(f"M300 {330 - 80} Q {300 + 44} {330 - 80 - length * 0.45} 300 {330 - 80 - length} "
+                  f"Q {300 - 44} {330 - 80 - length * 0.45} 300 {330 - 80} Z", plate)
+        return f'<g transform="rotate({angle} 300 330)">{p}</g>'
+
+    foot = [rect(212, 612, 74, 90, 32, skin), line("M224 676 Q 249 668 274 676")]
     return [
-        tube("M110 470 Q 70 470 40 440", 40, skin),
-        shape("M50 430 L 22 392 L 62 418 Z", CREAM), shape("M48 452 L 18 470 L 60 465 Z", CREAM),
-        *plates,
-        leg(190, 510, 62, 160, "#88C268"), leg(345, 510, 62, 160, "#88C268"),
-        ellipse(270, 475, 170, 100, skin),
-        leg(140, 525, 70, 175, skin), leg(300, 525, 70, 175, skin),
-        ellipse(470, 495, 62, 50, skin),
-        eye(478, 482, 14),
-        cheek(500, 512, 12, 8),
-        smile(512, 518, 18, 6),
+        tube("M398 632 Q 476 640 506 582", 38, skin),
+        shape("M500 572 L 486 524 L 520 562 Z", CREAM), shape("M518 594 L 566 578 L 524 610 Z", CREAM),
+        *[plate_at(a, n) for a, n in ((-56, 112), (-28, 132), (0, 144), (28, 132), (56, 112))],
+        *foot, mirror(foot),
+        ellipse(300, 574, 122, 108, skin),
+        ellipse(300, 604, 70, 62, "#D4F0B8", w=DETAIL),
+        ellipse(300, 340, 140, 122, skin),
+        eye(242, 322, 17), eye(358, 322, 17),
+        cheek(200, 376), cheek(400, 376),
+        smile(300, 390, 40, 11),
     ]
 
 
 @character
 def pterosaur():
     skin, wing = "#F4A259", "#FFC861"
-    wings = [shape("M320 390 C 400 300 500 250 565 285 C 520 320 490 370 480 430 C 430 410 380 420 330 445 Z", wing),
-             line("M335 405 Q 430 330 545 292", w=DETAIL)]
+    wings = [shape("M336 440 C 404 352 500 294 572 322 C 532 362 508 410 502 470 C 452 450 392 468 344 498 Z", wing),
+             line("M350 456 Q 444 372 552 328", w=DETAIL)]
     return [
         *wings, mirror(wings),
-        tube("M280 500 L 270 545 M320 500 L 330 545", 14, skin),
-        ellipse(300, 430, 58, 82, skin),
-        shape("M290 268 L 205 238 L 270 305 Z", skin),
-        shape("M345 290 L 470 312 L 348 330 Z", CREAM),
-        circle(312, 300, 52, skin),
-        eye(320, 292, 14),
-        cheek(298, 325, 11, 8),
+        tube("M272 600 L 264 650 M328 600 L 336 650", 14, skin),
+        ellipse(248, 660, 30, 14, skin), ellipse(352, 660, 30, 14, skin),
+        ellipse(300, 532, 76, 90, skin),
+        ellipse(300, 552, 44, 60, CREAM, w=DETAIL),
+        shape("M292 220 C 256 182 214 152 168 138 C 196 182 230 218 258 242 Z", skin),
+        circle(300, 330, 118, skin),
+        shape("M254 372 Q 300 356 346 372 Q 334 432 300 462 Q 266 432 254 372 Z", CREAM),
+        line("M262 388 Q 300 402 338 388", w=5),
+        eye(248, 312, 16), eye(352, 312, 16),
+        cheek(210, 366), cheek(390, 366),
     ]
 
 
@@ -443,7 +443,10 @@ def fireTruck():
         rect(430, 322, 100, 86, 18, SKY),
         rect(445, 274, 72, 28, 12, BLUE),
         rect(55, 540, 495, 34, 12, YELLOW),
-        circle(532, 470, 16, YELLOW, w=DETAIL),
+        circle(534, 508, 14, YELLOW, w=DETAIL),
+        eye(458, 366, 13), eye(502, 366, 13),
+        cheek(438, 446, 12, 8), cheek(522, 446, 12, 8),
+        smile(480, 448, 32, 9),
         rect(532, 548, 34, 40, 10, "#C9D2DE"),
         wheel(170, 600), wheel(450, 600),
     ]
@@ -452,14 +455,17 @@ def fireTruck():
 @character
 def policeCar():
     return [
-        rect(270, 300, 36, 30, 10, RED), rect(306, 300, 36, 30, 10, BLUE),
-        shape("M170 440 L 225 330 H 395 L 460 440 Z", WHITE),
-        shape("M205 432 L 245 350 H 300 V 432 Z", SKY), shape("M318 432 V 350 H 382 L 425 432 Z", SKY),
+        rect(270, 290, 36, 30, 10, RED), rect(306, 290, 36, 30, 10, BLUE),
+        shape("M170 440 L 225 318 H 402 L 474 440 Z", WHITE),
+        shape("M205 432 L 245 340 H 300 V 432 Z", SKY), shape("M318 432 V 340 H 390 L 444 432 Z", SKY),
         rect(55, 425, 490, 140, 50, WHITE),
         rect(55, 480, 490, 30, 14, BLUE),
         line("M300 440 V 560", w=DETAIL),
         circle(240, 455, 14, YELLOW, w=DETAIL),
-        circle(525, 455, 14, YELLOW, w=DETAIL),
+        circle(530, 455, 12, YELLOW, w=DETAIL),
+        eye(348, 390, 12), eye(392, 390, 12),
+        cheek(436, 450, 11, 7),
+        smile(476, 452, 28, 7),
         wheel(170, 575, 56), wheel(430, 575, 56),
     ]
 
@@ -471,10 +477,12 @@ def ambulance():
         rect(250, 300, 70, 28, 10, RED),
         rect(60, 325, 400, 250, 34, WHITE),
         shape("M440 325 H 470 Q 540 330 552 455 V 575 H 440 Z", WHITE),
-        shape("M462 345 Q 520 350 532 440 H 462 Z", SKY),
+        shape("M446 336 Q 534 340 544 446 H 446 Z", SKY),
         shape(cross, RED),
         rect(60, 470, 492, 30, 14, RED),
         circle(538, 495, 13, YELLOW, w=DETAIL),
+        eye(472, 398, 11), eye(510, 398, 11),
+        smile(494, 458, 24, 6),
         wheel(165, 580, 56), wheel(445, 580, 56),
     ]
 
@@ -489,6 +497,8 @@ def bus():
         line("M485 440 V 560", w=DETAIL),
         rect(45, 455, 400, 28, 12, ORANGE),
         circle(530, 490, 14, WHITE, w=DETAIL),
+        eye(477, 356, 11.5), eye(517, 356, 11.5),
+        smile(497, 394, 26, 7),
         wheel(160, 585, 56), wheel(420, 585, 56),
     ]
 
@@ -504,6 +514,9 @@ def scooter():
         tube("M440 305 L 425 470", 26, body),
         circle(462, 335, 18, YELLOW, w=DETAIL),
         shape("M395 520 C 410 480 500 480 512 530 Z", body),
+        eye(296, 504, 12), eye(344, 504, 12),
+        cheek(262, 540, 11, 7),
+        smile(320, 538, 26, 7),
         wheel(160, 600, 58), wheel(455, 600, 58),
     ]
 
@@ -517,7 +530,9 @@ def train():
         rect(105, 325, 110, 90, 16, SKY),
         rect(220, 380, 300, 165, 70, BLUE),
         line("M300 384 V 541 M380 384 V 541", w=DETAIL),
-        circle(505, 450, 18, YELLOW, w=DETAIL),
+        eye(430, 448, 12), eye(474, 448, 12),
+        cheek(410, 494, 11, 8), cheek(498, 490, 11, 8),
+        smile(452, 494, 30, 9),
         shape("M520 520 L 570 580 H 505 Z", GRAY),
         rect(60, 540, 470, 30, 12, DARK),
         wheel(170, 585, 58), wheel(330, 595, 46), wheel(450, 595, 46),
@@ -530,9 +545,11 @@ def airplane():
     return [
         shape("M115 350 L 85 230 H 150 L 215 345 Z", RED),
         shape("M80 385 C 80 345 120 332 160 332 H 465 C 540 332 572 372 572 400 C 572 432 540 452 465 452 H 160 C 110 452 80 425 80 385 Z", WHITE),
-        shape("M488 345 C 525 350 548 368 556 388 H 488 Z", SKY),
         *[circle(x, 380, 15, SKY, w=DETAIL) for x in (190, 245, 300, 355, 410)],
-        rect(100, 412, 400, 20, 10, BLUE, sw=DETAIL),
+        rect(100, 412, 350, 20, 10, BLUE, sw=DETAIL),
+        eye(482, 380, 11), eye(522, 380, 11),
+        cheek(552, 410, 10, 7),
+        smile(506, 416, 24, 7),
         shape("M245 425 H 385 L 305 575 H 230 Z", BLUE),
         ellipse(300, 470, 40, 20, GRAY, w=DETAIL),
     ]
@@ -547,6 +564,9 @@ def helicopter():
         ellipse(58, 375, 14, 50, GRAY),
         shape("M180 425 C 180 335 255 305 335 305 C 445 305 500 375 500 430 C 500 490 450 520 380 520 H 260 C 210 520 180 482 180 425 Z", YELLOW),
         shape("M390 318 C 455 325 492 378 494 432 H 390 Z", SKY),
+        eye(416, 382, 12), eye(458, 382, 12),
+        cheek(404, 470, 11, 8), cheek(478, 466, 11, 8),
+        smile(440, 466, 28, 8),
         line("M260 520 V 560 M420 520 V 560", w=10),
         tube("M200 565 H 480", 14, GRAY),
     ]
@@ -701,7 +721,7 @@ def ladybug():
         body,
         *spots,
         line("M300 290 V 622"),
-        circle(270, 250, 19, WHITE, w=0), circle(330, 250, 19, WHITE, w=0),
+        circle(270, 250, 28, WHITE, w=0), circle(330, 250, 28, WHITE, w=0),
         eye(270, 250, 13), eye(330, 250, 13),
         smile(300, 282, 22, 7),
     ]
@@ -729,18 +749,20 @@ def bee():
 
 @character
 def beetle():
-    shell, horn = "#9A6A44", "#7A5236"
+    shell, head, leg = "#7A5236", "#9A6A44", "#5A3E2B"
+    legs = [tube(d, 16, leg) for d in ("M196 480 L 118 440 L 96 478", "M184 566 L 104 584 L 96 634", "M222 650 L 176 694")]
     return [
-        tube("M210 545 L 180 620 M290 555 L 290 630 M370 545 L 400 620", 16, "#5A3E2B"),
-        tube("M470 410 C 525 380 545 320 520 260", 36, horn),
-        tube("M520 260 L 545 230 M520 262 L 492 236", 18, horn),
-        ellipse(280, 455, 175, 112, shell),
-        line("M140 440 Q 280 400 430 430", w=DETAIL),
-        ellipse(230, 400, 40, 18, "#C99A6E", w=DETAIL, rot=-10),
-        circle(440, 440, 70, horn),
-        eye(450, 430, 15),
-        cheek(475, 468, 12, 8),
-        smile(462, 470, 20, 7),
+        *legs, mirror(legs),
+        ellipse(300, 556, 150, 140, shell),
+        line("M300 432 V 694"),
+        ellipse(232, 520, 22, 48, "#B88A60", w=DETAIL, rot=14),
+        tube("M300 250 C 300 190 282 156 300 118", 40, head),
+        tube("M300 126 L 268 92 M300 126 L 332 92", 22, head),
+        circle(300, 342, 116, head),
+        circle(254, 334, 36, WHITE, w=0), circle(346, 334, 36, WHITE, w=0),
+        eye(254, 334, 16), eye(346, 334, 16),
+        cheek(212, 392), cheek(388, 392),
+        smile(300, 392, 34, 10),
     ]
 
 
@@ -754,7 +776,7 @@ def dragonfly():
         line("M284 420 H 316 M284 480 H 316 M284 540 H 316 M284 600 H 316", w=DETAIL),
         circle(300, 230, 64, body),
         circle(266, 215, 26, WHITE), circle(334, 215, 26, WHITE),
-        eye(266, 218, 17), eye(334, 218, 17),
+        eye(266, 218, 13), eye(334, 218, 13),
         cheek(258, 258, 11, 8), cheek(342, 258, 11, 8),
         smile(300, 262, 20, 7),
     ]
@@ -762,21 +784,24 @@ def dragonfly():
 
 @character
 def mantis():
-    skin = "#8ED36B"
+    skin, dark = "#8ED36B", "#6FBF50"
+    legs = [tube("M262 590 L 196 640 L 184 700", 14, dark), tube("M270 630 L 240 700", 14, dark)]
+    arm = [tube("M266 450 L 196 414 L 238 540", 28, skin),
+           line("M206 444 L 196 456 M214 474 L 204 486 M222 504 L 212 516", w=5)]
+    bump = [circle(206, 250, 50, skin)]
     return [
-        tube("M250 470 L 210 600 M300 460 L 330 600 M200 480 L 140 590", 14, "#6FBF50"),
-        ellipse(215, 455, 125, 52, skin, rot=-12),
-        tube("M330 430 L 395 330", 40, skin),
-        tube("M392 360 L 455 410 L 425 470", 26, skin),
-        line("M420 255 Q 440 180 480 160"), line("M440 262 Q 480 205 525 200"),
-        ellipse(420, 300, 58, 48, skin),
-        eye(400, 290, 15), eye(448, 290, 15),
-        cheek(388, 325, 11, 8),
-        smile(430, 325, 20, 7),
+        *legs, mirror(legs),
+        ellipse(300, 600, 78, 108, skin),
+        line("M240 590 Q 300 604 360 590 M248 640 Q 300 654 352 640", w=DETAIL),
+        tube("M300 400 L 300 500", 54, skin),
+        line("M270 222 Q 240 132 196 106"), line("M330 222 Q 360 132 404 106"),
+        *bump, mirror(bump),
+        shape("M168 268 C 168 196 432 196 432 268 C 432 340 352 402 300 412 C 248 402 168 340 168 268 Z", skin),
+        *arm, mirror(arm),
+        eye(206, 250, 17), eye(394, 250, 17),
+        cheek(232, 320, 13, 9), cheek(368, 320, 13, 9),
+        smile(300, 334, 32, 9),
     ]
-
-
-# ---------------------------------------------------------------- the shop
 
 
 @character
@@ -1217,16 +1242,21 @@ def polarBear():
 @character
 def seal():
     skin, belly = "#B8C6D8", "#DCE6F2"
+    flipper = [ellipse(170, 566, 38, 70, skin, rot=36)]
+    tail = [ellipse(236, 688, 60, 24, skin, rot=-10)]
     return [
-        shape("M120 610 L 46 560 L 66 622 L 40 680 Z", skin),
-        shape("M100 620 C 120 540, 210 470, 330 440 C 440 414, 520 470, 520 560 C 520 640, 420 690, 300 690 C 200 690, 120 670, 100 620 Z", skin),
-        shape("M170 650 C 240 690, 400 690, 470 630 C 420 660, 240 666, 170 650 Z", belly, w=DETAIL),
-        ellipse(330, 650, 56, 22, skin, rot=18),
-        eye(410, 520, 16), eye(468, 514, 16),
-        ellipse(444, 556, 18, 12, INK, w=4),
-        line("M444 568 Q 432 582 420 574 M444 568 Q 456 582 468 574", w=5),
-        line("M400 560 L 360 552 M402 576 L 362 580 M490 556 L 530 548 M488 572 L 528 576", w=4),
-        cheek(392, 560, 12, 8),
+        *tail, mirror(tail),
+        ellipse(300, 566, 138, 132, skin),
+        ellipse(300, 592, 84, 92, belly, w=DETAIL),
+        *flipper, mirror(flipper),
+        circle(300, 318, 140, skin),
+        ellipse(300, 374, 72, 46, belly, w=DETAIL),
+        ellipse(300, 354, 20, 13, INK, w=4),
+        line("M300 367 V 378", w=5),
+        smile(300, 384, 32, 9),
+        line("M228 368 L 184 360 M228 386 L 186 392 M372 368 L 416 360 M372 386 L 414 392", w=4),
+        eye(240, 300, 17), eye(360, 300, 17),
+        cheek(200, 356), cheek(400, 356),
     ]
 
 

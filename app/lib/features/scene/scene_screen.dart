@@ -272,6 +272,16 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
     }
   }
 
+  /// Soft colors for the cards you pick a page by, in turn: (card, its edge).
+  static const _cards = [
+    (Color(0xFFFFE3EC), Color(0xFFF2C2D2)),
+    (Color(0xFFFFF1C7), Color(0xFFEDD593)),
+    (Color(0xFFDDF5E3), Color(0xFFB5E0C1)),
+    (Color(0xFFDDEEFF), Color(0xFFB6D4F2)),
+    (Color(0xFFEDE6FF), Color(0xFFCFC2F2)),
+    (Color(0xFFFFE6D3), Color(0xFFF2C6A4)),
+  ];
+
   void _pick(int childId) {
     showModalBottomSheet<void>(
       context: context,
@@ -281,10 +291,12 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
           child: Wrap(spacing: 14, runSpacing: 14, alignment: WrapAlignment.center, children: [
-            for (final c in widget.habitat.creatures)
+            for (final (i, c) in widget.habitat.creatures.indexed)
               ChunkyButton(
                 key: ValueKey('creature-${c.name}'),
                 label: Strings.drawCreature(c.label),
+                color: _cards[i % _cards.length].$1,
+                edge: _cards[i % _cards.length].$2,
                 width: 104,
                 height: 120,
                 radius: 28,
@@ -292,7 +304,7 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
                   Navigator.of(sheet).pop();
                   _draw(childId, c);
                 },
-                child: ExcludeSemantics(child: Image.asset(Art.page(c.name), width: 84, height: 108, cacheWidth: 168)),
+                child: ExcludeSemantics(child: Image.asset(Art.preview(c.name), width: 84, height: 98)),
               ),
           ]),
         ),

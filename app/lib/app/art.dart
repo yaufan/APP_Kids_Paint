@@ -21,6 +21,9 @@ abstract final class Art {
   /// A built-in coloring page (a festival's, a creature's): black lines on white.
   static String page(String name) => 'assets/pages/$name.png';
 
+  /// A creature in its colors, cut out: the card you pick its page by.
+  static String preview(String name) => 'assets/previews/$name.png';
+
   /// A place you go into, painted (docs/design/v4/draw_scenes.py).
   static String scene(Habitat h) => 'assets/scenes/${h.name}.jpg';
 
