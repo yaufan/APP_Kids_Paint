@@ -52,7 +52,13 @@ class _RestCurtainState extends ConsumerState<RestCurtain> {
     widget.router.routerDelegate.addListener(_routeChanged);
   }
 
-  String get _currentPath => widget.router.routerDelegate.currentConfiguration.uri.path;
+  /// The page on top. The configuration's own uri leaves out pages that
+  /// were pushed (the canvas is pushed from the town), so look at the last.
+  String get _currentPath {
+    final config = widget.router.routerDelegate.currentConfiguration;
+    final top = config.matches.isEmpty ? null : config.matches.last;
+    return top is ImperativeRouteMatch ? top.matches.uri.path : config.uri.path;
+  }
 
   @override
   void dispose() {

@@ -363,7 +363,15 @@ void main() {
       await tap(shopSign);
       await seconds(1.5);
     }
-    await tap(find.bySemanticsLabel(Strings.enter(PlaceKind.shop.label)));
+    // Slide the map so the shop is in the middle, clear of the buttons.
+    final door = find.bySemanticsLabel(Strings.enter(PlaceKind.shop.label));
+    final move = Offset(_phone.width / 2, _phone.height * 0.45) - tester.getCenter(door);
+    if (move.distance > 100) {
+      const from = Offset(195, 420);
+      await stroke([for (var i = 0; i <= 12; i++) from + move * (i / 12)]);
+      await seconds(1);
+    }
+    await tap(door);
     await until(find.bySemanticsLabel(Strings.drawNew(PlaceKind.shop.label, residents: Residents.goods)));
     caption.value = '小朋友畫的牛奶、蘋果、珍珠奶茶⋯⋯\n都擺在架子上';
     await seconds(3);
@@ -474,7 +482,7 @@ void main() {
 
     // 8. Time to rest, gently (0.12).
     mark('rest');
-    GoRouter.of(tester.element(find.text(Strings.dailyLimit))).go('/');
+    GoRouter.of(tester.element(keep)).go('/');
     await until(find.bySemanticsLabel(Strings.blankPaper));
     final app = ProviderScope.containerOf(tester.element(find.bySemanticsLabel(Strings.blankPaper)));
     Future<void> playTo(Duration at) => tester.runAsync(() => app.read(playTimeProvider.notifier).add(at - app.read(playTimeProvider)!.played));
@@ -493,9 +501,10 @@ void main() {
     await seconds(2.5);
     caption.value = '畫完寄出，才出現休息畫面';
     await tap(find.bySemanticsLabel(Strings.done));
-    await until(find.bySemanticsLabel(Strings.sendTo(PlaceKind.home.label)));
+    final where = find.bySemanticsLabel(RegExp('^${Strings.sendTo('')}'));
+    await until(where);
     await seconds(1);
-    await tap(find.bySemanticsLabel(Strings.sendTo(PlaceKind.home.label)));
+    await tap(where);
     await until(find.byKey(const ValueKey('rest-screen')), max: 20);
     caption.value = '休息畫面：今天畫了幾張，明天再來畫\n家長通過關卡可以再玩 10 分鐘';
     await seconds(6);

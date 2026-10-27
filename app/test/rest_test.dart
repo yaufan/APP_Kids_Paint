@@ -4,6 +4,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:kids_paint/app/app.dart';
 import 'package:kids_paint/app/strings.dart';
 import 'package:kids_paint/core/db/database.dart';
@@ -132,6 +133,60 @@ void main() {
     await tester.runAsync(() => container.read(playTimeProvider.notifier).extend(10));
     await tester.pump(const Duration(milliseconds: 300));
     expect(rest, findsNothing);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(milliseconds: 100));
+  });
+
+  testWidgets('time running out on the canvas only says so; the rest screen waits for the town', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2340);
+    tester.view.devicePixelRatio = 2.75;
+    addTearDown(tester.view.reset);
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    final now = DateTime(2026, 10, 27, 17);
+    await tester.runAsync(() async {
+      final settings = SettingsRepository(db);
+      await settings.setWelcomed();
+      await settings.setDailyMinutes(15);
+      await ChildRepository(db).ensureDefault();
+    });
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        databaseProvider.overrideWithValue(db),
+        artworkStoreProvider.overrideWithValue(ArtworkStore(Directory.systemTemp.createTempSync('kp'))),
+        clockProvider.overrideWithValue(() => now),
+        systemVoiceProvider.overrideWithValue(const SilentVoice()),
+      ],
+      child: const KidsPaintApp(),
+    ));
+    Future<void> settle(Finder until) async {
+      for (var i = 0; i < 150 && until.evaluate().isEmpty; i++) {
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+    }
+
+    // The paper opens once the child is loaded.
+    for (var i = 0; i < 15; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.tap(find.bySemanticsLabel(Strings.blankPaper));
+    await settle(find.byKey(const ValueKey('page')));
+    expect(find.byKey(const ValueKey('page')), findsOneWidget);
+
+    final container = ProviderScope.containerOf(tester.element(find.byKey(const ValueKey('page'))));
+    await tester.runAsync(() => container.read(playTimeProvider.notifier).add(const Duration(minutes: 15, seconds: 10)));
+    await tester.pump(const Duration(milliseconds: 300));
+    final rest = find.byKey(const ValueKey('rest-screen'));
+    expect(rest, findsNothing, reason: 'the picture is not interrupted');
+    expect(find.text(Strings.restWhenDone), findsOneWidget);
+
+    // Back on the map, the day's play is over.
+    GoRouter.of(tester.element(find.byKey(const ValueKey('page')))).go('/');
+    await settle(rest);
+    expect(rest, findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 100));

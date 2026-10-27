@@ -130,7 +130,7 @@ abstract final class Strings {
   static const almostRest = '再畫一下下，就要休息囉！';
   static const restWhenDone = '時間到囉！畫完這張，我們就休息。';
   static String restTitle(int finished) => finished == 0 ? '今天玩得好開心！' : '今天畫了 $finished 張，好棒！';
-  static const restBody = '眼睛和小手要休息囉，明天再來畫畫吧！';
+  static const restBody = '眼睛和小手要休息囉，\n明天再來畫畫吧！';
   static const restForParents = '家長：讓孩子再玩一下';
   static const tenMoreMinutes = '再玩 10 分鐘';
   static const noLimitToday = '今天不限時間';
