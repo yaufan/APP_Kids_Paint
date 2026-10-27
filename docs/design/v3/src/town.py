@@ -163,7 +163,7 @@ def land():
         "".join(f'<path d="M{gx} {gy} v6" stroke="#5E6F86" stroke-width="1.4"/><rect x="{gx - 7}" y="{gy + 6}" width="14" height="12" rx="4" fill="{gc}" stroke="{shade(gc, -0.3)}" stroke-width="1.2"/><rect x="{gx - 4.5}" y="{gy + 8.5}" width="9" height="4.5" rx="1.5" fill="#E8F6FF"/>'
                 for gx, gy, gc in [(196, 165, "#FF5E5B"), (268, 139, "#FFC94A"), (340, 126, "#4DA8FF")]),
         '<path d="M120 62 l6 4 6-4 M140 54 l5 3 5-3" stroke="#4E6D8C" stroke-width="2" fill="none" stroke-linecap="round"/>',
-        '<g transform="translate(92 140)"><path d="M0 -26 C 16 -26, 18 -6, 6 4 L -6 4 C -18 -6, -16 -26, 0 -26 Z" fill="#FF8FB1" stroke="#E0668C" stroke-width="1.4"/>'
+        '<g transform="translate(232 70)"><path d="M0 -26 C 16 -26, 18 -6, 6 4 L -6 4 C -18 -6, -16 -26, 0 -26 Z" fill="#FF8FB1" stroke="#E0668C" stroke-width="1.4"/>'
         '<path d="M0 -26 C 6 -20, 6 -4, 3 4 M0 -26 C -6 -20, -6 -4, -3 4" stroke="#FFFFFF" stroke-width="2" fill="none"/>'
         '<path d="M-5 4 L-4 10 M5 4 L4 10" stroke="#8A6A4A" stroke-width="1.2"/><rect x="-5" y="10" width="10" height="7" rx="2" fill="#C98B5E"/></g>'))
     # land
@@ -513,6 +513,29 @@ def polar():
             + (glow(659, 202, 12) if PHASE == "night" else ""))
 
 
+def candy():
+    """The candy house on the middle hill (0.15): a gingerbread house with a
+    pink icing roof, between two giant lollipops."""
+    def lolly(x, y, r, a, b, stick):
+        return (f'<rect x="{x - 2.5}" y="{y}" width="5" height="{stick}" rx="2" fill="#FFF6F0" stroke="#D9B9AF" stroke-width="1"/>'
+                f'<circle cx="{x}" cy="{y}" r="{r}" fill="{a}" stroke="{shade(a, -0.25)}" stroke-width="1.4"/>'
+                f'<circle cx="{x}" cy="{y}" r="{r * 0.58:.1f}" fill="none" stroke="{b}" stroke-width="{r * 0.2:.1f}"/>'
+                f'<circle cx="{x}" cy="{y}" r="{r * 0.18:.1f}" fill="{b}"/>')
+    return mid(
+        '<ellipse cx="88" cy="220" rx="78" ry="10" fill="#E9C7DA" opacity=".85"/>',
+        lolly(26, 156, 15, "#FF8FB1", "#FFFFFF", 62), lolly(152, 142, 19, "#7FD9FF", "#FFFFFF", 76),
+        '<rect x="48" y="164" width="80" height="54" rx="4" fill="#C98B5E" stroke="#8A5A36" stroke-width="1.6"/>'
+        '<path d="M38 170 L 88 124 L 138 170 Z" fill="#FF8FB1" stroke="#E0668C" stroke-width="1.6" stroke-linejoin="round"/>'
+        '<path d="M38 170 q 6 6 12.5 0 q 6 6 12.5 0 q 6 6 12.5 0 q 6 6 12.5 0 q 6 6 12.5 0 q 6 6 12.5 0 q 6 6 12.5 0 q 6 6 12.5 0" '
+        'fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>'
+        '<circle cx="88" cy="146" r="6" fill="#FFD84D" stroke="#D9A21C" stroke-width="1.2"/>'
+        '<path d="M78 218 V 196 Q 88 184 98 196 V 218 Z" fill="#7A4A2A"/>'
+        '<rect x="56" y="180" width="16" height="14" rx="3" fill="#FFE9A8" stroke="#FFFFFF" stroke-width="2.4"/>'
+        '<rect x="104" y="180" width="16" height="14" rx="3" fill="#FFE9A8" stroke="#FFFFFF" stroke-width="2.4"/>'
+        + "".join(f'<circle cx="{x}" cy="{y}" r="3.2" fill="{c}"/>' for x, y, c in [(60, 206, "#FF5E5B"), (116, 206, "#6BCB77"), (68, 172, "#4DA3FF"), (108, 172, "#FFD84D")])
+        + (glow(88, 188, 12) if PHASE == "night" else ""))
+
+
 # kind -> (building layer, lot rect in world coords, pin anchor in world coords)
 SLOTS = {
     "home": (home, None, (OX + 78, 344)),
@@ -529,19 +552,21 @@ SLOTS = {
     "insects": (insects, None, (680, 918)),
     "space": (space, None, (100, 206)),
     "polar": (polar, None, (690, 206)),
+    "candy": (candy, None, (OX + 88, 214)),
     "grandma": (grandma, (OX + 24, 892, 164, 124), (OX + 84, 932)),
     "travel": (travel, (OX + 232, 892, 158, 136), (OX + 299, 896)),
     # scenery that is always there: only a pin anchor
     "water": (None, None, (OX + 150, 300)),
-    "mountain": (None, None, (OX + 60, 200)),
+    "mountain": (None, None, (OX + 250, 192)),
     "station": (None, None, (OX + 298, 286)),
 }
-ORDER = ["space", "polar", "home", "school", "park", "shop", "food", "temple", "zoo", "aquarium", "dinoPark", "transport", "botanical", "insects",
+ORDER = ["space", "polar", "candy", "home", "school", "park", "shop", "food", "temple", "zoo", "aquarium", "dinoPark", "transport", "botanical", "insects",
          "grandma", "travel"]
 # Places you can go into (scenes in the app), always built: kind -> tap area.
 ATTRACTIONS = {"zoo": (596, 690, 172, 124), "aquarium": (12, 690, 178, 128), "dinoPark": (12, 476, 178, 170),
                "transport": (596, 476, 172, 170), "botanical": (12, 878, 178, 168), "insects": (596, 878, 172, 168),
-               "shop": (OX + 230, 548, 90, 76), "food": (OX + 12, 680, 172, 120), "space": (12, 44, 176, 180), "polar": (600, 70, 172, 154)}
+               "shop": (OX + 230, 548, 90, 76), "food": (OX + 12, 680, 172, 120), "space": (12, 44, 176, 180), "polar": (600, 70, 172, 154),
+               "candy": (OX + 14, 112, 156, 112)}
 
 
 def lot(kind):
@@ -615,7 +640,7 @@ def export(app_dir):
     lines += ["};", "", "/// Back to front.", "const townLayerOrder = [" + ", ".join(f"'{k}'" for k in ORDER) + "];", "",
               "/// Festivals with a decoration layer (`festival_<name>_<phase>.svg`).",
               "const townFestivalLayers = {" + ", ".join(f"'{k}'" for k in festivals.DECOR) + "};", "",
-              "/// Places you can go into (the zoo, the aquarium, the dinosaur park, the transport museum, the botanical garden, the insect museum, the shop, the night market, space, the polar sea): always built; tapping opens their scene.",
+              "/// Places you can go into (the zoo, the aquarium, the dinosaur park, the transport museum, the botanical garden, the insect museum, the shop, the night market, space, the polar sea, the candy house): always built; tapping opens their scene.",
               "const townAttractions = <String, Rect>{",
               *[f"  '{k}': Rect.fromLTWH({x}, {y}, {w}, {h})," for k, (x, y, w, h) in ATTRACTIONS.items()],
               "};", "",

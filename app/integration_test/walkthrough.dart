@@ -403,6 +403,20 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   await idle(tester, 2500);
   await shot('30_polar');
 
+  // 23. The candy house: a gummy bear and a donut that rolls.
+  await tester.tap(find.bySemanticsLabel(Strings.backToTown));
+  await waitFor(tester, find.bySemanticsLabel(Strings.blankPaper));
+  await idle(tester, 800);
+  await enterScene(tester, PlaceKind.candy);
+  for (final (i, creature) in [Creature.gummyBear, Creature.donut].indexed) {
+    await colorCreature(tester, creature, [kidPalette[i == 0 ? 0 : 7], kidPalette[2], kidPalette[4]],
+        onPicker: i == 0 ? () => shot('31a_candy_pick') : null);
+    await tester.tap(find.bySemanticsLabel(Strings.done));
+    await waitFor(tester, find.bySemanticsLabel(Strings.resident(creature.label)));
+    await idle(tester, 1800);
+  }
+  await shot('31_candy');
+
   // 19. The album as one timeline.
   await tester.tap(find.bySemanticsLabel(Strings.backToTown));
   await waitFor(tester, find.bySemanticsLabel(Strings.album));

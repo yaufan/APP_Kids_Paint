@@ -19,7 +19,8 @@ enum PlaceKind {
   botanical('植物園'),
   insects('昆蟲館'),
   space('太空'),
-  polar('極地');
+  polar('極地'),
+  candy('糖果館');
 
   const PlaceKind(this.label);
 

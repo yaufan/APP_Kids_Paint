@@ -405,7 +405,8 @@ def duck(x, y, s=1.0, flip=False):
 PLACE_TYPES = [("home", "家"), ("grandma", "阿公阿嬤家"), ("school", "幼兒園"), ("park", "公園"),
                ("food", "好吃的店"), ("shop", "商店"), ("zoo", "動物園"), ("water", "河邊海邊"),
                ("mountain", "山上"), ("temple", "廟"), ("station", "車站"), ("travel", "去旅行"), ("aquarium", "海洋館"), ("dinoPark", "恐龍樂園"),
-               ("transport", "交通車館"), ("botanical", "植物園"), ("insects", "昆蟲館"), ("space", "太空"), ("polar", "極地")]
+               ("transport", "交通車館"), ("botanical", "植物園"), ("insects", "昆蟲館"), ("space", "太空"), ("polar", "極地"),
+               ("candy", "糖果館")]
 PLACE_NAMES = dict(PLACE_TYPES)
 
 

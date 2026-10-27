@@ -85,6 +85,11 @@ Pose poseAt(Motion motion, double t, int seed, Rect area) {
         tilt: sliding ? (w.left ? -1.25 : 1.25) : 0.12 * waddle,
         squash: sliding ? 0.92 : 1.0,
       );
+    case Motion.roll:
+      // Along the ground, turning round and round like a wheel (the scene
+      // turns it about its middle).
+      final w = pacing(40);
+      return (at: Offset(w.x, laneY()), left: w.left, tilt: 40 * pace * t / 60, squash: 1.0);
     case Motion.shelf:
       // On its spot on the shelf ([shelfSpots]), now and then a little wiggle.
       final wiggle = math.max(0.0, math.sin(t * 0.9 * pace + wobble) - 0.9) * 10;
@@ -163,6 +168,7 @@ Rect roamArea(Creature creature, SceneView view, {double top = 110, double botto
     Motion.shelf => (shopBoards.first, shopBoards.first), // see [shelfSpots]
     Motion.drift => (260.0, 760.0),
     Motion.slide => (730.0, 950.0),
+    Motion.roll => (700.0, 950.0),
   };
   // Swimmers and floaters are drawn up from their bottom, so leave room above.
   final y0 = math.max(lo, minY + creature.size * view.creatureScale * 0.7);

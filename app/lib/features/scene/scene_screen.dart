@@ -286,9 +286,12 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: KidColors.paper,
+      // Twelve cards: as tall as they need, scrolling only on a very small screen.
+      isScrollControlled: true,
+      constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.86),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(36))),
       builder: (sheet) => SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
           child: Wrap(spacing: 14, runSpacing: 14, alignment: WrapAlignment.center, children: [
             for (final (i, c) in widget.habitat.creatures.indexed)
@@ -674,7 +677,8 @@ class _ResidentState extends State<_Resident> with TickerProviderStateMixin {
                     scale: (0.2 + 0.8 * grow) * widget.presence,
                     alignment: Alignment.bottomCenter,
                     child: Transform(
-                      alignment: Alignment.bottomCenter,
+                      // What rolls turns about its middle; the rest lean from their feet.
+                      alignment: widget.creature.motion == Motion.roll ? Alignment.center : Alignment.bottomCenter,
                       transform: Matrix4.diagonal3Values(pose.left ? -1 : 1, pose.squash, 1)..rotateZ(pose.tilt),
                       child: child,
                     ),

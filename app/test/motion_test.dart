@@ -16,6 +16,7 @@ void main() {
         turned |= pose.left;
       }
       if (![Motion.float, Motion.crawl, Motion.sway, Motion.shelf, Motion.drift].contains(motion)) expect(turned, isTrue, reason: '$motion');
+      if (motion == Motion.roll) expect(poseAt(motion, 10, 42, area).tilt, greaterThan(poseAt(motion, 5, 42, area).tilt), reason: 'it keeps turning');
     }
   });
 
@@ -33,10 +34,9 @@ void main() {
     }
   });
 
-  test('each scene has six or eight things to color', () {
+  test('each place has twelve things to color', () {
     for (final habitat in Habitat.values) {
-      final six = {Habitat.zoo, Habitat.aquarium, Habitat.dinoPark, Habitat.botanical, Habitat.insects};
-      expect(habitat.creatures, hasLength(six.contains(habitat) ? 6 : 8), reason: '$habitat');
+      expect(habitat.creatures, hasLength(12), reason: '$habitat');
       expect(Habitat.of(habitat.place), habitat);
     }
   });

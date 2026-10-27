@@ -41,8 +41,8 @@ const _fps = 10;
 /// lived in: each area takes the color its subject really has there
 /// (docs/design/v5/colors/, the same drawing in its colors).
 const _residents = [
-  Creature.giraffe, Creature.lion, Creature.monkey, Creature.zebra, //
-  Creature.clownfish, Creature.octopus, Creature.turtle, Creature.jellyfish, Creature.crab,
+  Creature.giraffe, Creature.lion, Creature.monkey, Creature.zebra, Creature.tiger, Creature.koala, Creature.kangaroo, //
+  Creature.clownfish, Creature.octopus, Creature.turtle, Creature.jellyfish, Creature.crab, Creature.dolphin, Creature.pufferfish,
   Creature.triceratops, Creature.brachiosaurus, Creature.stegosaurus, Creature.pterosaur, Creature.babyDino,
   Creature.fireTruck, Creature.bus, Creature.train, Creature.airplane, Creature.helicopter, Creature.scooter,
   Creature.tulip, Creature.cactus, Creature.rose, Creature.lotus,
@@ -52,6 +52,7 @@ const _residents = [
   Creature.friedChicken, Creature.sausage, Creature.tanghulu, Creature.cottonCandy, Creature.shavedIce, Creature.takoyaki, Creature.goldfish,
   Creature.sweetPotatoBalls,
   Creature.penguin, Creature.polarBear, Creature.seal, Creature.snowman, Creature.arcticFox, Creature.orca, Creature.sled, Creature.igloo,
+  Creature.lollipop, Creature.cupcake, Creature.gingerbread, Creature.candy, Creature.jelly, Creature.cookie, Creature.cake, Creature.candyCane,
 ];
 
 /// The photo album, pretend: the demo has no phone to save to.
@@ -233,12 +234,29 @@ void main() {
     caption.value = '著色：選顏色，用油漆桶點一下就填滿\n（不會塗出線外）';
     await seconds(1);
     await fill([(kidPalette[0], 0.5, 0.3), (kidPalette[2], 0.5, 0.55), (kidPalette[5], 0.1, 0.1), (kidPalette[3], 0.85, 0.85)]);
-    caption.value = '魔法蠟筆：畫在一個區塊裡，也不會出界';
+    mark('pens');
+    caption.value = '魔法畫筆：畫在一個區塊裡，也不會出界';
     await tap(find.bySemanticsLabel(Strings.crayon));
     await tap(find.byKey(ValueKey('swatch-${kidPalette[7]}')));
     final page = tester.getRect(find.byKey(const ValueKey('page')));
     await stroke([for (var i = 0; i <= 12; i++) page.topLeft + Offset(page.width * (0.3 + i * 0.03), page.height * 0.8 + (i.isEven ? -10 : 10))]);
     await seconds(0.5);
+    caption.value = '魔法畫筆有 7 種：蠟筆、粗粗筆、點點筆、噴漆、\n水彩筆、霓虹筆、條紋筆（按鈕上就是它畫出來的樣子）';
+    await seconds(2.5);
+    for (final (pen, color, y) in [
+      (Strings.penDots, kidPalette[6], 0.18),
+      (Strings.penSpray, kidPalette[0], 0.34),
+      (Strings.penWatercolor, kidPalette[5], 0.5),
+      (Strings.penNeon, kidPalette[7], 0.7),
+      (Strings.penStripes, kidPalette[0], 0.88),
+    ]) {
+      await tap(find.bySemanticsLabel(pen));
+      await tap(find.byKey(ValueKey('swatch-$color')));
+      await stroke([for (var i = 0; i <= 14; i++) page.topLeft + Offset(page.width * (0.14 + i * 0.05), page.height * y + (i.isEven ? -10 : 10))]);
+      await seconds(0.6);
+    }
+    await seconds(1);
+    mark('pens_end');
     caption.value = '新工具：彩虹筆、亮晶晶筆';
     for (final (tool, y) in [(Strings.rainbow, 0.62), (Strings.glitter, 0.92)]) {
       await tap(find.bySemanticsLabel(tool));
@@ -264,7 +282,7 @@ void main() {
     await seconds(3.5);
 
     // 3. The zoo.
-    caption.value = '右上角「去哪裡玩」：10 個地方一次看到\n點一下就走進去';
+    caption.value = '右上角「去哪裡玩」：11 個地方一次看到\n點一下就走進去';
     await enterPlace(PlaceKind.zoo);
     caption.value = '動物園：住著小朋友畫的動物\n角色會說話（手機上會念出來）';
     await until(find.bySemanticsLabel(Strings.drawNew(PlaceKind.zoo.label)));
@@ -272,10 +290,10 @@ void main() {
     caption.value = '點一下動物，牠會跳起來';
     await tap(find.bySemanticsLabel(Strings.resident(Creature.lion.label)));
     await seconds(1.5);
-    caption.value = '黃色按鈕：選一隻新的動物來畫';
+    caption.value = '黃色按鈕：選一隻新的動物來畫\n每個地方都有 12 個，卡片上是彩色的樣子';
     await tap(find.bySemanticsLabel(Strings.drawNew(PlaceKind.zoo.label)));
     await until(find.byKey(const ValueKey('creature-elephant')));
-    await seconds(1.5);
+    await seconds(3);
     await tap(find.byKey(const ValueKey('creature-elephant')));
     await until(find.byKey(const ValueKey('page')));
     caption.value = 'APP 提供的大象著色圖';
@@ -321,7 +339,7 @@ void main() {
     await tap(find.bySemanticsLabel(Strings.resident(Creature.train.label)));
     await seconds(2.5);
     await tap(find.bySemanticsLabel(Strings.drawNew(PlaceKind.transport.label, residents: Residents.vehicles)));
-    caption.value = '畫一台新的：8 台車可以選';
+    caption.value = '畫一台新的：12 台車可以選\n（新的有計程車、垃圾車、挖土機、捷運）';
     await seconds(3);
     await touch(const Offset(195, 150)); // outside the sheet: it slides away
     await seconds(1);
@@ -347,7 +365,7 @@ void main() {
     await until(find.bySemanticsLabel(Strings.customer));
     caption.value = '客人來買東西了：「我要買○○！」\n拿走就付一個金幣，架子馬上補貨';
     await seconds(8);
-    caption.value = '畫一個新的：8 個可愛的商品可以選';
+    caption.value = '畫一個新的：12 個可愛的商品可以選';
     await tap(find.bySemanticsLabel(Strings.drawNew(PlaceKind.shop.label, residents: Residents.goods)));
     await until(find.byKey(const ValueKey('creature-carrot')));
     await seconds(2);
@@ -385,6 +403,35 @@ void main() {
     caption.value = '下雪了！企鵝搖搖擺擺，有時候用肚子滑\n虎鯨在海裡游';
     await seconds(7);
     mark('places13_end');
+
+    // 4h. The candy house (0.15).
+    mark('candy');
+    caption.value = '新地方：糖果館（地圖上面中間的薑餅屋）';
+    await enterPlace(PlaceKind.candy);
+    caption.value = '糖果王國：甜甜圈和餅乾滾來滾去\n軟糖熊跳跳跳，糖果像氣球一樣飄';
+    await seconds(5);
+    caption.value = '點一下薑餅人：它會跳起來、說一句話';
+    await tap(find.bySemanticsLabel(Strings.resident(Creature.gingerbread.label)));
+    await seconds(2.5);
+    caption.value = '畫一個新的：12 個甜點可以選';
+    await tap(find.bySemanticsLabel(Strings.drawNew(PlaceKind.candy.label, residents: Residents.sweets)));
+    await until(find.byKey(const ValueKey('creature-donut')));
+    await seconds(2.5);
+    await tap(find.byKey(const ValueKey('creature-donut')));
+    await until(find.byKey(const ValueKey('page')));
+    caption.value = '甜甜圈的著色圖：用點點筆加上糖粒';
+    await seconds(1);
+    await fill([(kidPalette[1], 0.5, 0.78), (kidPalette[7], 0.5, 0.36)]);
+    await tap(find.bySemanticsLabel(Strings.crayon));
+    await tap(find.bySemanticsLabel(Strings.penDots));
+    await tap(find.byKey(ValueKey('swatch-${kidPalette[0]}')));
+    final donut = tester.getRect(find.byKey(const ValueKey('page')));
+    await stroke([for (var i = 0; i <= 10; i++) donut.topLeft + Offset(donut.width * (0.3 + i * 0.04), donut.height * 0.66 + (i.isEven ? -6 : 6))]);
+    caption.value = '畫好了 → 甜甜圈住進糖果館，滾呀滾';
+    await tap(find.bySemanticsLabel(Strings.done));
+    await until(find.bySemanticsLabel(Strings.resident(Creature.donut.label)));
+    await seconds(6);
+    mark('candy_end');
 
     // 4e. The album as one timeline.
     caption.value = '明信片冊：右上角切換「依時間看」';

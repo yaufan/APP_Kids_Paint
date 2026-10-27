@@ -512,3 +512,61 @@ def polar_scene():
 
 
 SCENES["polar"] = polar_scene
+
+
+# ---------------------------------------------------------------- the candy house (0.15)
+
+
+def _lollipop_tree(x, y, r, colors, stick=150):
+    """A giant swirl lollipop growing out of the ground like a tree."""
+    a, b = colors
+    swirl = " ".join(f"{'M' if k == 0 else 'L'}{x + r * (k / 60) * math.cos(k * 0.42):.0f} {y - stick - r + r * (k / 60) * math.sin(k * 0.42):.0f}"
+                     for k in range(61))
+    return (f'<rect x="{x - 7}" y="{y - stick - r}" width="14" height="{stick + r}" rx="7" fill="#FFF6F0" stroke="#E8C9C0" stroke-width="3"/>'
+            f'<circle cx="{x}" cy="{y - stick - r}" r="{r}" fill="{a}"/><path d="{swirl}" fill="none" stroke="{b}" stroke-width="{r * 0.22:.0f}" stroke-linecap="round"/>')
+
+
+def candy_scene():
+    """The candy house (糖果館): a land of sweets. Cotton-candy clouds in a
+    pink sky, gumdrop hills, lollipop trees, a gingerbread house and a
+    chocolate river; a frosting meadow with a candy-striped path for the
+    gummy bears and gingerbread men, room in the sky for the candies
+    that float."""
+    defs = ('<linearGradient id="casky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFC6E3"/>'
+            '<stop offset="1" stop-color="#FFE9D6"/></linearGradient>')
+    s = ['<rect width="1000" height="640" fill="url(#casky)"/>']
+    for x, y, k in [(150, 140, 1.2), (520, 90, 1.0), (840, 170, 1.3), (330, 260, 0.8)]:
+        s.append("".join(f'<circle cx="{x + dx * k:.0f}" cy="{y + dy * k:.0f}" r="{r * k:.0f}" fill="{c}"/>'
+                         for dx, dy, r, c in [(-50, 14, 40, "#FFB3D9"), (52, 12, 42, "#FFB3D9"), (0, -10, 52, "#FFD1EA"),
+                                              (-30, 20, 34, "#FFE6F3"), (30, 20, 34, "#FFE6F3")]))
+    # gumdrop hills far away
+    for x, w, h, c in [(80, 220, 170, "#B9F0D2"), (300, 260, 210, "#FFD27A"), (560, 240, 180, "#C9B6FF"), (800, 280, 220, "#9FE3FF")]:
+        s.append(f'<path d="M{x - w / 2} 600 C {x - w / 2} {600 - h * 1.3}, {x + w / 2} {600 - h * 1.3}, {x + w / 2} 600 Z" fill="{c}"/>')
+        s.append("".join(f'<circle cx="{x + dx}" cy="{600 - h * 0.55 + dy}" r="6" fill="#FFFFFF" opacity=".8"/>' for dx, dy in [(-40, 20), (10, -10), (50, 30)]))
+    # lollipop trees
+    for x, r, cs in [(70, 70, ("#FF8FB1", "#FFFFFF")), (930, 80, ("#7FD9FF", "#FFFFFF")), (640, 56, ("#FFD84D", "#FF8FB1"))]:
+        s.append(_lollipop_tree(x, 640, r, cs))
+    # the gingerbread house
+    s.append('<rect x="250" y="470" width="220" height="170" rx="10" fill="#C98B5E" stroke="#8A5A36" stroke-width="5"/>'
+             '<path d="M226 486 L 360 370 L 494 486 Z" fill="#A86E43" stroke="#8A5A36" stroke-width="5" stroke-linejoin="round"/>'
+             '<path d="M226 486 Q 248 504 270 486 Q 292 504 314 486 Q 336 504 360 486 Q 382 504 404 486 Q 426 504 448 486 Q 470 504 494 486" '
+             'fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round"/>'
+             '<path d="M330 640 V 570 Q 360 540 390 570 V 640 Z" fill="#7A4A2A"/>'
+             + "".join(f'<circle cx="{x}" cy="{y}" r="11" fill="{c}"/>' for x, y, c in [(290, 530, "#FF5E5B"), (430, 530, "#6BCB77"), (360, 430, "#FFD84D"), (300, 600, "#4DA3FF"), (420, 600, "#FF8FB1")])
+             + '<rect x="270" y="520" width="44" height="40" rx="6" fill="#FFE9A8" stroke="#FFFFFF" stroke-width="6"/>'
+             '<rect x="406" y="520" width="44" height="40" rx="6" fill="#FFE9A8" stroke="#FFFFFF" stroke-width="6"/>')
+    # the chocolate river
+    s.append('<path d="M0 610 C 200 590, 420 640, 620 616 C 800 596, 900 620, 1000 606 V 670 C 860 690, 700 660, 520 680 C 320 700, 160 660, 0 676 Z" fill="#8A5A3C"/>'
+             '<path d="M60 640 q 30 -10 60 0 M380 650 q 30 -10 60 0 M760 640 q 30 -10 60 0" stroke="#B07B58" stroke-width="7" fill="none" stroke-linecap="round"/>')
+    # the frosting meadow and its candy-striped path
+    s.append('<path d="M0 670 C 220 690, 420 650, 620 676 C 800 700, 900 668, 1000 676 V1000 H0 Z" fill="#CFF5DF"/>')
+    s.append('<path d="M420 1000 C 460 900, 560 820, 520 700" fill="none" stroke="#FFFFFF" stroke-width="90"/>'
+             '<path d="M420 1000 C 460 900, 560 820, 520 700" fill="none" stroke="#FF8FB1" stroke-width="90" stroke-dasharray="34 34"/>')
+    for i in range(70):
+        x, y = (i * 137.5) % 1000, 700 + (i * 61.7) % 290
+        c = ["#FF5E5B", "#FFD84D", "#4DA3FF", "#A98BFF", "#FF9F45"][i % 5]
+        s.append(f'<rect x="{x:.0f}" y="{y:.0f}" width="16" height="6" rx="3" fill="{c}" transform="rotate({(i * 47) % 180} {x:.0f} {y:.0f})"/>')
+    return _scene("".join(s), defs)
+
+
+SCENES["candy"] = candy_scene
