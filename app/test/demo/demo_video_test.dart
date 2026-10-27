@@ -177,6 +177,31 @@ void main() {
       }
     }
 
+    // From the town (or a place) into a place you can go into: its sign
+    // first if it is off screen, then slide its door to the middle.
+    Future<void> enterPlace(PlaceKind kind) async {
+      final habitat = Habitat.of(kind)!;
+      if (find.bySemanticsLabel(Strings.backToTown).evaluate().isNotEmpty) {
+        await tap(find.bySemanticsLabel(Strings.backToTown));
+        await until(find.bySemanticsLabel(Strings.blankPaper));
+        await seconds(1);
+      }
+      final sign = find.bySemanticsLabel(Strings.goTo(habitat.label));
+      if (sign.evaluate().isNotEmpty) {
+        await tap(sign);
+        await seconds(1.5);
+      }
+      final door = find.bySemanticsLabel(Strings.enter(habitat.label));
+      final move = Offset(_phone.width / 2, _phone.height * 0.45) - tester.getCenter(door);
+      if (move.distance > 100) {
+        const from = Offset(195, 420);
+        await stroke([for (var i = 0; i <= 12; i++) from + move * (i / 12)]);
+        await seconds(1);
+      }
+      await tap(door);
+      await until(find.bySemanticsLabel(Strings.drawNew(habitat.label, residents: habitat.residents)));
+    }
+
     // 0. The first day: name the town, pick a friend.
     caption.value = '第一天：幫小鎮取名字，再選一個好朋友';
     await until(find.text(Strings.welcome));
@@ -274,30 +299,14 @@ void main() {
 
     // 4. The aquarium.
     caption.value = '回到小鎮，再去左邊的海洋館';
-    await tap(find.bySemanticsLabel(Strings.backToTown));
-    await until(find.bySemanticsLabel(Strings.blankPaper));
-    await seconds(1);
-    final sign = find.bySemanticsLabel(Strings.goTo(PlaceKind.aquarium.label));
-    if (sign.evaluate().isNotEmpty) {
-      await tap(sign);
-      await seconds(1.5);
-    }
-    await tap(find.bySemanticsLabel(Strings.enter(PlaceKind.aquarium.label)));
+    await enterPlace(PlaceKind.aquarium);
     caption.value = '海洋館：魚會游、水母會飄、螃蟹橫著走';
     await until(find.bySemanticsLabel(Strings.drawNew(PlaceKind.aquarium.label)));
     await seconds(5);
 
     // 4b. The dinosaur park.
     caption.value = '新地方：恐龍樂園';
-    await tap(find.bySemanticsLabel(Strings.backToTown));
-    await until(find.bySemanticsLabel(Strings.blankPaper));
-    await seconds(1);
-    final dinoSign = find.bySemanticsLabel(Strings.goTo(PlaceKind.dinoPark.label));
-    if (dinoSign.evaluate().isNotEmpty) {
-      await tap(dinoSign);
-      await seconds(1.5);
-    }
-    await tap(find.bySemanticsLabel(Strings.enter(PlaceKind.dinoPark.label)));
+    await enterPlace(PlaceKind.dinoPark);
     await until(find.bySemanticsLabel(Strings.drawNew(PlaceKind.dinoPark.label)));
     caption.value = '恐龍樂園：翼龍會飛、恐龍寶寶會跳';
     await seconds(3);
@@ -315,15 +324,7 @@ void main() {
 
     // 4c. The transport museum.
     caption.value = '新地方：交通車館（在小鎮右邊）';
-    await tap(find.bySemanticsLabel(Strings.backToTown));
-    await until(find.bySemanticsLabel(Strings.blankPaper));
-    await seconds(1);
-    final transportSign = find.bySemanticsLabel(Strings.goTo(PlaceKind.transport.label));
-    if (transportSign.evaluate().isNotEmpty) {
-      await tap(transportSign);
-      await seconds(1.5);
-    }
-    await tap(find.bySemanticsLabel(Strings.enter(PlaceKind.transport.label)));
+    await enterPlace(PlaceKind.transport);
     await until(find.bySemanticsLabel(Strings.drawNew(PlaceKind.transport.label, residents: Residents.vehicles)));
     caption.value = '汽車在馬路上開、火車在鐵軌上跑\n飛機和直升機在天上飛';
     await seconds(4);
@@ -342,15 +343,7 @@ void main() {
       (PlaceKind.insects, '新地方：昆蟲館（小鎮右下角）\n蜜蜂、蜻蜓會飛，獨角仙在地上爬'),
     ]) {
       caption.value = words.split('\n').first;
-      await tap(find.bySemanticsLabel(Strings.backToTown));
-      await until(find.bySemanticsLabel(Strings.blankPaper));
-      await seconds(1);
-      final placeSign = find.bySemanticsLabel(Strings.goTo(place.label));
-      if (placeSign.evaluate().isNotEmpty) {
-        await tap(placeSign);
-        await seconds(1.5);
-      }
-      await tap(find.bySemanticsLabel(Strings.enter(place.label)));
+      await enterPlace(place);
       await until(find.bySemanticsLabel(Strings.drawNew(place.label, residents: Habitat.of(place)!.residents)));
       caption.value = words;
       await seconds(4);
@@ -359,24 +352,7 @@ void main() {
     // 4f. The shop (0.12): goods on the shelves, customers come to buy.
     mark('shop');
     caption.value = '新地方：商店（地圖中間，紅白條紋的遮雨棚）';
-    await tap(find.bySemanticsLabel(Strings.backToTown));
-    await until(find.bySemanticsLabel(Strings.blankPaper));
-    await seconds(1);
-    final shopSign = find.bySemanticsLabel(Strings.goTo(PlaceKind.shop.label));
-    if (shopSign.evaluate().isNotEmpty) {
-      await tap(shopSign);
-      await seconds(1.5);
-    }
-    // Slide the map so the shop is in the middle, clear of the buttons.
-    final door = find.bySemanticsLabel(Strings.enter(PlaceKind.shop.label));
-    final move = Offset(_phone.width / 2, _phone.height * 0.45) - tester.getCenter(door);
-    if (move.distance > 100) {
-      const from = Offset(195, 420);
-      await stroke([for (var i = 0; i <= 12; i++) from + move * (i / 12)]);
-      await seconds(1);
-    }
-    await tap(door);
-    await until(find.bySemanticsLabel(Strings.drawNew(PlaceKind.shop.label, residents: Residents.goods)));
+    await enterPlace(PlaceKind.shop);
     caption.value = '小朋友畫的牛奶、蘋果、珍珠奶茶⋯⋯\n都擺在架子上';
     await seconds(3);
     await until(find.bySemanticsLabel(Strings.customer));
@@ -398,27 +374,6 @@ void main() {
     mark('shop_end');
 
     // 4g. Space, the night market and the polar sea (0.13).
-    Future<void> enterPlace(PlaceKind kind) async {
-      final habitat = Habitat.of(kind)!;
-      await tap(find.bySemanticsLabel(Strings.backToTown));
-      await until(find.bySemanticsLabel(Strings.blankPaper));
-      await seconds(1);
-      final sign = find.bySemanticsLabel(Strings.goTo(habitat.label));
-      if (sign.evaluate().isNotEmpty) {
-        await tap(sign);
-        await seconds(1.5);
-      }
-      final door = find.bySemanticsLabel(Strings.enter(habitat.label));
-      final move = Offset(_phone.width / 2, _phone.height * 0.45) - tester.getCenter(door);
-      if (move.distance > 100) {
-        const from = Offset(195, 420);
-        await stroke([for (var i = 0; i <= 12; i++) from + move * (i / 12)]);
-        await seconds(1);
-      }
-      await tap(door);
-      await until(find.bySemanticsLabel(Strings.drawNew(habitat.label, residents: habitat.residents)));
-    }
-
     mark('places13');
     caption.value = '新地方：太空（地圖左上角的火箭基地）';
     await enterPlace(PlaceKind.space);
