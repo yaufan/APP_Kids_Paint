@@ -48,6 +48,10 @@ const _residents = [
   Creature.tulip, Creature.cactus, Creature.rose, Creature.lotus,
   Creature.bee, Creature.dragonfly, Creature.beetle, Creature.mantis,
   Creature.milk, Creature.apple, Creature.bubbleTea, Creature.pudding, Creature.bread, Creature.banana, Creature.iceCream,
+  Creature.rocket, Creature.astronaut, Creature.alien, Creature.ufo, Creature.saturn, Creature.spaceCat, Creature.star, Creature.moon,
+  Creature.friedChicken, Creature.sausage, Creature.tanghulu, Creature.cottonCandy, Creature.shavedIce, Creature.takoyaki, Creature.goldfish,
+  Creature.sweetPotatoBalls,
+  Creature.penguin, Creature.polarBear, Creature.seal, Creature.snowman, Creature.arcticFox, Creature.orca, Creature.sled, Creature.igloo,
 ];
 
 /// The photo album, pretend: the demo has no phone to save to.
@@ -392,6 +396,51 @@ void main() {
     await until(find.bySemanticsLabel(Strings.resident(Creature.carrot.label)));
     await seconds(6);
     mark('shop_end');
+
+    // 4g. Space, the night market and the polar sea (0.13).
+    Future<void> enterPlace(PlaceKind kind) async {
+      final habitat = Habitat.of(kind)!;
+      await tap(find.bySemanticsLabel(Strings.backToTown));
+      await until(find.bySemanticsLabel(Strings.blankPaper));
+      await seconds(1);
+      final sign = find.bySemanticsLabel(Strings.goTo(habitat.label));
+      if (sign.evaluate().isNotEmpty) {
+        await tap(sign);
+        await seconds(1.5);
+      }
+      final door = find.bySemanticsLabel(Strings.enter(habitat.label));
+      final move = Offset(_phone.width / 2, _phone.height * 0.45) - tester.getCenter(door);
+      if (move.distance > 100) {
+        const from = Offset(195, 420);
+        await stroke([for (var i = 0; i <= 12; i++) from + move * (i / 12)]);
+        await seconds(1);
+      }
+      await tap(door);
+      await until(find.bySemanticsLabel(Strings.drawNew(habitat.label, residents: habitat.residents)));
+    }
+
+    mark('places13');
+    caption.value = '新地方：太空（地圖左上角的火箭基地）';
+    await enterPlace(PlaceKind.space);
+    caption.value = '太空裡的東西都輕飄飄地飄著\n星星一閃一閃';
+    await seconds(3.5);
+    caption.value = '點一下火箭：「3、2、1，發射！」';
+    await tap(find.bySemanticsLabel(Strings.resident(Creature.rocket.label)));
+    await seconds(5);
+    caption.value = '新地方：夜市（就是掛著燈籠的「好吃的店」）';
+    await enterPlace(PlaceKind.food);
+    caption.value = '燈籠亮亮的，攤位上有雞排、糖葫蘆、刨冰⋯⋯\n金魚在池子裡游';
+    await seconds(3.5);
+    caption.value = '點一下食物：套圈圈，套中了！';
+    await tap(find.bySemanticsLabel(Strings.resident(Creature.friedChicken.label)));
+    await seconds(2.8);
+    await tap(find.bySemanticsLabel(Strings.resident(Creature.takoyaki.label)));
+    await seconds(2.8);
+    caption.value = '新地方：極地（地圖右上角的雪山）';
+    await enterPlace(PlaceKind.polar);
+    caption.value = '下雪了！企鵝搖搖擺擺，有時候用肚子滑\n虎鯨在海裡游';
+    await seconds(7);
+    mark('places13_end');
 
     // 4e. The album as one timeline.
     caption.value = '明信片冊：右上角切換「依時間看」';

@@ -1,4 +1,4 @@
-"""The 46 characters of the places you can go into, in kawaii.py's
+"""The 70 characters of the places you can go into, in kawaii.py's
 coloring-book style. Each is a function returning SVG parts in page
 coordinates (600 x 800), drawn back to front, facing right; the ground is
 around y = 700.

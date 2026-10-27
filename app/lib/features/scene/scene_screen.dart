@@ -672,7 +672,7 @@ class _ResidentState extends State<_Resident> with TickerProviderStateMixin {
                   Positioned(
                     left: -70,
                     right: -70,
-                    top: -58 - hop,
+                    top: -58 - hop - widget.lift * view.scale,
                     child: Center(child: PopIn(key: ValueKey(text), child: _SpeechBubble(text))),
                   ),
                 if (_jump.value > 0 && _jump.value < 1)
