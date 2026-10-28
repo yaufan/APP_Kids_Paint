@@ -412,6 +412,20 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   await idle(tester, 2000);
   await shot('17_town_dusk');
 
+  // The town you can poke (0.18): the train drives off, a duck bobs, 101's fireworks.
+  // First 101 to the middle of the screen, clear of the buttons at the bottom.
+  final screen = tester.getSize(find.byType(Scaffold).first);
+  final tower = tester.getCenter(find.byKey(const ValueKey('poke-tower')));
+  await tester.timedDragFrom(Offset(screen.width / 2, screen.height * 0.4), Offset(0, screen.height * 0.5 - tower.dy),
+      const Duration(milliseconds: 900));
+  await idle(tester, 800);
+  await tester.tap(find.byKey(const ValueKey('poke-mrt')));
+  await tester.tapAt(tester.getRect(find.byKey(const ValueKey('poke-duckRiver'))).centerLeft + const Offset(5, 0));
+  await tester.tap(find.byKey(const ValueKey('poke-tower')));
+  await idle(tester, 1300);
+  await shot('17d_town_toys');
+  await idle(tester, 5000); // the train back at the station
+
   // 12b. A drawing on real paper, photographed (0.18): onto the canvas, then to the park.
   GoRouter.of(tester.element(find.byType(Scaffold).first)).push('/paper', extra: paperPhoto());
   await waitFor(tester, find.byKey(const ValueKey('page')));
@@ -595,17 +609,9 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   }
   await shot('32_farm');
 
-  // 25. The town you can poke (0.18): the train drives off, a duck bobs, 101's fireworks.
   await tester.tap(find.bySemanticsLabel(Strings.backToTown));
-  await waitFor(tester, find.byKey(const ValueKey('poke-tower')));
-  await idle(tester, 1000);
-  await tester.tap(find.byKey(const ValueKey('poke-mrt')));
-  await tester.tapAt(tester.getRect(find.byKey(const ValueKey('poke-duckRiver'))).centerLeft + const Offset(5, 0));
-  await tester.tap(find.byKey(const ValueKey('poke-tower')));
-  await idle(tester, 1300);
-  await shot('33_town_toys');
 
-  // 19. The album as one timeline (from the town, after poking it).
+  // 19. The album as one timeline.
   await waitFor(tester, find.bySemanticsLabel(Strings.album));
   await idle(tester, 600);
   await tester.tap(find.bySemanticsLabel(Strings.album));

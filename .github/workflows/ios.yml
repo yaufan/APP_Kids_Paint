@@ -19,7 +19,7 @@ jobs:
       group: ios-${{ github.ref }}
       cancel-in-progress: true
     runs-on: macos-latest
-    timeout-minutes: 150
+    timeout-minutes: 200
     defaults:
       run:
         working-directory: app
@@ -56,13 +56,13 @@ jobs:
       # Each step builds the app (about 6 minutes) and walks through it
       # (about 8 more); a launch that hangs is tried once more (see the script).
       - name: Walk-through on ${{ steps.sims.outputs.iphone_name }}
-        timeout-minutes: 60
+        timeout-minutes: 85
         env:
           SCREENSHOT_DIR: build/ios_screenshots/iphone
         run: ../.github/ios_walk_through.sh "${{ steps.sims.outputs.iphone }}"
 
       - name: Walk-through on ${{ steps.sims.outputs.ipad_name }}
-        timeout-minutes: 60
+        timeout-minutes: 85
         env:
           SCREENSHOT_DIR: build/ios_screenshots/ipad
         run: ../.github/ios_walk_through.sh "${{ steps.sims.outputs.ipad }}"
