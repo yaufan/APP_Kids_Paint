@@ -32,7 +32,7 @@ import 'package:kids_paint/core/storage/artwork_store.dart';
 import 'package:kids_paint/features/canvas/coloring.dart';
 import 'package:kids_paint/features/capture/capture_screen.dart';
 
-import '../../integration_test/walkthrough.dart' show answerParentGate;
+import '../../integration_test/walkthrough.dart' show answerParentGate, WalkthroughSharer;
 
 const _phone = Size(390, 844);
 const _captionHeight = 84.0;
@@ -98,6 +98,7 @@ void main() {
                     artworkStoreProvider.overrideWithValue(ArtworkStore(dir)),
                     clockProvider.overrideWithValue(() => now),
                     photoAlbumProvider.overrideWithValue(_DemoAlbum()),
+                    sharerProvider.overrideWithValue(WalkthroughSharer()),
                     systemSoundsProvider.overrideWithValue(const SilentSounds()),
                   ],
                   child: const KidsPaintApp(),
@@ -288,6 +289,18 @@ void main() {
     caption.value = '寄出囉！第一次寄到公園，公園就蓋起來';
     await until(find.bySemanticsLabel(Strings.pinLabel(PlaceKind.park.label, 1)), max: 10);
     await seconds(3.5);
+    mark('own');
+    caption.value = '新功能：塗好的東西會剪下來，住進小鎮\n在公園旁邊跳來跳去';
+    final folk = find.bySemanticsLabel(Strings.townFolk(PlaceKind.park.label));
+    await until(folk, max: 10);
+    await seconds(2.5);
+    caption.value = '點它一下，會跳起來翻個跟斗';
+    await tap(folk);
+    await seconds(1.5);
+    await tap(folk);
+    await seconds(1.5);
+    mark('own_end');
+    final coffee = (await tester.runAsync(() => (db.select(db.artworks)..where((a) => a.style.equals('realistic'))).getSingle()))!;
 
     // 3. The zoo.
     caption.value = '右上角「去哪裡玩」：11 個地方一次看到\n點一下就走進去';
@@ -489,6 +502,19 @@ void main() {
       for (var i = 0; i < 20; i++) onRail(0.4),
     ]);
     await seconds(1.5);
+    mark('replay');
+    caption.value = '新功能：明信片上的 ▶，再看一次畫畫的過程\n（縮時重播）';
+    await tap(find.bySemanticsLabel(Strings.byPlace));
+    await until(find.byKey(ValueKey('replay-${coffee.id}')));
+    await seconds(1.5);
+    await tap(find.byKey(ValueKey('replay-${coffee.id}')));
+    await until(find.byKey(const ValueKey('replay-again')), max: 20);
+    caption.value = '畫完了！可以「再看一次」';
+    await seconds(2.5);
+    await tap(find.bySemanticsLabel(Strings.backToAlbum));
+    await until(find.bySemanticsLabel(Strings.backToMap));
+    mark('replay_end');
+    await seconds(0.5);
     await tap(find.bySemanticsLabel(Strings.backToMap));
     await until(find.bySemanticsLabel(Strings.blankPaper));
 
@@ -509,6 +535,20 @@ void main() {
     await tap(find.byKey(ValueKey('swatch-${kidPalette[2]}')));
     await touch(paper.center);
     await seconds(2);
+    mark('stamp_own');
+    caption.value = '新功能：印章裡有你畫過的東西\n蓋在新的畫上';
+    await tap(find.bySemanticsLabel(Strings.stamp));
+    final ownStamp = find.byKey(ValueKey('picture-stamp-${coffee.id}'));
+    await until(ownStamp);
+    await tester.ensureVisible(ownStamp);
+    await seconds(1);
+    await tap(ownStamp);
+    for (final (dx, dy) in [(0.3, 0.2), (0.72, 0.84)]) {
+      await touch(paper.topLeft + Offset(paper.width * dx, paper.height * dy));
+      await seconds(0.8);
+    }
+    await seconds(1.5);
+    mark('stamp_own_end');
 
     // 6. Christmas Eve night.
     caption.value = '晚上的小鎮（聖誕夜）：窗戶亮燈、咕咕睡覺\n節日時咕咕會送來一封信';
@@ -548,10 +588,33 @@ void main() {
     await tap(keep);
     await seconds(3);
     mark('album_end');
+    mark('share');
+    final share = find.byKey(const ValueKey('share-row'));
+    await tester.scrollUntilVisible(share, 200, scrollable: find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first);
+    await frames(3);
+    caption.value = '新功能：分享作品（只有家長模式裡有）';
+    await seconds(1.5);
+    await tap(share);
+    await until(find.byKey(ValueKey('share-pick-${coffee.id}')));
+    await seconds(1.5);
+    await tap(find.byKey(ValueKey('share-pick-${coffee.id}')));
+    await until(find.text(Strings.shareNow));
+    caption.value = '做成一張明信片圖卡：沒有原本的照片，也沒有名字\n地點可以只寫種類，或不寫';
+    await seconds(3);
+    await tap(find.text(Strings.sharedPlaceNone));
+    await seconds(1.5);
+    await tap(find.text(Strings.sharedPlaceKind));
+    await seconds(1);
+    caption.value = '按「分享」打開手機的分享選單：LINE、IG、存起來';
+    await tester.ensureVisible(find.text(Strings.shareNow));
+    await frames(2);
+    await tap(find.text(Strings.shareNow));
+    await seconds(2.5);
+    mark('share_end');
 
     // 8. Time to rest, gently (0.12).
     mark('rest');
-    GoRouter.of(tester.element(keep)).go('/');
+    GoRouter.of(tester.element(find.byType(Scaffold).first)).go('/');
     await until(find.bySemanticsLabel(Strings.blankPaper));
     final app = ProviderScope.containerOf(tester.element(find.bySemanticsLabel(Strings.blankPaper)));
     Future<void> playTo(Duration at) => tester.runAsync(() => app.read(playTimeProvider.notifier).add(at - app.read(playTimeProvider)!.played));

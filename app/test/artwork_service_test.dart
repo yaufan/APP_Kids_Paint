@@ -11,6 +11,7 @@ import 'package:kids_paint/core/festivals.dart';
 import 'package:kids_paint/core/places.dart';
 import 'package:kids_paint/core/repositories.dart';
 import 'package:kids_paint/core/storage/artwork_store.dart';
+import 'package:kids_paint/features/canvas/coloring.dart';
 
 void main() {
   test('saved photos lose their EXIF (GPS, time taken) but stay upright', () {
@@ -49,6 +50,50 @@ void main() {
     expect(sprite.getPixel(10, 10).a, 255); // inside
     expect(sprite.getPixel(0, 10).a, 255); // the outline
     expect(sprite.getPixel(0, 10).r, 0);
+  });
+
+  test('a drawing on a photo is cut out where it was colored, with the lines around it', () {
+    // A 40 x 40 page: a square outline 10..29, painted red inside; the
+    // lines of the rest of the photo stay white and are left out.
+    const w = 40, h = 40, white = 0xFFFFFFFF;
+    final lines = Uint8List(w * h)..fillRange(0, w * h, 255);
+    final rgba = Uint8List(w * h * 4)..fillRange(0, w * h * 4, 255);
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        final i = y * w + x;
+        if ((x == 10 || x == 29) && y >= 10 && y <= 29 || (y == 10 || y == 29) && x >= 10 && x <= 29) lines[i] = 0;
+        if (x == 36) lines[i] = 0; // a line far from the painting
+        if (x > 10 && x < 29 && y > 10 && y < 29) rgba.setRange(i * 4, i * 4 + 3, [0xFF, 0x5E, 0x5B]);
+      }
+    }
+    final sprite = img.decodePng(renderPaintedSprite(rgba, lines, white, w, h))!;
+    expect((sprite.width, sprite.height), (20, 20), reason: 'the painting and its outline, not the far line');
+    expect(sprite.getPixel(10, 10).r, 0xFF);
+    expect(sprite.getPixel(0, 10).a, 255, reason: 'the outline');
+
+    final nothing = img.decodePng(renderPaintedSprite(Uint8List(w * h * 4)..fillRange(0, w * h * 4, 255), lines, white, w, h))!;
+    expect((nothing.width, nothing.height), (1, 1), reason: 'nothing colored, nothing to cut out');
+
+    // The background colored too (the area running off the page): left out,
+    // the square stays. With only the background colored, that is kept.
+    final labels = Uint16List(w * h)..fillRange(0, w * h, 1);
+    for (var y = 11; y < 29; y++) {
+      for (var x = 11; x < 29; x++) {
+        labels[y * w + x] = 2;
+      }
+    }
+    final both = Uint8List.fromList(rgba);
+    for (var i = 0; i < w * h; i++) {
+      if (labels[i] == 1 && lines[i] == 255) both.setRange(i * 4, i * 4 + 3, [0x5F, 0xCB, 0x79]);
+    }
+    final square = img.decodePng(renderPaintedSprite(both, lines, white, w, h, labels: labels))!;
+    expect((square.width, square.height), (20, 20), reason: 'just the square and its outline');
+    final sky = Uint8List.fromList(both);
+    for (var i = 0; i < w * h; i++) {
+      if (labels[i] == 2) sky.setRange(i * 4, i * 4 + 3, [255, 255, 255]);
+    }
+    final whole = img.decodePng(renderPaintedSprite(sky, lines, white, w, h, labels: labels))!;
+    expect((whole.width, whole.height), (40, 40), reason: 'only the background colored: it is the picture');
   });
 
   group('pages not made from a photo', () {
@@ -110,6 +155,44 @@ void main() {
       sent.document.undo();
       await service.saveFinished(sent);
       expect((await repo.get(art.id)).isCompleted, isTrue);
+    });
+
+    test('a drawing on paper leaves a cut-out when finished, and one is made for older ones', () async {
+      final art = await service.saveBlank(childId: childId);
+      final page = await service.load(art.id);
+      page.document.add(CrayonOp(1, 0xFFFF5E5B, 12, [(x: 100, y: 100), (x: 300, y: 200)]));
+      await service.send(page, await PlaceRepository(db).defaultPlace(childId, PlaceKind.park));
+      final files = service.filesOf(art);
+      final sprite = img.decodePng(files.sprite.readAsBytesSync())!;
+      expect((sprite.width, sprite.height), (225, 125), reason: 'just the stroke: 200 by 100, and 12 more at each end');
+
+      // A picture from before 0.17 had none: it is made from its files.
+      files.sprite.deleteSync();
+      expect(await service.ensureSprite(await repo.get(art.id)), isTrue);
+      expect(img.decodePng(files.sprite.readAsBytesSync())!.width, 225);
+    });
+
+    test('a picture pressed onto another page is copied into it and comes back when it opens', () async {
+      final dog = await service.saveBlank(childId: childId);
+      final dogPage = await service.load(dog.id);
+      dogPage.document.fill(10, 10, 0xFF4DA3FF); // the paper: all of it
+      dogPage.document.add(CrayonOp(1, 0xFFFF5E5B, 20, [(x: 300, y: 400)]));
+      await service.send(dogPage, await PlaceRepository(db).defaultPlace(childId, PlaceKind.home));
+
+      final art = await service.saveBlank(childId: childId);
+      final (name, picture) = await service.copyPicture(dog, art);
+      expect(service.filesOf(art).picture(name).existsSync(), isTrue);
+      final page = await service.load(art.id);
+      page.document.pictures[name] = picture;
+      page.document.add(PictureOp(name, 300, 400, 200));
+      await service.saveOps(art, page.document);
+
+      // The dog's own files go; the page keeps its copy.
+      await service.delete(dog);
+      final again = await service.load(art.id);
+      expect(again.document.pictures.keys, [name]);
+      expect(again.document.rgba, page.document.rgba);
+      expect(again.document.colorAt(300, 400), isNot(0xFFFFFFFF));
     });
 
     test('blank paper is one big region', () async {

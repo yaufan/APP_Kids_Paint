@@ -29,6 +29,7 @@ abstract final class Strings {
   static String festivalLetter(String festival) => '$festival到了！\n咕咕送來一張著色畫';
   static String openLetter(String festival) => '打開$festival的信';
   static String pinLabel(String place, int n) => '$place的明信片，$n 張';
+  static String townFolk(String place) => '你在$place畫的畫';
   static String postcardsHere(int n) => '$n 張明信片';
   static String latest(String date) => '最近 $date';
   static const drawHere = '在這裡再畫一張';
@@ -87,6 +88,7 @@ abstract final class Strings {
   static const stamp = '印章';
   static const eraser = '橡皮擦';
   static String stampOf(String shape) => '$shape印章';
+  static const pictureStamp = '用你畫的畫當印章';
   static const done = '畫好了，寄出';
   static const saveFailed = '存不起來，等一下再試一次';
   static String colorName(String c) => '$c色';
@@ -114,6 +116,9 @@ abstract final class Strings {
   static const newestFirst = '新到舊';
   static const oldestFirst = '舊到新';
   static const timelineRail = '時間軸，上下拖動';
+  static const replay = '看畫畫的過程';
+  static const watchAgain = '再看一次';
+  static const backToAlbum = '回到明信片冊';
   static String dayLabel(DateTime day, DateTime now) =>
       '${day.year == now.year ? '' : '${day.year}年'}${day.month}月${day.day}日 星期${'一二三四五六日'[day.weekday - 1]}';
   static String monthShort(DateTime m) => '${m.month}月';
@@ -160,6 +165,20 @@ abstract final class Strings {
   static const keepArt = '留住作品';
   static const keepArtHint = '作品只存在這支手機裡，沒有帳號可以備份。存到相簿，換手機也不會不見。';
   static String saveToAlbum(int n) => n == 0 ? '存到相簿（沒有新作品）' : '存到相簿（$n 張新作品）';
+  static const shareArt = '分享作品';
+  static const shareArtRow = '分享作品（LINE、IG⋯）';
+  static const pickToShare = '選一張要分享的明信片。分享出去的是一張新做的圖卡：沒有原本的照片，也沒有小朋友的名字。';
+  static const nothingToShare = '還沒有寄出的明信片。';
+  static const sharedPlaceTitle = '圖卡上的地點';
+  static const sharedPlaceKind = '只寫種類';
+  static const sharedPlaceName = '寫地點名字';
+  static const sharedPlaceNone = '不寫';
+  static const shareHint = '按「分享」會打開手機的分享選單，可以傳到 LINE、IG，或存起來。APP 不會自己傳到任何地方。';
+  static const shareNow = '分享';
+  static const shareFailed = '分享不了，等一下再試一次';
+  static const shareLineCreature = '謝謝你把我畫得這麼漂亮！';
+  static const shareLineMine = '這是我畫的喔！';
+  static String sentTo(String place) => '寄到$place';
   static String savedToAlbum(int n) => n == 0 ? '沒有新作品要存' : '已存 $n 張到相簿';
   static const albumNotAllowed = '沒有權限存到相簿，請到手機的設定打開';
   static const savingToAlbum = '存到相簿中…';

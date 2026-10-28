@@ -60,6 +60,8 @@ class TownMap extends StatefulWidget {
     required this.spots,
     required this.thumbnailOf,
     required this.avatar,
+    this.townies = const {},
+    this.onTownie,
     this.onPin,
     this.onLot,
     this.onAttraction,
@@ -76,6 +78,12 @@ class TownMap extends StatefulWidget {
 
   /// The child's animal, walking near home.
   final String avatar;
+
+  /// The child's own pictures cut out, hopping beside their place's pin.
+  final Map<PlaceKind, List<File>> townies;
+
+  /// One of them was tapped (it jumps).
+  final ValueChanged<PlaceKind>? onTownie;
   final ValueChanged<PlaceKind>? onPin;
   final ValueChanged<PlaceKind>? onLot;
 
@@ -230,6 +238,19 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
       ];
 
       final home = townSlots['home']!.pin;
+      final townies = [
+        for (final MapEntry(key: kind, value: files) in widget.townies.entries)
+          for (final (i, file) in files.indexed)
+            _Townie(
+              key: ValueKey('townie-${kind.name}-$i'),
+              life: _life,
+              at: (townSlots[kind.name]!.pin + _townieSpots[i % _townieSpots.length]) * s,
+              image: FileImage(file),
+              phase: i * 1.7 + kind.index,
+              label: Strings.townFolk(kind.label),
+              onTap: widget.onTownie == null ? null : () => widget.onTownie!(kind),
+            ),
+      ];
       final pins = [
         for (final spot in widget.spots.values)
           _Pin(
@@ -256,6 +277,8 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
             _FlyingPigeon(life: _life, mapWidth: size.width, y: 96 * s),
           if (festival == Festival.newYearsEve && widget.phase != DayPhase.day) _Fireworks(at: townTowerTop * s),
           ...pins,
+          // Over the pins' wide tap areas, so a tap reaches them.
+          ...townies,
         ]),
       );
 
@@ -480,6 +503,73 @@ class _Walker extends StatelessWidget {
         );
       },
       child: AnimalArt(avatar, size: 48),
+    );
+  }
+}
+
+/// Where the child's pictures stand beside a pin (its tip), in world
+/// points: clear of the pin itself.
+const _townieSpots = [Offset(-58, 6), Offset(58, 12)];
+
+/// One of the child's own pictures, cut out, hopping beside its place's
+/// pin (0.17). Tapped, it jumps.
+class _Townie extends StatefulWidget {
+  const _Townie({super.key, required this.life, required this.at, required this.image, required this.phase, required this.label, this.onTap});
+
+  final Animation<double> life;
+
+  /// Where its feet are.
+  final Offset at;
+  final ImageProvider image;
+
+  /// So two side by side do not hop together.
+  final double phase;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  State<_Townie> createState() => _TownieState();
+}
+
+class _TownieState extends State<_Townie> with SingleTickerProviderStateMixin {
+  late final AnimationController _jump = AnimationController(vsync: this, duration: const Duration(milliseconds: 650));
+
+  @override
+  void dispose() {
+    _jump.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const size = 46.0;
+    return AnimatedBuilder(
+      animation: Listenable.merge([widget.life, _jump]),
+      builder: (context, child) {
+        final t = widget.life.value * 2 * math.pi * 14 + widget.phase;
+        final hop = 4 * math.sin(t).abs() + 34 * math.sin(math.pi * _jump.value);
+        return Positioned(
+          left: widget.at.dx - size / 2 + 5 * math.sin(t / 5),
+          top: widget.at.dy - size - hop,
+          width: size,
+          height: size,
+          child: Transform.rotate(angle: 0.08 * math.sin(t) + 2 * math.pi * Curves.easeInOut.transform(_jump.value), child: child),
+        );
+      },
+      child: Semantics(
+        button: true,
+        label: widget.label,
+        excludeSemantics: true,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            _jump.forward(from: 0);
+            widget.onTap?.call();
+          },
+          child: Image(image: widget.image, fit: BoxFit.contain, alignment: Alignment.bottomCenter, gaplessPlayback: true,
+              errorBuilder: (_, _, _) => const SizedBox.shrink()),
+        ),
+      ),
     );
   }
 }

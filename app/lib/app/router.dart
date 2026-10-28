@@ -5,11 +5,13 @@ import 'package:go_router/go_router.dart';
 import '../core/creatures.dart';
 import '../core/places.dart';
 import '../features/album/album_screen.dart';
+import '../features/album/replay_screen.dart';
 import '../features/canvas/canvas_screen.dart';
 import '../features/capture/capture_screen.dart';
 import '../features/lineart/style_picker_screen.dart';
 import '../features/parent/parent_screen.dart';
 import '../features/parent/privacy_screen.dart';
+import '../features/parent/share_screen.dart';
 import '../features/scene/scene_screen.dart';
 import '../features/send/send_screen.dart';
 import '../features/send/sent_screen.dart';
@@ -52,6 +54,11 @@ GoRouter buildRouter() => GoRouter(
           ),
         ),
         GoRoute(path: '/album', builder: (_, _) => const AlbumScreen()),
+        // A picture colored again, as a time-lapse (0.17).
+        GoRoute(
+          path: '/replay/:id',
+          builder: (_, state) => ReplayScreen(artworkId: int.parse(state.pathParameters['id']!)),
+        ),
         // Inside the zoo or the aquarium; ?new=<artwork id> welcomes a creature that just moved in.
         GoRoute(
           path: '/scene/:habitat',
@@ -65,5 +72,6 @@ GoRouter buildRouter() => GoRouter(
         // Only reached through the parent gate.
         GoRoute(path: '/parent', builder: (_, _) => const ParentScreen()),
         GoRoute(path: '/parent/privacy', builder: (_, _) => const PrivacyScreen()),
+        GoRoute(path: '/parent/share', builder: (_, _) => const ShareScreen()),
       ],
     );

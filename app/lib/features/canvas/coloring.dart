@@ -72,6 +72,12 @@ sealed class PaintOp {
             (json['radius'] as num).toDouble(),
           ),
         'paper' => PaperOp(json['color'] as int),
+        'picture' => PictureOp(
+            json['picture'] as String,
+            (json['x'] as num).toDouble(),
+            (json['y'] as num).toDouble(),
+            (json['width'] as num).toDouble(),
+          ),
         _ => throw FormatException('unknown paint op ${json['type']}'),
       };
 }
@@ -152,6 +158,38 @@ class PaperOp extends PaintOp {
   Map<String, Object> toJson() => {'type': 'paper', 'color': color};
 }
 
+/// One of the child's own colored characters pressed onto the page like a
+/// stamp (0.17), centered at ([x], [y]) and [width] across. It goes over
+/// any region; the page's lines stay on top. [picture] names its copy in
+/// the page's folder, so the page looks the same even if the character
+/// it came from is gone.
+class PictureOp extends PaintOp {
+  const PictureOp(this.picture, this.x, this.y, this.width) : super(0);
+
+  final String picture;
+  final double x;
+  final double y;
+  final double width;
+
+  @override
+  Map<String, Object> toJson() => {
+        'type': 'picture',
+        'picture': picture,
+        'x': double.parse(x.toStringAsFixed(1)),
+        'y': double.parse(y.toStringAsFixed(1)),
+        'width': double.parse(width.toStringAsFixed(1)),
+      };
+}
+
+/// A picture to press onto pages: RGBA pixels with see-through edges.
+class StampPicture {
+  const StampPicture(this.width, this.height, this.rgba);
+
+  final int width;
+  final int height;
+  final Uint8List rgba;
+}
+
 typedef PagePoint = ({double x, double y});
 
 /// What a stroke is drawn with.
@@ -211,8 +249,9 @@ class CrayonOp extends PaintOp {
 
 /// The color layer of a page, kept as RGBA pixels under the line art.
 class ColoringDocument {
-  ColoringDocument(this.regions, [List<PaintOp>? ops])
+  ColoringDocument(this.regions, [List<PaintOp>? ops, Map<String, StampPicture>? pictures])
       : ops = ops ?? [],
+        pictures = pictures ?? {},
         rgba = Uint8List(regions.width * regions.height * 4) {
     rebuild();
   }
@@ -220,6 +259,12 @@ class ColoringDocument {
   final RegionMap regions;
   final List<PaintOp> ops;
   final Uint8List rgba;
+
+  /// The pictures [PictureOp]s press, by name. One that is missing is left out.
+  final Map<String, StampPicture> pictures;
+
+  /// The pictures [ops] use.
+  static Set<String> picturesIn(List<PaintOp> ops) => {for (final op in ops) if (op is PictureOp) op.picture};
 
   /// The paper's color as of the last rebuild (what the eraser brings back).
   int _paper = 0xFFFFFFFF;
@@ -298,6 +343,8 @@ class ColoringDocument {
         applyStroke(op, 0);
       case StampOp():
         _stamp(op);
+      case PictureOp():
+        _picture(op);
       case PaperOp():
         break; // drawn first, by rebuild()
     }
@@ -405,6 +452,33 @@ class ColoringDocument {
     }
   }
 
+  void _picture(PictureOp op) {
+    final picture = pictures[op.picture];
+    if (picture == null || picture.width == 0) return;
+    final scale = op.width / picture.width;
+    final h = picture.height * scale;
+    final left = op.x - op.width / 2, top = op.y - h / 2;
+    final x0 = math.max(0, left.floor()), x1 = math.min(width - 1, (left + op.width).ceil());
+    final y0 = math.max(0, top.floor()), y1 = math.min(height - 1, (top + h).ceil());
+    final src = picture.rgba;
+    for (var y = y0; y <= y1; y++) {
+      final sy = ((y + 0.5 - top) / scale).floor();
+      if (sy < 0 || sy >= picture.height) continue;
+      for (var x = x0; x <= x1; x++) {
+        final sx = ((x + 0.5 - left) / scale).floor();
+        if (sx < 0 || sx >= picture.width) continue;
+        final s = (sy * picture.width + sx) * 4;
+        final a = src[s + 3];
+        if (a == 0) continue;
+        final o = (y * width + x) * 4;
+        for (var c = 0; c < 3; c++) {
+          rgba[o + c] = (src[s + c] * a + rgba[o + c] * (255 - a)) ~/ 255;
+        }
+        rgba[o + 3] = 0xFF;
+      }
+    }
+  }
+
   int _get(int i) {
     final o = i * 4;
     return 0xFF000000 | rgba[o] << 16 | rgba[o + 1] << 8 | rgba[o + 2];
@@ -423,6 +497,66 @@ class ColoringDocument {
   static List<PaintOp> decodeOps(String source) {
     final json = jsonDecode(source) as Map<String, dynamic>;
     return [for (final op in json['ops'] as List) PaintOp.fromJson(op as Map<String, dynamic>)];
+  }
+}
+
+/// A page colored again, a little at a time (0.17's time-lapse): [ops]
+/// go onto [target] in the order the child made them, strokes point by
+/// point, fills, stamps and paper one step each.
+class Replay {
+  Replay(this.ops, this.target) : total = ops.fold(0, (sum, op) => sum + unitsOf(op));
+
+  final List<PaintOp> ops;
+  final ColoringDocument target;
+
+  /// How long [op] takes, in steps: a stroke one per point.
+  static int unitsOf(PaintOp op) => op is CrayonOp ? math.max(1, op.points.length) : opUnits;
+
+  /// A fill, stamp or paper change: as long as a short stroke.
+  static const opUnits = 8;
+
+  /// Every step there is.
+  final int total;
+  int _done = 0, _op = 0, _point = 0;
+  CrayonOp? _live;
+
+  int get done => _done;
+  bool get finished => _op >= ops.length;
+
+  /// How far along, 0..1.
+  double get progress => total == 0 ? 1 : _done / total;
+
+  /// Plays on until [steps] steps are done (or everything is). Returns the
+  /// operations started on the way, for a sound as each begins.
+  List<PaintOp> playTo(int steps) {
+    final started = <PaintOp>[];
+    while (_done < steps && !finished) {
+      final op = ops[_op];
+      if (op is! CrayonOp || op.points.isEmpty) {
+        target.add(op);
+        started.add(op);
+        _done += unitsOf(op);
+        _op++;
+        continue;
+      }
+      var live = _live;
+      if (live == null) {
+        live = _live = CrayonOp(op.region, op.color, op.radius, [], brush: op.brush);
+        target.add(live);
+        started.add(op);
+      }
+      live.points.add(op.points[_point++]);
+      target.applyStroke(live, live.points.length - 1);
+      _done++;
+      if (_point >= op.points.length) {
+        _live = null;
+        _point = 0;
+        _op++;
+      }
+    }
+    // The last stroke laid whole, exactly as the page was saved.
+    if (finished && started.isNotEmpty) target.rebuild();
+    return started;
   }
 }
 

@@ -13,6 +13,7 @@ import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../core/artwork_service.dart';
 import '../../core/creatures.dart';
+import '../../core/db/database.dart';
 import '../../core/places.dart';
 import '../../core/providers.dart';
 import '../../core/sounds.dart';
@@ -56,6 +57,10 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
   ui.Image? _colors;
   Tool _tool = Tool.bucket;
   StampShape _shape = StampShape.star;
+
+  /// One of the child's own pictures to stamp with instead of [_shape].
+  Artwork? _picture;
+  bool _pressing = false;
   int _pen = 0; // which of [_pens]
   int _paletteSet = 0; // which of [kidPaletteSets]
   int _color = kidPalette.first;
@@ -216,6 +221,10 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
           _changed();
         }
       case Tool.stamp:
+        if (_picture != null) {
+          _pressPicture(_picture!, p, doc);
+          return;
+        }
         final region = doc.regions.labelAt(p.x.floor(), p.y.floor());
         if (region == 0) return;
         doc.add(StampOp(region, _color, _shape, p.x, p.y, doc.width * 0.075));
@@ -225,6 +234,28 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
         // A tap with a brush leaves a dot.
         _startStroke(p, doc);
         _endStroke();
+    }
+  }
+
+  /// Presses one of the child's own pictures onto the page, a copy of it
+  /// kept with the page.
+  Future<void> _pressPicture(Artwork source, PagePoint p, ColoringDocument doc) async {
+    final page = _page;
+    if (page == null || _pressing) return;
+    _pressing = true;
+    try {
+      if (!doc.pictures.containsKey(source.folder)) {
+        final (name, picture) = await _service.copyPicture(source, page.artwork);
+        doc.pictures[name] = picture;
+      }
+      if (!mounted) return;
+      doc.add(PictureOp(source.folder, p.x, p.y, doc.width * 0.32));
+      _sound(Sfx.stamp);
+      _changed();
+    } catch (_) {
+      // Its cut-out is gone: nothing happens.
+    } finally {
+      _pressing = false;
     }
   }
 
@@ -289,7 +320,7 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
                       onPanEnd: _brush != null ? (_) => _endStroke() : null,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(10),
-                        child: CustomPaint(painter: _PagePainter(colors: _colors, lines: _lines!)),
+                        child: CustomPaint(painter: PagePainter(colors: _colors, lines: _lines!)),
                       ),
                     ),
                   ),
@@ -343,19 +374,24 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
       tool(Tool.stamp, Strings.stamp, const Color(0xFFE3F4FB), ToolArt(Art.stamp, color: color, size: art)),
       tool(Tool.eraser, Strings.eraser, const Color(0xFFFFE3EA), ArtSvg(Art.eraser, width: art, height: art * 1.2)),
     ]);
-    final shapes = Row(mainAxisSize: MainAxisSize.min, children: [
-      for (final shape in StampShape.values)
-        Padding(
+    final childId = ref.watch(currentChildProvider).value?.id;
+    final pictures = [
+      for (final a in (childId == null ? null : ref.watch(stampPicturesProvider(childId)).value) ?? const <Artwork>[])
+        if (a.id != widget.artworkId) a,
+    ];
+    final store = ref.watch(artworkStoreProvider);
+    Widget stampTile({Key? key, required bool selected, required String label, required VoidCallback onTap, required Widget child}) => Padding(
+          key: key,
           padding: const EdgeInsets.symmetric(horizontal: 6),
           child: Semantics(
             button: true,
-            selected: shape == _shape,
-            label: Strings.stampOf(_stampNames[shape]!),
+            selected: selected,
+            label: label,
             excludeSemantics: true,
             child: Pressable(
               onTap: () {
                 _sound(Sfx.tap);
-                setState(() => _shape = shape);
+                onTap();
               },
               child: Container(
                 width: 52,
@@ -364,16 +400,43 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: shape == _shape ? color : Colors.white, width: 3),
+                  border: Border.all(color: selected ? (color.computeLuminance() > 0.9 ? KidColors.inkSoft : color) : Colors.white, width: 3),
                   boxShadow: KidShadows.soft(),
                 ),
-                child: SvgPicture.asset(Art.stampShape(shape.name), width: 32, height: 32,
-                    colorFilter: ColorFilter.mode(color.computeLuminance() > 0.9 ? KidColors.inkSoft : color, BlendMode.srcIn)),
+                child: child,
               ),
             ),
           ),
-        ),
-    ]);
+        );
+    final shapes = SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        for (final shape in StampShape.values)
+          stampTile(
+            selected: _picture == null && shape == _shape,
+            label: Strings.stampOf(_stampNames[shape]!),
+            onTap: () => setState(() {
+              _shape = shape;
+              _picture = null;
+            }),
+            child: SvgPicture.asset(Art.stampShape(shape.name), width: 32, height: 32,
+                colorFilter: ColorFilter.mode(color.computeLuminance() > 0.9 ? KidColors.inkSoft : color, BlendMode.srcIn)),
+          ),
+        for (final a in pictures)
+          stampTile(
+            key: ValueKey('picture-stamp-${a.id}'),
+            selected: _picture?.id == a.id,
+            label: Strings.pictureStamp,
+            onTap: () => setState(() => _picture = a),
+            child: Padding(
+              padding: const EdgeInsets.all(5),
+              child: Image(image: FileImage(store.open(a.folder).sprite), fit: BoxFit.contain, gaplessPlayback: true,
+                  errorBuilder: (_, _, _) => const SizedBox.shrink()),
+            ),
+          ),
+      ]),
+    );
     final pens = Wrap(alignment: WrapAlignment.center, spacing: 6, runSpacing: 8, children: [
       for (final (i, (brush, _, name)) in _pens.indexed)
         Semantics(
@@ -705,28 +768,4 @@ class _PenSample extends CustomPainter {
 
   @override
   bool shouldRepaint(_PenSample old) => old.brush != brush || old.color != color || old.thick != thick;
-}
-
-/// Color layer underneath, line art multiplied on top: lines never get covered.
-class _PagePainter extends CustomPainter {
-  _PagePainter({required this.colors, required this.lines});
-
-  final ui.Image? colors;
-  final ui.Image lines;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final dst = Offset.zero & size;
-    final src = Rect.fromLTWH(0, 0, lines.width.toDouble(), lines.height.toDouble());
-    final paint = Paint()..filterQuality = FilterQuality.medium;
-    if (colors != null) {
-      canvas.drawImageRect(colors!, src, dst, paint);
-    } else {
-      canvas.drawRect(dst, Paint()..color = Colors.white);
-    }
-    canvas.drawImageRect(lines, src, dst, paint..blendMode = BlendMode.multiply);
-  }
-
-  @override
-  bool shouldRepaint(_PagePainter old) => old.colors != colors || old.lines != lines;
 }

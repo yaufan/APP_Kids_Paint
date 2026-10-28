@@ -199,6 +199,7 @@ class _TownScreenState extends ConsumerState<TownScreen> {
     final now = ref.watch(clockProvider)();
     final spots = townSpots(postcards, now);
     final store = ref.watch(artworkStoreProvider);
+    final folks = child == null ? const <PlaceKind, List<Artwork>>{} : ref.watch(townFolksProvider(child.id)).value ?? const {};
     final avatar = child?.avatar ?? animals.first;
     final name = child?.townName ?? animalNames[avatar] ?? '';
     final festival = festivalOn(now);
@@ -218,6 +219,11 @@ class _TownScreenState extends ConsumerState<TownScreen> {
             spots: spots,
             thumbnailOf: (a) => store.open(a.folder).thumbnail,
             avatar: avatar,
+            townies: {
+              for (final MapEntry(key: kind, value: arts) in folks.entries)
+                if (arts.isNotEmpty) kind: [for (final a in arts) store.open(a.folder).sprite],
+            },
+            onTownie: (_) => _sounds.play(Sfx.boingHigh),
             focus: widget.focus,
             grow: widget.grow,
             phase: dayPhaseAt(now),

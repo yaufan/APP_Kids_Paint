@@ -26,8 +26,13 @@ class ArtworkFiles {
   /// Small preview for the gallery.
   File get thumbnail => File(p.join(dir.path, 'thumb.png'));
 
-  /// A colored zoo or aquarium creature cut out of its page, to roam its scene.
+  /// The colored part cut out of the page: a creature roams its scene with
+  /// it, other pictures hop about the town (0.17), and any can be a stamp.
   File get sprite => File(p.join(dir.path, 'sprite.png'));
+
+  /// The copy of another picture's [sprite] pressed onto this page as a
+  /// stamp, named after the folder it came from.
+  File picture(String name) => File(p.join(dir.path, 'stamps', '$name.png'));
 }
 
 /// Keeps every artwork in the app's private documents folder.

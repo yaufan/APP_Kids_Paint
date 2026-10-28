@@ -196,7 +196,8 @@ class _ParentScreenState extends ConsumerState<ParentScreen> {
           ]),
         );
 
-    Widget row(Widget leading, String text, {VoidCallback? onTap, Color color = KidColors.ink, Widget? trailing}) => InkWell(
+    Widget row(Widget leading, String text, {Key? key, VoidCallback? onTap, Color color = KidColors.ink, Widget? trailing}) => InkWell(
+          key: key,
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: SizedBox(
@@ -285,6 +286,13 @@ class _ParentScreenState extends ConsumerState<ParentScreen> {
                 _waiting == null ? Strings.savingToAlbum : Strings.saveToAlbum(_waiting!),
                 color: KidColors.skyDark,
                 onTap: _waiting == null || _waiting == 0 ? null : _saveToAlbum,
+              ),
+              row(
+                const KidIcon('share', size: 22, color: KidColors.skyDark),
+                Strings.shareArtRow,
+                key: const ValueKey('share-row'),
+                color: KidColors.skyDark,
+                onTap: () => context.push('/parent/share'),
               ),
             ]),
             card(Strings.voices, [

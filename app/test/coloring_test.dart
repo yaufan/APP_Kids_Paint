@@ -60,6 +60,70 @@ void main() {
     expect(doc.colorAt(10, 15), white);
   });
 
+  group('pictures as stamps (0.17)', () {
+    // A 4 x 2 picture: left half red, right half see-through.
+    final picture = StampPicture(4, 2, Uint8List.fromList([
+      for (var i = 0; i < 8; i++) ...(i % 4 < 2 ? [0xE5, 0x39, 0x35, 255] : [0, 0, 0, 0]),
+    ]));
+
+    test('a picture goes onto the page where it is drawn, over any region, see-through where it is', () {
+      final doc = ColoringDocument(regions, [], {'dog': picture})..fill(32, 32, blue);
+      // 16 px across, centered on the square's left border at (12, 32).
+      doc.add(const PictureOp('dog', 12, 32, 16));
+      expect(doc.colorAt(6, 32), red, reason: 'its left half, outside the square');
+      expect(doc.colorAt(11, 32), red, reason: 'and over the border');
+      expect(doc.colorAt(18, 32), blue, reason: 'its see-through half shows the page');
+    });
+
+    test('a picture stamp survives a save and reload, and undo takes it off', () {
+      final doc = ColoringDocument(regions, [], {'dog': picture})..add(const PictureOp('dog', 32, 32, 20));
+      final ops = ColoringDocument.decodeOps(doc.encodeOps());
+      expect(ColoringDocument.picturesIn(ops), {'dog'});
+      expect(ColoringDocument(regions, ops, {'dog': picture}).rgba, doc.rgba);
+      doc.undo();
+      expect(doc.colorAt(28, 32), white);
+    });
+
+    test('a page whose picture is gone still opens, without it', () {
+      final doc = ColoringDocument(regions, [const PictureOp('gone', 32, 32, 20)]);
+      expect(doc.colorAt(28, 32), white);
+    });
+  });
+
+  group('the time-lapse (0.17)', () {
+    List<PaintOp> busyPage() {
+      final inside = regions.labelAt(32, 32);
+      return [
+        FillOp(regions.labelAt(2, 2), blue),
+        CrayonOp(inside, red, 3, [for (var x = 22; x < 42; x += 2) (x: x.toDouble(), y: 32.0)], brush: Brush.watercolor),
+        StampOp(inside, red, StampShape.heart, 32, 26, 5),
+        CrayonOp(inside, blue, 2, [(x: 24.0, y: 38.0), (x: 40.0, y: 38.0)], brush: Brush.neon),
+      ];
+    }
+
+    test('played to the end it looks exactly like the page', () {
+      final page = ColoringDocument(regions, busyPage());
+      final replay = Replay(page.ops, ColoringDocument(regions));
+      for (var step = 0; !replay.finished; step += 3) {
+        replay.playTo(step);
+      }
+      expect(replay.target.rgba, page.rgba);
+      expect(replay.progress, 1);
+    });
+
+    test('strokes come point by point, the rest a step each', () {
+      final ops = busyPage();
+      final replay = Replay(ops, ColoringDocument(regions));
+      expect(replay.total, Replay.opUnits + 10 + Replay.opUnits + 2);
+      expect(replay.playTo(Replay.opUnits), [ops[0]], reason: 'the fill first');
+      expect(replay.target.colorAt(2, 2), blue);
+      expect(replay.target.colorAt(40, 32), white, reason: 'the stroke has not got there yet');
+      expect(replay.playTo(Replay.opUnits + 3), [ops[1]]);
+      expect(replay.target.colorAt(22, 32), isNot(white), reason: 'it has begun');
+      expect(replay.target.colorAt(40, 32), white);
+    });
+  });
+
   test('three sets of twelve colors, all different, each with a name', () {
     expect(kidPaletteSets, hasLength(3));
     expect(kidPaletteSets.first.colors, kidPalette);

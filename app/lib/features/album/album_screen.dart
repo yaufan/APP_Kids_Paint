@@ -101,6 +101,7 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
                 tilt: i.isEven ? -1.5 : 1.5,
                 sent: sent,
                 onOpen: () => context.push('/canvas/${art.id}'),
+                onReplay: art.isCompleted ? () => context.push('/replay/${art.id}') : null,
                 onFavorite: () => ref.read(artworkRepositoryProvider).toggleFavorite(art.id),
               ),
           ],
@@ -227,6 +228,7 @@ class _AlbumCard extends StatelessWidget {
     required this.sent,
     required this.onOpen,
     required this.onFavorite,
+    this.onReplay,
   });
 
   final Artwork artwork;
@@ -236,10 +238,15 @@ class _AlbumCard extends StatelessWidget {
   final VoidCallback onOpen;
   final VoidCallback onFavorite;
 
+  /// Watch it being colored again; null for a picture not finished yet.
+  final VoidCallback? onReplay;
+
   @override
   Widget build(BuildContext context) {
     final date = shortDate(artwork.sentAt ?? artwork.updatedAt);
     return Semantics(
+      // Its own node: the replay and heart buttons inside are separate ones.
+      container: true,
       button: true,
       label: '$date 的明信片',
       child: Pressable(
@@ -259,8 +266,24 @@ class _AlbumCard extends StatelessWidget {
               height: 34,
               child: Row(children: [
                 const SizedBox(width: 4),
-                Text(date, style: const TextStyle(fontSize: 15, color: KidColors.inkSoft)),
+                // Already in the card's label.
+                ExcludeSemantics(child: Text(date, style: const TextStyle(fontSize: 15, color: KidColors.inkSoft))),
                 const Spacer(),
+                if (onReplay != null)
+                  Semantics(
+                    button: true,
+                    label: Strings.replay,
+                    excludeSemantics: true,
+                    child: GestureDetector(
+                      key: ValueKey('replay-${artwork.id}'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: onReplay,
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: KidIcon('play', size: 24, color: KidColors.skyDark, solid: true),
+                      ),
+                    ),
+                  ),
                 if (sent)
                   Semantics(
                     button: true,

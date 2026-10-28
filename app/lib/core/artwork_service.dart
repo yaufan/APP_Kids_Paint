@@ -92,7 +92,32 @@ class ArtworkService {
     final ops = await files.ops.exists()
         ? ColoringDocument.decodeOps(await files.ops.readAsString())
         : <PaintOp>[];
-    return LoadedPage(artwork, lines, ColoringDocument(regions, ops));
+    final pictures = await _pictures(files, ColoringDocument.picturesIn(ops));
+    return LoadedPage(artwork, lines, ColoringDocument(regions, ops, pictures));
+  }
+
+  /// The pictures pressed onto a page, from its folder; a missing one is left out.
+  Future<Map<String, StampPicture>> _pictures(ArtworkFiles files, Set<String> names) async {
+    final pngs = <String, Uint8List>{};
+    for (final name in names) {
+      final file = files.picture(name);
+      if (await file.exists()) pngs[name] = await file.readAsBytes();
+    }
+    if (pngs.isEmpty) return {};
+    return Isolate.run(() => {for (final MapEntry(:key, :value) in pngs.entries) key: decodeStampPicture(value)});
+  }
+
+  /// [from]'s cut-out, copied into [to]'s folder to press onto it as a
+  /// stamp; returns its name there and its pixels.
+  Future<(String, StampPicture)> copyPicture(Artwork from, Artwork to) async {
+    final name = from.folder;
+    final copy = _store.open(to.folder).picture(name);
+    if (!await copy.exists()) {
+      await copy.parent.create(recursive: true);
+      await _store.open(from.folder).sprite.copy(copy.path);
+    }
+    final png = await copy.readAsBytes();
+    return (name, await Isolate.run(() => decodeStampPicture(png)));
   }
 
   /// Quick autosave after every change: just the list of operations.
@@ -129,10 +154,11 @@ class ArtworkService {
     final (colored, thumb) = await Isolate.run(() => renderColored(rgba, lines, w, h));
     await files.colored.writeAsBytes(colored);
     await files.thumbnail.writeAsBytes(thumb);
-    if (Creature.byName(page.artwork.template) != null) {
-      final labels = doc.regions.labels;
-      await files.sprite.writeAsBytes(await Isolate.run(() => renderSprite(rgba, lines, labels, w, h)));
-    }
+    final labels = doc.regions.labels;
+    final creature = Creature.byName(page.artwork.template) != null;
+    final paper = doc.paper;
+    await files.sprite.writeAsBytes(await Isolate.run(
+        () => creature ? renderSprite(rgba, lines, labels, w, h) : renderPaintedSprite(rgba, lines, paper, w, h, labels: labels)));
     // A postcard already sent stays finished, even with everything undone.
     await _repo.touch(page.artwork.id, completed: doc.ops.isNotEmpty || page.artwork.sentAt != null);
   }
@@ -141,6 +167,25 @@ class ArtworkService {
   Future<void> send(LoadedPage page, Place place) async {
     await saveFinished(page);
     await _repo.send(page.artwork.id, place.id);
+  }
+
+  /// Makes the cut-out of a finished picture from before 0.17, which only
+  /// creatures had; returns whether there is one now.
+  Future<bool> ensureSprite(Artwork artwork) async {
+    final files = _store.open(artwork.folder);
+    if (await files.sprite.exists()) return true;
+    if (!artwork.isCompleted || !await files.ops.exists() || !await files.lines.exists()) return false;
+    final lines = await files.lines.readAsBytes();
+    final regions = await files.regions.readAsBytes();
+    final ops = await files.ops.readAsString();
+    final names = ColoringDocument.picturesIn(ColoringDocument.decodeOps(ops));
+    final pngs = <String, Uint8List>{
+      for (final name in names)
+        if (await files.picture(name).exists()) name: await files.picture(name).readAsBytes(),
+    };
+    final creature = Creature.byName(artwork.template) != null;
+    await files.sprite.writeAsBytes(await Isolate.run(() => spriteOfPage(lines, regions, ops, pngs, creature: creature)));
+    return true;
   }
 
   ArtworkFiles filesOf(Artwork artwork) => _store.open(artwork.folder);
@@ -206,6 +251,118 @@ Uint8List decodeGrayPng(Uint8List png) {
   return (img.encodePng(image), img.encodePng(thumb));
 }
 
+/// A page's pixels for a stamp.
+StampPicture decodeStampPicture(Uint8List png) {
+  final image = img.decodePng(png)!.convert(numChannels: 4);
+  return StampPicture(image.width, image.height, image.getBytes(order: img.ChannelOrder.rgba));
+}
+
+/// The cut-out of a saved page, from its files: lines PNG, regions, operations.
+Uint8List spriteOfPage(Uint8List linesPng, Uint8List regionsBin, String ops, Map<String, Uint8List> pictures, {required bool creature}) {
+  final lines = decodeGrayPng(linesPng);
+  final regions = RegionMap.decode(regionsBin);
+  final doc = ColoringDocument(regions, ColoringDocument.decodeOps(ops),
+      {for (final MapEntry(:key, :value) in pictures.entries) key: decodeStampPicture(value)});
+  final (w, h) = (doc.width, doc.height);
+  return creature
+      ? renderSprite(doc.rgba, lines, regions.labels, w, h)
+      : renderPaintedSprite(doc.rgba, lines, doc.paper, w, h, labels: regions.labels);
+}
+
+/// What the child colored on a photo's page or on paper, cut out: every
+/// pixel not the paper's color, and the lines right around it (so an
+/// outline stays whole). Cropped, at most [maxSide] px.
+///
+/// With the page's region [labels], the areas that run off the edge of the
+/// page are left out: they are mostly the background (the sky, the table)
+/// around what the photo is of. Unless that leaves nothing, as on paper.
+Uint8List renderPaintedSprite(Uint8List rgba, Uint8List lines, int paper, int width, int height,
+    {Uint16List? labels, int maxSide = 360, int reach = 3}) {
+  final pr = (paper >> 16) & 0xFF, pg = (paper >> 8) & 0xFF, pb = paper & 0xFF;
+  final n = width * height;
+  var painted = Uint8List(n);
+  for (var i = 0; i < n; i++) {
+    final o = i * 4;
+    if (rgba[o] != pr || rgba[o + 1] != pg || rgba[o + 2] != pb) painted[i] = 1;
+  }
+  if (labels != null) {
+    final edge = <int>{
+      for (var x = 0; x < width; x++) ...[labels[x], labels[(height - 1) * width + x]],
+      for (var y = 0; y < height; y++) ...[labels[y * width], labels[y * width + width - 1]],
+    };
+    final inner = Uint8List(n);
+    var any = false;
+    for (var i = 0; i < n; i++) {
+      if (painted[i] == 1 && !edge.contains(labels[i])) {
+        inner[i] = 1;
+        any = true;
+      }
+    }
+    if (any) painted = inner;
+  }
+  // Near the painting: [reach] px around it, first across, then down.
+  final across = Uint8List(n), near = Uint8List(n);
+  for (var y = 0; y < height; y++) {
+    var last = -1 << 30;
+    for (var x = 0; x < width; x++) {
+      if (painted[y * width + x] == 1) last = x;
+      if (x - last <= reach) across[y * width + x] = 1;
+    }
+    last = 1 << 30;
+    for (var x = width - 1; x >= 0; x--) {
+      if (painted[y * width + x] == 1) last = x;
+      if (last - x <= reach) across[y * width + x] = 1;
+    }
+  }
+  for (var x = 0; x < width; x++) {
+    var last = -1 << 30;
+    for (var y = 0; y < height; y++) {
+      if (across[y * width + x] == 1) last = y;
+      if (y - last <= reach) near[y * width + x] = 1;
+    }
+    last = 1 << 30;
+    for (var y = height - 1; y >= 0; y--) {
+      if (across[y * width + x] == 1) last = y;
+      if (last - y <= reach) near[y * width + x] = 1;
+    }
+  }
+  final out = Uint8List(n * 4);
+  var x0 = width, y0 = height, x1 = -1, y1 = -1;
+  for (var y = 0; y < height; y++) {
+    for (var x = 0; x < width; x++) {
+      final i = y * width + x;
+      if (near[i] == 0) continue;
+      final l = lines[i];
+      final alpha = painted[i] == 1 ? 255 : 255 - l;
+      if (alpha < 8) continue;
+      final o = i * 4;
+      out[o] = rgba[o] * l ~/ 255;
+      out[o + 1] = rgba[o + 1] * l ~/ 255;
+      out[o + 2] = rgba[o + 2] * l ~/ 255;
+      out[o + 3] = alpha;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+    }
+  }
+  return _cropped(out, width, height, x0, y0, x1, y1, maxSide);
+}
+
+/// [out] (RGBA, [width] x [height]) cropped to x0..x1, y0..y1 and scaled
+/// down to at most [maxSide] px; a 1 px clear PNG when nothing is there.
+Uint8List _cropped(Uint8List out, int width, int height, int x0, int y0, int x1, int y1, int maxSide) {
+  if (x1 < x0) return img.encodePng(img.Image(width: 1, height: 1, numChannels: 4));
+  final image = img.Image.fromBytes(width: width, height: height, bytes: out.buffer, numChannels: 4);
+  var sprite = img.copyCrop(image, x: x0, y: y0, width: x1 - x0 + 1, height: y1 - y0 + 1);
+  final scale = maxSide / math.max(sprite.width, sprite.height);
+  if (scale < 1) {
+    sprite = img.copyResize(sprite,
+        width: (sprite.width * scale).round(), height: (sprite.height * scale).round(), interpolation: img.Interpolation.average);
+  }
+  return img.encodePng(sprite);
+}
+
 /// A colored creature cut out of its page, cropped, at most [maxSide] px.
 ///
 /// Everything in the page's outside region (the one at the corner) is see-
@@ -232,13 +389,5 @@ Uint8List renderSprite(Uint8List rgba, Uint8List lines, Uint16List labels, int w
       if (y > y1) y1 = y;
     }
   }
-  final image = img.Image.fromBytes(width: width, height: height, bytes: out.buffer, numChannels: 4);
-  if (x1 < x0) return img.encodePng(img.Image(width: 1, height: 1, numChannels: 4));
-  var sprite = img.copyCrop(image, x: x0, y: y0, width: x1 - x0 + 1, height: y1 - y0 + 1);
-  final scale = maxSide / math.max(sprite.width, sprite.height);
-  if (scale < 1) {
-    sprite = img.copyResize(sprite,
-        width: (sprite.width * scale).round(), height: (sprite.height * scale).round(), interpolation: img.Interpolation.average);
-  }
-  return img.encodePng(sprite);
+  return _cropped(out, width, height, x0, y0, x1, y1, maxSide);
 }

@@ -14,6 +14,7 @@ import 'package:kids_paint/core/db/database.dart';
 import 'package:kids_paint/core/festivals.dart';
 import 'package:kids_paint/core/places.dart';
 import 'package:kids_paint/core/providers.dart';
+import 'package:kids_paint/core/sharing.dart';
 import 'package:kids_paint/core/sounds.dart';
 import 'package:kids_paint/core/storage/artwork_store.dart';
 import 'package:kids_paint/features/canvas/coloring.dart';
@@ -29,6 +30,15 @@ final walkthroughKey = GlobalKey();
 /// Christmas Eve night and an autumn dusk.
 var walkthroughNow = DateTime(2026, 10, 26, 10, 30);
 
+/// Keeps what parents shared instead of opening the phone's share sheet,
+/// which would sit over the simulator.
+class WalkthroughSharer implements Sharer {
+  final shared = <Uint8List>[];
+
+  @override
+  Future<void> shareImage(Uint8List png, {required String name, Rect? origin}) async => shared.add(png);
+}
+
 /// The whole app as a child (and then a parent) uses it, with a screenshot
 /// of every step. Shared by `test/flow_test.dart` (headless phone and tablet)
 /// and `integration_test/app_flow_test.dart` (iPhone/iPad simulators). Only
@@ -37,6 +47,7 @@ var walkthroughNow = DateTime(2026, 10, 26, 10, 30);
 Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, required Shot shot, Sounds? sounds}) async {
   final db = AppDatabase(NativeDatabase.memory());
   final storeDir = await tester.runAsync(() => Directory.systemTemp.createTemp('kids_paint_flow'));
+  final sharer = WalkthroughSharer();
 
   await tester.pumpWidget(RepaintBoundary(
     key: walkthroughKey,
@@ -46,6 +57,7 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
         artworkStoreProvider.overrideWithValue(ArtworkStore(storeDir!)),
         clockProvider.overrideWithValue(() => walkthroughNow),
         if (sounds != null) systemSoundsProvider.overrideWithValue(sounds),
+        sharerProvider.overrideWithValue(sharer),
       ],
       child: const KidsPaintApp(),
     ),
@@ -169,8 +181,10 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   await idle(tester, 900);
   await shot('08_sent');
 
-  // 7. Back in town by itself: the park was just built, with the postcard on it.
+  // 7. Back in town by itself: the park was just built, with the postcard on
+  //    it and what was colored hopping beside it.
   await waitFor(tester, find.bySemanticsLabel(Strings.pinLabel(PlaceKind.park.label, 1)));
+  await waitFor(tester, find.bySemanticsLabel(Strings.townFolk(PlaceKind.park.label)));
   await idle(tester, 2000);
   await shot('09_town_new_place');
 
@@ -180,11 +194,21 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   expect(saved.single.sentAt, isNotNull);
   expect(File('${storeDir.path}/${saved.single.folder}/colored.png').existsSync(), isTrue);
 
-  // 8. The album.
+  // 8. The album; the postcard colored again, as a time-lapse.
   await tester.tap(find.bySemanticsLabel(Strings.album));
   await waitFor(tester, find.bySemanticsLabel(RegExp('的明信片\$')));
   await idle(tester);
   await shot('10_album');
+  await tester.tap(find.byKey(ValueKey('replay-${saved.single.id}')));
+  await waitFor(tester, find.byKey(const ValueKey('replay-page')));
+  await idle(tester, 1500);
+  await shot('10b_replay_playing');
+  await waitFor(tester, find.byKey(const ValueKey('replay-again')));
+  await idle(tester, 600);
+  await shot('10c_replay_done');
+  await tester.tap(find.bySemanticsLabel(Strings.backToAlbum));
+  await waitFor(tester, find.bySemanticsLabel(Strings.backToMap));
+  await idle(tester, 500);
 
   // 9. Parent gate, parent mode, privacy.
   await tester.tap(find.bySemanticsLabel(Strings.backToMap));
@@ -201,6 +225,29 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   await waitFor(tester, find.text(Strings.dailyLimit));
   await idle(tester, 500);
   await shot('12_parent_mode');
+  // Sharing the postcard: a card is made for it.
+  await tester.scrollUntilVisible(find.byKey(const ValueKey('share-row')), 300,
+      scrollable: find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first);
+  await tester.pump();
+  await tester.tap(find.byKey(const ValueKey('share-row')));
+  await waitFor(tester, find.byKey(ValueKey('share-pick-${saved.single.id}')));
+  await idle(tester, 500);
+  await tester.tap(find.byKey(ValueKey('share-pick-${saved.single.id}')));
+  await waitFor(tester, find.text(Strings.shareNow));
+  await idle(tester, 800);
+  await shot('12b_share_card');
+  await tester.ensureVisible(find.text(Strings.shareNow));
+  await tester.pump();
+  await tester.tap(find.text(Strings.shareNow));
+  for (var i = 0; i < 100 && sharer.shared.isEmpty; i++) {
+    await idle(tester, 100);
+  }
+  expect(sharer.shared, hasLength(1));
+  await tester.tap(find.byType(BackButton)); // to the postcards
+  await idle(tester, 300);
+  await tester.tap(find.byType(BackButton)); // to parent mode, still scrolled down to it
+  await waitFor(tester, find.byKey(const ValueKey('share-row')));
+  await idle(tester, 500);
   // Further down the list (built only when scrolled to).
   await tester.scrollUntilVisible(find.text(Strings.privacy), 300,
       scrollable: find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first);
@@ -257,6 +304,16 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   await tester.tap(find.byKey(ValueKey('swatch-${kidPalette[2]}')));
   await tester.pump();
   await tester.tapAt(paper.center);
+  await idle(tester, 500);
+  // The park postcard, cut out, pressed on as a stamp.
+  await tester.tap(find.bySemanticsLabel(Strings.stamp));
+  final ownStamp = find.byKey(ValueKey('picture-stamp-${saved.single.id}'));
+  await waitFor(tester, ownStamp);
+  await tester.ensureVisible(ownStamp);
+  await idle(tester, 300);
+  await tester.tap(ownStamp);
+  await tester.pump();
+  await tester.tapAt(paper.topLeft + Offset(paper.width * 0.7, paper.height * 0.82));
   await idle(tester);
   await shot('16_blank_paper');
 
@@ -267,6 +324,7 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   await idle(tester, 600);
   await tester.tap(home);
   await waitFor(tester, find.bySemanticsLabel(Strings.pinLabel(PlaceKind.home.label, 1)));
+  await waitFor(tester, find.bySemanticsLabel(Strings.townFolk(PlaceKind.home.label)));
   await idle(tester, 2000);
   await shot('17_town_dusk');
 

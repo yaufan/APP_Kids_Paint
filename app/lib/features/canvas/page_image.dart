@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 /// Grayscale page pixels -> a GPU image the canvas can draw.
 Future<ui.Image> grayToImage(Uint8List gray, int width, int height) {
@@ -59,4 +59,28 @@ class _GrayPagePreviewState extends State<GrayPagePreview> {
   @override
   Widget build(BuildContext context) =>
       AspectRatio(aspectRatio: widget.width / widget.height, child: RawImage(image: _image, fit: BoxFit.contain));
+}
+
+/// Color layer underneath, line art multiplied on top: lines never get covered.
+class PagePainter extends CustomPainter {
+  PagePainter({required this.colors, required this.lines});
+
+  final ui.Image? colors;
+  final ui.Image lines;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final dst = Offset.zero & size;
+    final src = Rect.fromLTWH(0, 0, lines.width.toDouble(), lines.height.toDouble());
+    final paint = Paint()..filterQuality = FilterQuality.medium;
+    if (colors != null) {
+      canvas.drawImageRect(colors!, src, dst, paint);
+    } else {
+      canvas.drawRect(dst, Paint()..color = Colors.white);
+    }
+    canvas.drawImageRect(lines, src, dst, paint..blendMode = BlendMode.multiply);
+  }
+
+  @override
+  bool shouldRepaint(PagePainter old) => old.colors != colors || old.lines != lines;
 }

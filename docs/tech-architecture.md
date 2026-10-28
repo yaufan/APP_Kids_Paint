@@ -200,9 +200,10 @@ Artwork      作品
 ---
 
 ## 10. 分享
-- 系統分享選單：`share_plus` 套件。台灣以 LINE 為主，FB、IG 也走系統分享選單。
-- 圖卡合成：成品＋三格前後對照＋浮水印＋QR code。
-- 縮時影片：重播筆畫資料並逐格輸出，用原生影片編碼 API（Android MediaCodec／iOS AVAssetWriter）轉成 MP4。
+- 系統分享選單：`share_plus` 套件（0.17 起）。台灣以 LINE 為主，FB、IG 也走系統分享選單。
+- 圖卡合成（0.17）：在畫面上排好一張 4:5 的卡片（`ShareCard`），用 `RepaintBoundary.toImage` 輸出約 1080 px 寬的 PNG，暫存在 temp 資料夾的 `share/` 裡交給分享選單（每次只留最新的一張）。之後可以再加三格前後對照。
+- 縮時重播（0.17）：`Replay` 照 ops 的順序一步一步塗到新的空白頁，筆畫一個點一個點來，3～10 秒播完，最後一步整頁重畫，跟存的一模一樣。
+- 縮時影片（還沒做）：重播筆畫資料並逐格輸出，用原生影片編碼 API（Android MediaCodec／iOS AVAssetWriter）轉成 MP4。
 - 分享前一律移除 EXIF。
 
 ---
@@ -256,4 +257,6 @@ docs/                 規劃文件
 - Flutter 3.47.8（Dart 3.13）
 - flutter_riverpod 3、go_router 18、drift 2.35、image_picker、image、flutter_svg、flutter_tts、gal（存到相簿）、audioplayers（0.16 起，音效；聲音檔由 `docs/design/sounds/make_sounds.py` 用正弦波和雜訊合成）
 
-**尚未加入**：分享（share_plus）、自動去背（只畫主角）。
+- share_plus（0.17 起，家長模式的分享；不需要任何權限）
+
+**尚未加入**：自動去背（只畫主角）。0.17 的「剪下來」是剪塗了顏色的部分，不是辨認主角。

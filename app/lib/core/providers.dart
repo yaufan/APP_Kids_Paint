@@ -10,6 +10,7 @@ import 'db/database.dart';
 import 'festivals.dart';
 import 'places.dart';
 import 'repositories.dart';
+import 'sharing.dart';
 import 'storage/artwork_store.dart';
 import 'sounds.dart';
 import 'voice.dart';
@@ -28,6 +29,9 @@ final settingsRepositoryProvider = Provider((ref) => SettingsRepository(ref.watc
 final artworkServiceProvider = Provider(
   (ref) => ArtworkService(ref.watch(artworkRepositoryProvider), ref.watch(artworkStoreProvider)),
 );
+
+/// The phone's share sheet; tests use a pretend one.
+final sharerProvider = Provider<Sharer>((ref) => SystemSharer());
 
 /// The phone's photo album; tests use a pretend one.
 final photoAlbumProvider = Provider<PhotoAlbum>((ref) => SystemPhotoAlbum());
@@ -102,6 +106,47 @@ final shopCustomersProvider = StreamProvider.family<List<Artwork>, int>(
       if ({Habitat.zoo, Habitat.dinoPark, Habitat.insects}.contains(c.habitat) && {Motion.walk, Motion.hop, Motion.crawl}.contains(c.motion)) c.name,
   ]),
 );
+
+/// The child's own pictures that live in the town (0.17): at each kind of
+/// place, the two newest sent there that are not a scene's creatures, by
+/// their cut-outs (made now for pictures from before there were any).
+final townFolksProvider = FutureProvider.family<Map<PlaceKind, List<Artwork>>, int>((ref, childId) async {
+  final postcards = await ref.watch(postcardsProvider(childId).future);
+  final service = ref.watch(artworkServiceProvider);
+  final folks = <PlaceKind, List<Artwork>>{};
+  for (final p in postcards) {
+    if (Creature.byName(p.artwork.template) != null) continue;
+    final here = folks.putIfAbsent(PlaceKind.byName(p.place.kind), () => []);
+    if (here.length >= townFolksPerPlace) continue;
+    try {
+      if (await service.ensureSprite(p.artwork)) here.add(p.artwork);
+    } catch (_) {
+      // A picture whose files are damaged just stays off the map.
+    }
+  }
+  return folks;
+});
+
+const townFolksPerPlace = 2;
+
+/// The child's own pictures to press onto pages as stamps (0.17): the
+/// newest sent ones that have a cut-out, creatures and photos alike.
+final stampPicturesProvider = FutureProvider.family<List<Artwork>, int>((ref, childId) async {
+  final postcards = await ref.watch(postcardsProvider(childId).future);
+  final service = ref.watch(artworkServiceProvider);
+  final out = <Artwork>[];
+  for (final p in postcards) {
+    if (out.length >= stampPictureCount) break;
+    try {
+      if (await service.ensureSprite(p.artwork)) out.add(p.artwork);
+    } catch (_) {
+      // Damaged files: not offered.
+    }
+  }
+  return out;
+});
+
+const stampPictureCount = 8;
 
 /// The phone's speech engine; tests use a silent one.
 final systemVoiceProvider = Provider<Voice>((ref) => SystemVoice());
