@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.15.1+1
+version: 0.16.0+1
 
 environment:
   sdk: ^3.13.7
@@ -28,6 +28,7 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  audioplayers: ^6.8.1
   drift: ^2.35.3
   drift_flutter: ^0.3.1
   flutter:
@@ -90,6 +91,9 @@ flutter:
     # Coloring pages: festivals (v3) and creatures, drawn like a toddler's
     # coloring book (docs/design/v5).
     - assets/pages/
+    # Sound effects and the places' background sounds, made from sine waves
+    # and noise (docs/design/sounds/make_sounds.py).
+    - assets/sounds/
     # The same creatures in their colors, small, for the cards you pick from.
     - assets/previews/
     # The places you go into, painted with Stable Diffusion (docs/design/v4).

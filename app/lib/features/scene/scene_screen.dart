@@ -18,8 +18,12 @@ import '../../core/festivals.dart';
 import '../../core/places.dart';
 import '../../core/providers.dart';
 import '../../core/repositories.dart';
+import '../../core/sounds.dart';
+import '../../core/town_time.dart';
 import '../../core/voice.dart';
+import '../../core/weather.dart';
 import '../town/place_sheet.dart';
+import '../weather/weather_layer.dart';
 import 'motion.dart';
 
 /// Inside a place you can go into: every creature the child colored for it
@@ -98,9 +102,17 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
   late final AnimationController _throw = AnimationController(vsync: this, duration: const Duration(milliseconds: 1700));
   ({int id, Offset at, double width})? _ring;
 
+  late final Sounds _sounds = ref.read(soundsProvider);
+
+  /// The weather here now: sunny where it does not reach.
+  Weather get _weather => weatherReaches(widget.habitat) ? weatherAt(ref.read(clockProvider)()) : Weather.sunny;
+
   @override
   void initState() {
     super.initState();
+    final now = ref.read(clockProvider)();
+    _sounds.hold(this, ambienceFor(widget.habitat, _weather, dayPhaseAt(now)));
+    _sounds.play(widget.arrived != null ? Sfx.hooray : Sfx.chime);
     if (widget.arrived != null) {
       _welcome = true;
       _welcomeTimer = Timer(const Duration(milliseconds: 3200), () {
@@ -149,6 +161,7 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
     _liftoff.dispose();
     _throw.dispose();
     _voice?.stop();
+    _sounds.release(this);
     super.dispose();
   }
 
@@ -177,6 +190,7 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
       justArrived: arrived,
       neighbors: [for (final a in _residents) if (a.id != art.id) ?Creature.byName(a.template)],
       taps: taps,
+      weather: _weather,
     );
     _speak(art.id, lineFor(creature, _random, moment));
   }
@@ -193,11 +207,21 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
     });
   }
 
+  /// A child taps a resident: a rocket takes off, a snack at the night
+  /// market gets a ring thrown over it, anyone else jumps with a boing and talks.
+  void _tapped(Artwork art, Creature creature, Pose pose) {
+    if (creature == Creature.rocket) return _launch(art);
+    if (widget.habitat == Habitat.nightMarket && creature.motion == Motion.shelf) return _toss(art, pose, creature);
+    _sounds.play(boingOf(creature));
+    _say(art, tapped: true);
+  }
+
   /// A rocket counts down and takes off, and lands again a moment later.
   void _launch(Artwork rocket) {
     if (!mounted || _launching != null) return;
     setState(() => _launching = rocket.id);
     _speak(rocket.id, countdown);
+    _sounds.play(Sfx.rocket);
     _liftoff.forward(from: 0);
   }
 
@@ -217,8 +241,11 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
     if (!mounted || _ring != null) return;
     setState(() => _ring = (id: snack.id, at: pose.at - const Offset(0, 34), width: math.max(70.0, creature.size * 1.15)));
     _throw.forward(from: 0);
+    _sounds.play(Sfx.swish);
     Timer(const Duration(milliseconds: 900), () {
-      if (mounted && _ring?.id == snack.id) _speak(snack.id, ringed[_random.nextInt(ringed.length)]);
+      if (!mounted || _ring?.id != snack.id) return;
+      _sounds.play(Sfx.ding);
+      _speak(snack.id, ringed[_random.nextInt(ringed.length)]);
     });
   }
 
@@ -250,6 +277,7 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
     if (!sale.paid && _visit.value >= _Sale.pay) {
       sale.paid = true;
       setState(() => _coins++);
+      _sounds.play(Sfx.coin);
       _speak(sale.item.id, sale.thanks);
     }
   }
@@ -412,15 +440,13 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
                       lift: _launching == p.art.id ? flight!.lift : 0,
                       flame: _launching == p.art.id && flight!.flame,
                       shake: _launching == p.art.id ? flight!.shake : 0,
-                      onTap: () => switch (p.creature) {
-                        Creature.rocket => _launch(p.art),
-                        _ when widget.habitat == Habitat.nightMarket && p.creature.motion == Motion.shelf => _toss(p.art, p.pose, p.creature),
-                        _ => _say(p.art, tapped: true),
-                      },
+                      onTap: () => _tapped(p.art, p.creature, p.pose),
                     ),
                   if (_ring case final ring?) _Ring(ring: ring, t: _throw.value, view: view),
                   if (widget.habitat == Habitat.polar)
                     Positioned.fill(child: IgnorePointer(child: CustomPaint(painter: _Snow(view, seconds)))),
+                  if (weatherReaches(widget.habitat))
+                    Positioned.fill(child: WeatherLayer(weather: _weather, sprinkles: widget.habitat == Habitat.candy)),
                   if (sale != null && sold != null)
                     _Customer(
                       sale: sale,

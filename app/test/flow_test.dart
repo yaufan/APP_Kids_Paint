@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kids_paint/core/sounds.dart';
 
 import '../integration_test/walkthrough.dart';
 
@@ -44,6 +45,7 @@ void main() {
       await runWalkthrough(
         tester,
         photo: File('test/assets/coffee.jpg').readAsBytesSync(),
+        sounds: const SilentSounds(),
         shot: (name) => tester.runAsync(() async {
           final boundary = walkthroughKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
           final image = await boundary.toImage(pixelRatio: 2);

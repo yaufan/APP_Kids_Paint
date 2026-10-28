@@ -155,6 +155,8 @@ abstract final class Strings {
   static const voices = '聲音';
   static const creatureVoices = '角色說話的聲音';
   static const creatureVoicesHint = '動物園、海洋館、恐龍樂園裡的角色說話時，用手機內建的語音念出來。';
+  static const soundEffects = '音效和背景聲音';
+  static const soundEffectsHint = '塗顏色、點角色時的小聲音，還有每個地方的背景聲（鳥叫、下雨、海底泡泡）。手機切到靜音就不會響。';
   static const keepArt = '留住作品';
   static const keepArtHint = '作品只存在這支手機裡，沒有帳號可以備份。存到相簿，換手機也不會不見。';
   static String saveToAlbum(int n) => n == 0 ? '存到相簿（沒有新作品）' : '存到相簿（$n 張新作品）';

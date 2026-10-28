@@ -9,6 +9,7 @@ import '../../app/widgets.dart';
 import '../../core/db/database.dart';
 import '../../core/places.dart';
 import '../../core/providers.dart';
+import '../../core/sounds.dart';
 
 /// "Where shall we send it?" Gugu holds the postcard; the child taps one of
 /// four big places (or "more places"). Pictures and voice, no reading.
@@ -46,6 +47,7 @@ class _SendScreenState extends ConsumerState<SendScreen> {
   Future<void> _send(PlaceKind kind) async {
     if (_sending) return;
     setState(() => _sending = true);
+    ref.read(soundsProvider).play(Sfx.send);
     final child = await ref.read(currentChildProvider.future);
     final artworks = ref.read(artworkRepositoryProvider);
     final postcards = await artworks.watchPostcards(child.id).first;

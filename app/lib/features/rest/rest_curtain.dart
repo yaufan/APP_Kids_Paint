@@ -11,6 +11,7 @@ import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../core/play_time.dart';
 import '../../core/providers.dart';
+import '../../core/sounds.dart';
 import '../parent/parent_gate.dart';
 
 /// Ends the day's play gently, over every screen.
@@ -112,6 +113,7 @@ class _RestCurtainState extends ConsumerState<RestCurtain> {
 
   Future<void> _startResting() async {
     _bubbleTimer?.cancel();
+    ref.read(soundsProvider).play(Sfx.lullaby);
     setState(() {
       _resting = true;
       _bubble = null;

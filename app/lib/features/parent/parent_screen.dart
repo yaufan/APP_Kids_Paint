@@ -299,6 +299,17 @@ class _ParentScreenState extends ConsumerState<ParentScreen> {
                   onChanged: (on) => ref.read(voiceOnProvider.notifier).set(on),
                 ),
               ),
+              Material(
+                type: MaterialType.transparency,
+                child: SwitchListTile(
+                  key: const ValueKey('sound-switch'),
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text(Strings.soundEffects, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                  subtitle: const Text(Strings.soundEffectsHint, style: TextStyle(fontSize: 14, color: KidColors.inkSoft)),
+                  value: ref.watch(soundOnProvider),
+                  onChanged: (on) => ref.read(soundOnProvider.notifier).set(on),
+                ),
+              ),
             ]),
             card(Strings.other, [
               row(const KidIcon('shield', size: 22, color: KidColors.grassDark), Strings.privacy, onTap: () => context.push('/parent/privacy')),

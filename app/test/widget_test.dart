@@ -12,6 +12,7 @@ import 'package:kids_paint/core/festivals.dart';
 import 'package:kids_paint/core/places.dart';
 import 'package:kids_paint/core/providers.dart';
 import 'package:kids_paint/core/repositories.dart';
+import 'package:kids_paint/core/sounds.dart';
 import 'package:kids_paint/core/storage/artwork_store.dart';
 
 void main() {
@@ -24,6 +25,7 @@ void main() {
         databaseProvider.overrideWithValue(db),
         artworkStoreProvider.overrideWithValue(ArtworkStore(Directory.systemTemp.createTempSync('kp'))),
         clockProvider.overrideWithValue(() => now),
+        systemSoundsProvider.overrideWithValue(const SilentSounds()),
       ],
       child: const KidsPaintApp(),
     ));

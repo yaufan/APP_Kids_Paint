@@ -60,6 +60,17 @@ void main() {
     expect(doc.colorAt(10, 15), white);
   });
 
+  test('three sets of twelve colors, all different, each with a name', () {
+    expect(kidPaletteSets, hasLength(3));
+    expect(kidPaletteSets.first.colors, kidPalette);
+    final all = [for (final s in kidPaletteSets) ...s.colors];
+    expect(all.toSet(), hasLength(36));
+    for (final s in kidPaletteSets) {
+      expect((s.colors.length, s.names.length), (12, 12), reason: s.name);
+      expect(s.names.toSet(), hasLength(12), reason: s.name);
+    }
+  });
+
   group('more tools', () {
     late RegionMap blank;
     setUp(() => blank = RegionMap(60, 60, Uint16List(3600)..fillRange(0, 3600, 1)));

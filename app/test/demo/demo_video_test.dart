@@ -27,6 +27,7 @@ import 'package:kids_paint/core/places.dart';
 import 'package:kids_paint/core/play_time.dart';
 import 'package:kids_paint/core/providers.dart';
 import 'package:kids_paint/core/repositories.dart';
+import 'package:kids_paint/core/sounds.dart';
 import 'package:kids_paint/core/storage/artwork_store.dart';
 import 'package:kids_paint/features/canvas/coloring.dart';
 import 'package:kids_paint/features/capture/capture_screen.dart';
@@ -75,7 +76,8 @@ void main() {
     final dbFile = File('${dir!.path}/db.sqlite');
     await tester.runAsync(() => _colorResidents(dbFile, dir));
 
-    var now = DateTime(2026, 10, 27, 10, 15);
+    // A sunny late morning (the weather is made up from the time: see weather.dart).
+    var now = DateTime(2026, 10, 26, 12, 15);
     final finger = ValueNotifier<Offset?>(null);
     final caption = ValueNotifier<String>('');
     final key = GlobalKey();
@@ -96,6 +98,7 @@ void main() {
                     artworkStoreProvider.overrideWithValue(ArtworkStore(dir)),
                     clockProvider.overrideWithValue(() => now),
                     photoAlbumProvider.overrideWithValue(_DemoAlbum()),
+                    systemSoundsProvider.overrideWithValue(const SilentSounds()),
                   ],
                   child: const KidsPaintApp(),
                 ),
@@ -255,7 +258,12 @@ void main() {
       await stroke([for (var i = 0; i <= 14; i++) page.topLeft + Offset(page.width * (0.14 + i * 0.05), page.height * y + (i.isEven ? -10 : 10))]);
       await seconds(0.6);
     }
-    await seconds(1);
+    caption.value = '更多顏色：旁邊的小圓圈換一組\n粉彩色、大地色和膚色';
+    for (final set in [1, 2, 0]) {
+      await tap(find.byKey(ValueKey('palette-$set')));
+      await seconds(1.4);
+    }
+    await seconds(0.6);
     mark('pens_end');
     caption.value = '新工具：彩虹筆、亮晶晶筆';
     for (final (tool, y) in [(Strings.rainbow, 0.62), (Strings.glitter, 0.92)]) {
@@ -404,8 +412,9 @@ void main() {
     await seconds(7);
     mark('places13_end');
 
-    // 4h. The candy house (0.15).
+    // 4h. The candy house (0.15), on a rainy afternoon: it rains sprinkles.
     mark('candy');
+    now = DateTime(2026, 10, 28, 12, 20);
     caption.value = '新地方：糖果館（地圖上面中間的薑餅屋）';
     await enterPlace(PlaceKind.candy);
     caption.value = '糖果王國：甜甜圈和餅乾滾來滾去\n軟糖熊跳跳跳，糖果像氣球一樣飄';
@@ -432,6 +441,26 @@ void main() {
     await until(find.bySemanticsLabel(Strings.resident(Creature.donut.label)));
     await seconds(6);
     mark('candy_end');
+
+    // 4i. The weather (0.16).
+    mark('weather');
+    now = DateTime(2026, 10, 27, 10, 15);
+    caption.value = '新功能：天氣！有時候下雨、颳風、多雲\n（不用網路，也不用定位）';
+    await enterPlace(PlaceKind.zoo);
+    caption.value = '動物園下雨了：滴答滴答～\n角色也會說「我們來躲雨吧！」';
+    await seconds(4);
+    await tap(find.bySemanticsLabel(Strings.resident(Creature.lion.label)));
+    await seconds(2);
+    now = DateTime(2026, 10, 27, 12, 15);
+    caption.value = '雨停了，天上出彩虹！';
+    await enterPlace(PlaceKind.botanical);
+    await seconds(4);
+    now = DateTime(2026, 10, 26, 10, 30);
+    caption.value = '颳風的時候，葉子和花瓣會被吹起來';
+    await enterPlace(PlaceKind.insects);
+    await seconds(4);
+    now = DateTime(2026, 10, 26, 12, 15);
+    mark('weather_end');
 
     // 4e. The album as one timeline.
     caption.value = '明信片冊：右上角切換「依時間看」';

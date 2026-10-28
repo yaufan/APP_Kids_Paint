@@ -11,6 +11,7 @@ import 'package:kids_paint/core/db/database.dart';
 import 'package:kids_paint/core/play_time.dart';
 import 'package:kids_paint/core/providers.dart';
 import 'package:kids_paint/core/repositories.dart';
+import 'package:kids_paint/core/sounds.dart';
 import 'package:kids_paint/core/storage/artwork_store.dart';
 import 'package:kids_paint/core/voice.dart';
 import 'package:kids_paint/features/parent/parent_gate.dart';
@@ -105,6 +106,7 @@ void main() {
         artworkStoreProvider.overrideWithValue(ArtworkStore(Directory.systemTemp.createTempSync('kp'))),
         clockProvider.overrideWithValue(() => now),
         systemVoiceProvider.overrideWithValue(const SilentVoice()),
+        systemSoundsProvider.overrideWithValue(const SilentSounds()),
       ],
       child: const KidsPaintApp(),
     ));
@@ -157,6 +159,7 @@ void main() {
         artworkStoreProvider.overrideWithValue(ArtworkStore(Directory.systemTemp.createTempSync('kp'))),
         clockProvider.overrideWithValue(() => now),
         systemVoiceProvider.overrideWithValue(const SilentVoice()),
+        systemSoundsProvider.overrideWithValue(const SilentSounds()),
       ],
       child: const KidsPaintApp(),
     ));

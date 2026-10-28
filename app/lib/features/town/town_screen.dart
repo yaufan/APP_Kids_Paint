@@ -16,8 +16,11 @@ import '../../core/festivals.dart';
 import '../../core/places.dart';
 import '../../core/providers.dart';
 import '../../core/repositories.dart';
+import '../../core/sounds.dart';
 import '../../core/town_time.dart';
+import '../../core/weather.dart';
 import '../parent/parent_gate.dart';
+import '../weather/weather_layer.dart';
 import '../welcome/welcome_screen.dart';
 import 'place_sheet.dart';
 import 'town_map.dart';
@@ -50,11 +53,34 @@ class _TownScreenState extends ConsumerState<TownScreen> {
   /// The evening Gugu last said good night, once per evening.
   static DateTime? _saidGoodnight;
 
+  /// The last rainbow the town chimed for (its start), once per rainbow.
+  static DateTime? _chimedRainbow;
+
+  late final Sounds _sounds = ref.read(soundsProvider);
+
+  /// The background sound of the town now: birds by day, crickets at
+  /// night, the rain or the wind when they come.
+  void _listen() {
+    final now = ref.read(clockProvider)();
+    final weather = weatherAt(now);
+    _sounds.hold(this, ambienceFor(null, weather, dayPhaseAt(now)));
+    if (weather == Weather.rainbow) {
+      final spell = DateTime(now.year, now.month, now.day, now.hour - now.hour % weatherSpell.inHours);
+      if (_chimedRainbow != spell) {
+        _chimedRainbow = spell;
+        _sounds.play(Sfx.rainbow);
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    _listen();
     _tick = Timer.periodic(const Duration(minutes: 1), (_) {
-      if (mounted) setState(() {});
+      if (!mounted) return;
+      setState(() {});
+      _listen();
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final now = ref.read(clockProvider)();
@@ -70,6 +96,7 @@ class _TownScreenState extends ConsumerState<TownScreen> {
   void dispose() {
     _bubbleTimer?.cancel();
     _tick?.cancel();
+    _sounds.release(this);
     super.dispose();
   }
 
@@ -92,6 +119,7 @@ class _TownScreenState extends ConsumerState<TownScreen> {
   /// Every place you can go into, big, in one sheet: one tap and the child
   /// is inside (instead of signs along the map's edges).
   void _choosePlace() {
+    _sounds.play(Sfx.tap);
     ref.read(voiceProvider).say(Strings.wherePlay);
     showModalBottomSheet<void>(
       context: context,
@@ -200,6 +228,7 @@ class _TownScreenState extends ConsumerState<TownScreen> {
             bottomInset: 180, // the dock
           ),
         ),
+        Positioned.fill(child: WeatherLayer(weather: weatherAt(now))),
         if (widget.grow != null) const Positioned.fill(child: Confetti()),
         SafeArea(
           child: Stack(children: [

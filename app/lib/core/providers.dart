@@ -11,6 +11,7 @@ import 'festivals.dart';
 import 'places.dart';
 import 'repositories.dart';
 import 'storage/artwork_store.dart';
+import 'sounds.dart';
 import 'voice.dart';
 
 /// The time. Tests set it to see the town at night or on a festival.
@@ -125,6 +126,38 @@ class VoiceOn extends Notifier<bool> {
     await ref.read(settingsRepositoryProvider).setVoiceOn(on);
   }
 }
+
+/// The phone's audio for sounds; tests use silent ones.
+final systemSoundsProvider = Provider<Sounds>((ref) {
+  final sounds = SystemSounds();
+  ref.onDispose(sounds.dispose);
+  return sounds;
+});
+
+/// Whether parents left the sounds on.
+final soundOnProvider = NotifierProvider<SoundOn, bool>(SoundOn.new);
+
+class SoundOn extends Notifier<bool> {
+  @override
+  bool build() {
+    ref.watch(settingsRepositoryProvider).soundOn().then((on) {
+      if (ref.mounted) state = on;
+    });
+    return true;
+  }
+
+  Future<void> set(bool on) async {
+    state = on;
+    await ref.read(settingsRepositoryProvider).setSoundOn(on);
+  }
+}
+
+/// The sounds to play with, quiet when parents turned them off.
+final soundsProvider = Provider<Sounds>((ref) {
+  final sounds = ref.watch(systemSoundsProvider);
+  sounds.enabled = ref.watch(soundOnProvider);
+  return sounds;
+});
 
 /// The voice to speak with: the phone's, or none if turned off.
 final voiceProvider = Provider<Voice>((ref) => ref.watch(voiceOnProvider) ? ref.watch(systemVoiceProvider) : const SilentVoice());

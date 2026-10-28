@@ -237,6 +237,13 @@ class SettingsRepository {
 
   Future<void> _put(String key, String value) => _db.into(_db.settings).insertOnConflictUpdate(Setting(key: key, value: value));
 
+  static const soundKey = 'sound';
+
+  /// Whether the sound effects and background sounds play (0.16; on unless turned off).
+  Future<bool> soundOn() async => await _value(soundKey) != 'off';
+
+  Future<void> setSoundOn(bool on) => _put(soundKey, on ? 'on' : 'off');
+
   static const exportedKey = 'exported_up_to';
 
   /// The newest picture already saved to the photo album (an artwork id).

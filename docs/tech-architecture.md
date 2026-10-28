@@ -255,6 +255,6 @@ docs/                 規劃文件
 
 **套件版本**（第 1 階段骨架）
 - Flutter 3.47.8（Dart 3.13）
-- flutter_riverpod 3、go_router 18、drift 2.35、image_picker、image、flutter_svg、flutter_tts、gal（存到相簿）
+- flutter_riverpod 3、go_router 18、drift 2.35、image_picker、image、flutter_svg、flutter_tts、gal（存到相簿）、audioplayers（0.16 起，音效；聲音檔由 `docs/design/sounds/make_sounds.py` 用正弦波和雜訊合成）
 
 **尚未加入**：分享（share_plus）、自動去背（只畫主角）。

@@ -14,6 +14,7 @@ import 'package:kids_paint/core/db/database.dart';
 import 'package:kids_paint/core/festivals.dart';
 import 'package:kids_paint/core/places.dart';
 import 'package:kids_paint/core/providers.dart';
+import 'package:kids_paint/core/sounds.dart';
 import 'package:kids_paint/core/storage/artwork_store.dart';
 import 'package:kids_paint/features/canvas/coloring.dart';
 import 'package:kids_paint/features/capture/capture_screen.dart';
@@ -32,7 +33,8 @@ var walkthroughNow = DateTime(2026, 10, 26, 10, 30);
 /// of every step. Shared by `test/flow_test.dart` (headless phone and tablet)
 /// and `integration_test/app_flow_test.dart` (iPhone/iPad simulators). Only
 /// the camera is skipped: [photo] is handed over as if it had just been taken.
-Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, required Shot shot}) async {
+/// [sounds] replaces the phone's (in `flutter test`, which has no audio).
+Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, required Shot shot, Sounds? sounds}) async {
   final db = AppDatabase(NativeDatabase.memory());
   final storeDir = await tester.runAsync(() => Directory.systemTemp.createTemp('kids_paint_flow'));
 
@@ -43,6 +45,7 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
         databaseProvider.overrideWithValue(db),
         artworkStoreProvider.overrideWithValue(ArtworkStore(storeDir!)),
         clockProvider.overrideWithValue(() => walkthroughNow),
+        if (sounds != null) systemSoundsProvider.overrideWithValue(sounds),
       ],
       child: const KidsPaintApp(),
     ),
@@ -123,6 +126,12 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
     await idle(tester, 300);
   }
   await shot('05b_pens');
+  // More colors: the pastel set, then back to the bright one.
+  await tester.tap(find.byKey(const ValueKey('palette-1')));
+  await idle(tester, 300);
+  await shot('05c_colors');
+  await tester.tap(find.byKey(const ValueKey('palette-0')));
+  await idle(tester, 200);
   // The rainbow pen and glitter, then a few stamps.
   for (final (tool, y) in [(Strings.rainbow, 0.62), (Strings.glitter, 0.92)]) {
     await tester.tap(find.bySemanticsLabel(tool));

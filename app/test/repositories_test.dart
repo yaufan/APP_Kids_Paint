@@ -109,6 +109,12 @@ void main() {
     expect(await artworks.finishedSince(child.id, start), 1);
   });
 
+  test('sounds are on until a parent turns them off', () async {
+    expect(await settings.soundOn(), isTrue);
+    await settings.setSoundOn(false);
+    expect(await settings.soundOn(), isFalse);
+  });
+
   test('daily limit has a default and can be changed', () async {
     expect(await settings.dailyMinutes(), SettingsRepository.defaultDailyMinutes);
     await settings.setDailyMinutes(45);

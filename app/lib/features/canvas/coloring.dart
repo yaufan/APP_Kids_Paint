@@ -23,6 +23,28 @@ const kidPalette = <int>[
 /// What each color is called, for screen readers.
 const kidPaletteNames = ['紅', '橘', '黃', '綠', '藍綠', '藍', '紫', '粉紅', '咖啡', '膚', '白', '黑'];
 
+/// The colors to pick from, twelve at a time (0.16): the bright ones
+/// first, then soft pastels, then earth, skin and deep colors.
+const kidPaletteSets = <({String name, List<int> colors, List<String> names})>[
+  (name: '鮮豔的顏色', colors: kidPalette, names: kidPaletteNames),
+  (
+    name: '粉彩的顏色',
+    colors: [
+      0xFFFFC2D4, 0xFFFFD3B5, 0xFFFFF1A8, 0xFFD8F2A8, 0xFFBFF0D4, 0xFFBDE6FF, //
+      0xFFA8CCFF, 0xFFD9C8FF, 0xFFF0C8F0, 0xFFFFB3A7, 0xFFE3E6EA, 0xFFFFF8E7,
+    ],
+    names: ['淡粉紅', '蜜桃', '奶油黃', '淺綠', '薄荷綠', '淡藍', '天藍', '薰衣草紫', '淡紫', '珊瑚', '淺灰', '米白'],
+  ),
+  (
+    name: '大地和膚色',
+    colors: [
+      0xFFF9D9C3, 0xFFEAB98F, 0xFFC68A5E, 0xFF8D5A3B, 0xFFE3B341, 0xFFC9CED6, //
+      0xFF8A949E, 0xFF2E4A8C, 0xFFB23A48, 0xFF2F7D4A, 0xFF9AA548, 0xFF6A3FA0,
+    ],
+    names: ['淺膚', '小麥', '古銅', '深膚', '金', '銀', '灰', '深藍', '酒紅', '深綠', '橄欖綠', '深紫'],
+  ),
+];
+
 /// One thing the child did. The page is always rebuilt from this list, which
 /// gives undo, autosave and a time-lapse replay for free.
 sealed class PaintOp {

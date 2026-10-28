@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kids_paint/core/creature_lines.dart';
 import 'package:kids_paint/core/creatures.dart';
 import 'package:kids_paint/core/festivals.dart';
+import 'package:kids_paint/core/weather.dart';
 
 void main() {
   test('every creature has its own things to say, and only says known lines', () {
@@ -48,11 +49,25 @@ void main() {
     expect(wantToBuy(Creature.milk, random), contains('牛奶'));
   });
 
+  test('they talk about the weather: rain, sprinkles in the candy house, a rainbow, the wind', () {
+    final random = math.Random(3);
+    final day = DateTime(2026, 10, 28, 15);
+    List<String> heard(Creature c, Weather w) => [for (var i = 0; i < 300; i++) lineFor(c, random, Moment(time: day, weather: w))];
+    expect(heard(Creature.lion, Weather.rain).where((l) => l.contains('雨')).length, greaterThan(30));
+    expect(heard(Creature.donut, Weather.rain).any((l) => l.contains('糖粒')), isTrue);
+    expect(heard(Creature.sunflower, Weather.rain), contains('下雨了！我喝得飽飽的！'));
+    expect(heard(Creature.bus, Weather.rainbow).any((l) => l.contains('彩虹')), isTrue);
+    expect(heard(Creature.tiger, Weather.windy).any((l) => l.contains('風')), isTrue);
+    expect(heard(Creature.lion, Weather.sunny).any((l) => l.contains('下雨')), isFalse);
+  });
+
   test('no line asks a child to stay or makes them feel bad for leaving', () {
     final moment = Moment(time: DateTime(2026, 10, 27, 20), festival: Festival.midAutumn, neighbors: const [], taps: 2);
     final everything = {
       for (final c in Creature.values) ...linesOf(c, moment),
       for (final c in Creature.values) ...linesOf(c, Moment(time: DateTime(2026, 10, 27, 8), justArrived: true, neighbors: Creature.values)),
+      for (final c in Creature.values)
+        for (final w in Weather.values) ...linesOf(c, Moment(time: DateTime(2026, 10, 27, 14), weather: w)),
     };
     for (final line in everything) {
       expect(line, isNot(matches(RegExp('寂寞|孤單|不要走|別走|難過|哭|不理我|陪我'))), reason: line);

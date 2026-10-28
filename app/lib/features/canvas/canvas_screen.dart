@@ -15,6 +15,7 @@ import '../../core/artwork_service.dart';
 import '../../core/creatures.dart';
 import '../../core/places.dart';
 import '../../core/providers.dart';
+import '../../core/sounds.dart';
 import 'artwork_stamp.dart';
 import 'coloring.dart';
 import 'page_image.dart';
@@ -56,6 +57,7 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
   Tool _tool = Tool.bucket;
   StampShape _shape = StampShape.star;
   int _pen = 0; // which of [_pens]
+  int _paletteSet = 0; // which of [kidPaletteSets]
   int _color = kidPalette.first;
   CrayonOp? _stroke;
   bool _refreshing = false;
@@ -63,6 +65,8 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
   bool _leaving = false;
 
   ArtworkService get _service => ref.read(artworkServiceProvider);
+
+  void _sound(Sfx sfx) => ref.read(soundsProvider).play(sfx);
 
   bool get _blank => _page?.artwork.style == 'blank';
 
@@ -205,14 +209,17 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
       case Tool.bucket:
         if (_blank) {
           doc.add(PaperOp(_color));
+          _sound(Sfx.fill);
           _changed();
         } else if (doc.fill(p.x, p.y, _color)) {
+          _sound(Sfx.fill);
           _changed();
         }
       case Tool.stamp:
         final region = doc.regions.labelAt(p.x.floor(), p.y.floor());
         if (region == 0) return;
         doc.add(StampOp(region, _color, _shape, p.x, p.y, doc.width * 0.075));
+        _sound(Sfx.stamp);
         _changed();
       case Tool.crayon || Tool.rainbow || Tool.glitter || Tool.eraser:
         // A tap with a brush leaves a dot.
@@ -233,6 +240,11 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
     };
     _stroke = CrayonOp(region, _color, doc.width * size, [p], brush: brush);
     doc.add(_stroke!);
+    _sound(switch (brush) {
+      Brush.rainbow || Brush.glitter || Brush.neon => Sfx.sparkle,
+      Brush.eraser => Sfx.squeak,
+      _ => Sfx.swish,
+    });
     _refreshColors();
   }
 
@@ -311,6 +323,7 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
       onPressed: page != null && page.document.canUndo
           ? () {
               page.document.undo();
+              _sound(Sfx.undo);
               _changed();
             }
           : null,
@@ -318,7 +331,10 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
     final tileWidth = wide ? 64.0 : 52.0;
     final art = tileWidth * 0.62;
     Widget tool(Tool t, String label, Color tint, Widget child) => _ToolTile(
-        label: label, width: tileWidth, selected: _tool == t, tint: tint, onTap: () => setState(() => _tool = t), child: child);
+        label: label, width: tileWidth, selected: _tool == t, tint: tint, onTap: () {
+          _sound(Sfx.tap);
+          setState(() => _tool = t);
+        }, child: child);
     final tools = Wrap(alignment: WrapAlignment.center, spacing: wide ? 12 : 6, runSpacing: 14, children: [
       tool(Tool.bucket, _blank ? Strings.paperColor : Strings.bucket, const Color(0xFFFFE6E5), ToolArt(Art.bucket, color: color, size: art)),
       tool(Tool.crayon, Strings.crayon, const Color(0xFFFFF1D9), ToolArt(Art.crayon, color: color, size: art)),
@@ -337,7 +353,10 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
             label: Strings.stampOf(_stampNames[shape]!),
             excludeSemantics: true,
             child: Pressable(
-              onTap: () => setState(() => _shape = shape),
+              onTap: () {
+                _sound(Sfx.tap);
+                setState(() => _shape = shape);
+              },
               child: Container(
                 width: 52,
                 height: 52,
@@ -363,7 +382,10 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
           label: name,
           excludeSemantics: true,
           child: Pressable(
-            onTap: () => setState(() => _pen = i),
+            onTap: () {
+              _sound(Sfx.tap);
+              setState(() => _pen = i);
+            },
             child: Container(
               width: 46,
               height: 46,
@@ -378,11 +400,30 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
           ),
         ),
     ]);
-    final palette = _Palette(selected: _color, columns: wide ? 4 : 6, onSelect: (c) => setState(() => _color = c));
+    final palette = _Palette(
+      selected: _color,
+      columns: wide ? 4 : 6,
+      set: _paletteSet,
+      onSelect: (c) {
+        _sound(Sfx.pick);
+        setState(() => _color = c);
+      },
+      onSet: (i) {
+        _sound(Sfx.tap);
+        setState(() => _paletteSet = i);
+      },
+    );
     final done = ChunkyButton(
       label: Strings.done,
       onPressed: page != null && page.document.ops.isNotEmpty
-          ? () => creature != null ? _moveIn(creature) : _saveAnd('/send/${widget.artworkId}', push: true)
+          ? () {
+              if (creature != null) {
+                _moveIn(creature); // the place cheers when it arrives
+              } else {
+                _sound(Sfx.tada);
+                _saveAnd('/send/${widget.artworkId}', push: true);
+              }
+            }
           : null,
       color: KidColors.grass,
       edge: KidColors.grassDark,
@@ -494,29 +535,76 @@ class _ToolTile extends StatelessWidget {
   }
 }
 
-/// Twelve paint pots; the chosen one is bigger with a ring.
+/// Twelve paint pots of one set of colors (the chosen one bigger, with a
+/// ring), and beside them a button for each set: a little wheel of its colors.
 class _Palette extends StatelessWidget {
-  const _Palette({required this.selected, required this.onSelect, this.columns = 6});
+  const _Palette({required this.selected, required this.onSelect, required this.set, required this.onSet, this.columns = 6});
 
   final int selected;
   final ValueChanged<int> onSelect;
+
+  /// Which of [kidPaletteSets] shows.
+  final int set;
+  final ValueChanged<int> onSet;
   final int columns;
 
   @override
   Widget build(BuildContext context) {
+    final colors = kidPaletteSets[set];
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      padding: const EdgeInsets.fromLTRB(8, 12, 6, 12),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(28), boxShadow: KidShadows.soft()),
-      child: GridView.count(
-        crossAxisCount: columns,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        mainAxisSpacing: 6,
-        children: [
-          for (var i = 0; i < kidPalette.length; i++)
-            Center(child: _Pot(key: ValueKey('swatch-${kidPalette[i]}'), color: kidPalette[i], name: kidPaletteNames[i], selected: kidPalette[i] == selected, onTap: () => onSelect(kidPalette[i]))),
-        ],
-      ),
+      child: Row(children: [
+        Expanded(
+          child: GridView.count(
+            crossAxisCount: columns,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 6,
+            children: [
+              for (var i = 0; i < colors.colors.length; i++)
+                Center(
+                  child: _Pot(
+                    key: ValueKey('swatch-${colors.colors[i]}'),
+                    color: colors.colors[i],
+                    name: colors.names[i],
+                    selected: colors.colors[i] == selected,
+                    onTap: () => onSelect(colors.colors[i]),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 4),
+        Column(mainAxisSize: MainAxisSize.min, children: [
+          for (final (i, s) in kidPaletteSets.indexed)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Semantics(
+                button: true,
+                selected: i == set,
+                label: s.name,
+                excludeSemantics: true,
+                child: Pressable(
+                  key: ValueKey('palette-$i'),
+                  onTap: () => onSet(i),
+                  child: Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: i == set ? KidColors.ink : Colors.white, width: 3),
+                      gradient: SweepGradient(colors: [
+                        for (final k in const [0, 2, 5, 7, 0]) Color(s.colors[k]),
+                      ]),
+                      boxShadow: KidShadows.soft(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ]),
+      ]),
     );
   }
 }

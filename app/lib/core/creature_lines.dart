@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'creatures.dart';
 import 'festivals.dart';
 import 'town_time.dart';
+import 'weather.dart';
 
 /// What is going on around a creature when it talks: the lines follow it.
 class Moment {
@@ -12,6 +13,7 @@ class Moment {
     this.justArrived = false,
     this.neighbors = const [],
     this.taps = 0,
+    this.weather = Weather.sunny,
   });
 
   final DateTime time;
@@ -27,6 +29,9 @@ class Moment {
 
   /// How many times in a row a child has just tapped it.
   final int taps;
+
+  /// The weather where it is (sunny where the weather does not reach).
+  final Weather weather;
 }
 
 // Every line is friendly and light: no scolding, no "I'm lonely", nothing
@@ -322,6 +327,24 @@ List<String> _festivalOf(Festival festival) => [
       },
     ];
 
+/// The weather, as [creature] feels it.
+List<String> _weatherOf(Weather weather, Creature creature) {
+  final habitat = creature.habitat;
+  return switch (weather) {
+    Weather.sunny => const [],
+    Weather.cloudy => ['雲好多喔，像棉花糖！', '太陽躲起來了～', '雲飄來飄去！'],
+    Weather.rain when habitat == Habitat.candy => ['下糖粒雨了！五顏六色的！', '哇，天上掉下好多糖粒！', '糖粒雨，甜甜的～'],
+    Weather.rain when habitat == Habitat.botanical => ['下雨了！我喝得飽飽的！', '滴答滴答，好舒服的雨！', '下雨的時候，我會長高喔！'],
+    Weather.rain => ['下雨了！滴答滴答～', '我們來躲雨吧！', '下雨天，聽雨的聲音好好聽！', '下雨了，要記得帶雨傘喔！'],
+    Weather.rainbow => ['你看，天上有彩虹！', '彩虹有好多顏色！', '雨停了，出彩虹了！'],
+    Weather.windy => [
+        '風好大，呼呼呼～',
+        if (habitat == Habitat.botanical) '風吹過來，我搖呀搖～' else '風把葉子吹起來了！',
+        '我們來追風吧！',
+      ],
+  };
+}
+
 /// Talking to the others in the same place.
 List<String> _with(Creature neighbor, Residents residents) => residents == Residents.goods
     ? ['${neighbor.label}就在我旁邊！', '我跟${neighbor.label}一起等客人！']
@@ -344,6 +367,7 @@ List<String> linesOf(Creature creature, [Moment? moment]) {
       ..._timeOf(moment.time),
       if (moment.festival case final f?) ..._festivalOf(f),
       if (moment.justArrived) ..._arrival(residents),
+      ..._weatherOf(moment.weather, creature),
       for (final n in moment.neighbors.toSet()) if (n != creature) ..._with(n, residents),
       if (moment.taps >= 2) ..._tickled,
       if (moment.neighbors.length >= 5) ..._crowd,
@@ -375,6 +399,8 @@ String lineFor(Creature creature, math.Random random, [Moment? moment]) {
     if (moment.justArrived && random.nextDouble() < 0.8) return pick(_arrival(residents));
     final festival = moment.festival;
     if (festival != null && random.nextDouble() < 0.25) return pick(_festivalOf(festival));
+    final weather = _weatherOf(moment.weather, creature);
+    if (weather.isNotEmpty && random.nextDouble() < 0.22) return pick(weather);
     if (random.nextDouble() < 0.18) return pick(_timeOf(moment.time));
     final others = [for (final n in moment.neighbors) if (n != creature) n];
     if (others.isNotEmpty && random.nextDouble() < 0.18) return pick(_with(pick(others), residents));
