@@ -1,7 +1,6 @@
 # 畫畫小鎮 APP（Flutter）
 
 給 2.5–5 歲小朋友的著色 APP，Android 與 iOS 共用同一套程式碼。設計依據：
-- [產品功能規劃](../docs/product-plan.md)
 - [技術架構](../docs/tech-architecture.md)
 
 ## 目前可以做的事（0.9.0）

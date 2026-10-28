@@ -1,6 +1,5 @@
 # 技術架構建議 v0.2
 
-對應功能規劃：[product-plan.md](product-plan.md)。
 已確認：**Android 先行**、目前沒有 Mac、先用開源／免費方案、台灣市場。
 
 ---

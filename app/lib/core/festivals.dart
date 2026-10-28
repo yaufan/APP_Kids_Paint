@@ -1,5 +1,5 @@
 /// Festivals the town celebrates: decorations on the map and, for most, a
-/// coloring page Gugu brings (docs/feature-ideas.md, idea C).
+/// coloring page Gugu brings (docs/town-map.md).
 enum Festival {
   lunarNewYear('過年'),
   lantern('元宵節'),
