@@ -781,7 +781,9 @@ class _FireworksState extends State<_Fireworks> with SingleTickerProviderStateMi
   }
 }
 
-/// Fireworks over 101 when it is poked (0.18): its three bursts, once.
+/// Fireworks over 101 when it is poked (0.18): its three bursts once,
+/// bigger and bolder than New Year's Eve's (they go up in daylight too),
+/// each shot up from the tower first.
 class _PokedFireworks extends StatelessWidget {
   const _PokedFireworks({required this.at, required this.poked});
 
@@ -790,7 +792,7 @@ class _PokedFireworks extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const box = 240.0;
+    const box = 320.0;
     return Positioned(
       left: at.dx - box / 2,
       top: at.dy - box * 0.8,
@@ -801,14 +803,14 @@ class _PokedFireworks extends StatelessWidget {
           animation: poked,
           builder: (context, _) => poked.value == 0 || poked.value == 1
               ? const SizedBox.shrink()
-              : CustomPaint(painter: _FireworksPainter(poked.value * _FireworksPainter.once, repeat: false)),
+              : CustomPaint(painter: _FireworksPainter(poked.value * _FireworksPainter.lengthOf(bold: true), repeat: false, bold: true)),
         ),
       ),
     );
   }
 }
 
-/// A little rain under a poked cloud (0.18).
+/// A little rain under a poked cloud (0.18): the cloud darkens, and drops fall.
 class _Rain extends StatelessWidget {
   const _Rain({required this.under, required this.poked});
 
@@ -816,18 +818,21 @@ class _Rain extends StatelessWidget {
   final Rect under;
   final Animation<double> poked;
 
+  static const fall = 170.0;
+
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      left: under.left,
-      top: under.bottom - under.height * 0.2,
-      width: under.width,
-      height: 120,
+      left: under.left - 10,
+      top: under.top,
+      width: under.width + 20,
+      height: under.height + fall,
       child: IgnorePointer(
         child: AnimatedBuilder(
           animation: poked,
-          builder: (context, _) =>
-              poked.value == 0 || poked.value == 1 ? const SizedBox.shrink() : CustomPaint(painter: _RainPainter(poked.value)),
+          builder: (context, _) => poked.value == 0 || poked.value == 1
+              ? const SizedBox.shrink()
+              : CustomPaint(painter: _RainPainter(poked.value, cloud: under.height)),
         ),
       ),
     );
@@ -835,24 +840,35 @@ class _Rain extends StatelessWidget {
 }
 
 class _RainPainter extends CustomPainter {
-  _RainPainter(this.t);
+  _RainPainter(this.t, {required this.cloud});
 
   final double t;
 
+  /// How tall the cloud is, at the top.
+  final double cloud;
+
   @override
   void paint(Canvas canvas, Size size) {
+    // The cloud goes grey-blue while it rains, and back.
+    final dark = math.sin(math.pi * t).clamp(0.0, 1.0);
+    final shade = Paint()..color = const Color(0xFF7D93AE).withValues(alpha: 0.6 * dark);
+    final w = size.width, h = cloud;
+    canvas.drawOval(Rect.fromLTWH(w * 0.08, h * 0.35, w * 0.5, h * 0.6), shade);
+    canvas.drawOval(Rect.fromLTWH(w * 0.32, h * 0.1, w * 0.45, h * 0.75), shade);
+    canvas.drawOval(Rect.fromLTWH(w * 0.55, h * 0.35, w * 0.38, h * 0.55), shade);
     final paint = Paint()
-      ..strokeWidth = 2.4
+      ..strokeWidth = 3.4
       ..strokeCap = StrokeCap.round;
-    for (var i = 0; i < 24; i++) {
-      // Each drop starts a little after the one before, and falls in a third of the time.
-      final start = (i * 0.618) % 1 * 0.62;
+    for (var i = 0; i < 34; i++) {
+      // Drops start one after another and each falls in a third of the
+      // time; where across has nothing to do with when, so no lines form.
+      final start = (i * 11 % 34) / 34 * 0.62;
       final p = (t - start) / 0.34;
       if (p < 0 || p > 1) continue;
-      final x = size.width * (0.12 + 0.76 * ((i * 0.381) % 1));
-      final y = size.height * p;
-      paint.color = const Color(0xFF6FBFFF).withValues(alpha: 0.85 * (1 - p * 0.6));
-      canvas.drawLine(Offset(x, y), Offset(x - 1.5, y + 9), paint);
+      final x = w * (0.14 + 0.72 * (i * 7 % 17) / 16);
+      final y = h * 0.85 + (size.height - h) * p;
+      paint.color = const Color(0xFF3D8BE0).withValues(alpha: 0.9 * (1 - p * 0.5));
+      canvas.drawLine(Offset(x, y), Offset(x - 2, y + 14), paint);
     }
   }
 
@@ -953,15 +969,21 @@ class _RipplePainter extends CustomPainter {
 }
 
 class _FireworksPainter extends CustomPainter {
-  _FireworksPainter(this.t, {this.repeat = true});
+  _FireworksPainter(this.t, {this.repeat = true, this.bold = false});
 
   final double t;
 
   /// Over and over (New Year's Eve), or each burst once (poked).
   final bool repeat;
 
+  /// Bigger, with a white edge and shot up from the tower first (poked).
+  final bool bold;
+
+  /// How long a shot takes to go up, before its burst.
+  static const _rise = 0.12;
+
   /// How far [t] goes for every burst to finish once.
-  static const once = 0.66 + 0.45;
+  static double lengthOf({bool bold = false}) => (bold ? _rise : 0) + 0.66 + 0.45;
 
   static const _bursts = [
     (x: 0.5, y: 0.32, color: Color(0xFFFFCF3F), start: 0.0),
@@ -971,21 +993,40 @@ class _FireworksPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final rays = bold ? 16 : 12;
+    final dot = bold ? 5.5 : 3.2;
     for (final b in _bursts) {
-      final p = (repeat ? (t - b.start) % 1 : t - b.start) / 0.45; // each burst lives for 45% of the loop
-      if (p < 0 || p > 1) continue;
+      final start = b.start + (bold ? _rise : 0);
       final center = Offset(b.x * size.width, b.y * size.height);
-      final r = size.width * 0.2 * Curves.easeOutCubic.transform(p);
+      if (bold) {
+        // The shot going up from the tower's tip (the box's bottom middle, 80% down).
+        final q = (t - (start - _rise)) / _rise;
+        if (q >= 0 && q < 1) {
+          final from = Offset(size.width / 2, size.height * 0.8);
+          final at = Offset.lerp(from, center, Curves.easeOut.transform(q))!;
+          canvas.drawLine(Offset.lerp(from, at, 0.6)!, at, Paint()
+            ..color = b.color.withValues(alpha: 0.7)
+            ..strokeWidth = 3
+            ..strokeCap = StrokeCap.round);
+          canvas.drawCircle(at, 4, Paint()..color = Colors.white);
+        }
+      }
+      final p = (repeat ? (t - start) % 1 : t - start) / 0.45; // each burst lives for 45% of the loop
+      if (p < 0 || p > 1) continue;
+      final r = size.width * (bold ? 0.24 : 0.2) * Curves.easeOutCubic.transform(p);
       final paint = Paint()..color = b.color.withValues(alpha: (1 - p) * 0.95);
-      for (var k = 0; k < 12; k++) {
-        final a = k * math.pi / 6;
-        canvas.drawCircle(center + Offset(math.cos(a), math.sin(a)) * r, 3.2 * (1 - p * 0.5), paint);
-        canvas.drawLine(center + Offset(math.cos(a), math.sin(a)) * r * 0.55, center + Offset(math.cos(a), math.sin(a)) * r * 0.85,
-            paint..strokeWidth = 2);
+      final edge = Paint()..color = Colors.white.withValues(alpha: (1 - p) * 0.85);
+      for (var k = 0; k < rays; k++) {
+        final a = k * 2 * math.pi / rays;
+        final out = Offset(math.cos(a), math.sin(a));
+        final radius = dot * (1 - p * 0.5);
+        if (bold) canvas.drawCircle(center + out * r, radius + 2, edge);
+        canvas.drawCircle(center + out * r, radius, paint);
+        canvas.drawLine(center + out * r * 0.55, center + out * r * 0.85, paint..strokeWidth = bold ? 3.5 : 2);
       }
     }
   }
 
   @override
-  bool shouldRepaint(_FireworksPainter old) => old.t != t || old.repeat != repeat;
+  bool shouldRepaint(_FireworksPainter old) => old.t != t || old.repeat != repeat || old.bold != bold;
 }
