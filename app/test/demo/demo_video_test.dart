@@ -505,7 +505,15 @@ void main() {
     mark('replay');
     caption.value = '新功能：明信片上的 ▶，再看一次畫畫的過程\n（縮時重播）';
     await tap(find.bySemanticsLabel(Strings.byPlace));
-    await until(find.byKey(ValueKey('replay-${coffee.id}')));
+    await until(find.bySemanticsLabel(Strings.byTime));
+    await seconds(1);
+    // Down the album to the coffee cup, the first one sent.
+    final cup = find.byKey(ValueKey('replay-${coffee.id}'));
+    final screen = tester.getRect(find.byType(Scaffold).first);
+    for (var i = 0; i < 12 && (cup.evaluate().isEmpty || tester.getCenter(cup).dy > screen.height * 0.7); i++) {
+      await stroke([for (var k = 0; k <= 10; k++) Offset(screen.width * 0.5, screen.height * (0.78 - 0.035 * k))]);
+      await seconds(0.4);
+    }
     await seconds(1.5);
     await tap(find.byKey(ValueKey('replay-${coffee.id}')));
     await until(find.byKey(const ValueKey('replay-again')), max: 20);
