@@ -97,6 +97,20 @@ const _sweet = [
   '甜點一次吃一點點就好喔！',
 ];
 
+/// What anyone on grandma and grandpa's farm may say (0.18).
+const _onFarm = [
+  '你好呀！歡迎來農場玩！',
+  '我好喜歡我的新顏色！',
+  '謝謝你把我畫得這麼漂亮！',
+  '阿公阿嬤對我們好好喔！',
+  '農場的草好香喔～',
+  '我們一起在草地上跑跑！',
+  '你今天開心嗎？',
+  '菜園裡的紅蘿蔔長大了！',
+  '我們來玩捉迷藏，躲在稻草堆後面！',
+  '你要不要摸摸我？輕輕的喔！',
+];
+
 /// What any of the shop's goods may say.
 const _forSale = [
   '歡迎光臨！',
@@ -291,6 +305,18 @@ const _own = <Creature, List<String>>{
   Creature.gingerbread: ['我是薑餅人，你追不到我！', '我的扣子是糖果做的！', '跑跑跑，我跑得好快！'],
   Creature.cake: ['我是草莓蛋糕！', '今天是誰生日呀？', '我有三顆紅紅的草莓！'],
   Creature.jelly: ['我是果凍，抖抖抖！', '我軟軟的，好好玩！', '我頭上有一顆櫻桃！'],
+  Creature.cow: ['哞～我是乳牛！', '我身上有黑黑的斑點！', '我脖子上的鈴鐺叮叮噹！'],
+  Creature.waterBuffalo: ['哞～我是水牛，最喜歡泡水了！', '我的角彎彎的！', '我會幫阿公耕田喔！'],
+  Creature.pig: ['噗噗～我是小豬！', '我的鼻子圓圓的！', '我的尾巴捲捲的！'],
+  Creature.hen: ['咯咯咯～我是母雞！', '我今天生了一顆蛋喔！', '我頭上有紅紅的雞冠！'],
+  Creature.chick: ['啾啾啾～我是小雞！', '我黃黃的、圓圓的！', '我跟著媽媽走路！'],
+  Creature.sheep: ['咩～我是綿羊！', '我的毛捲捲的、軟軟的！', '我像一朵白白的雲！'],
+  Creature.goat: ['咩咩～我是山羊！', '我有一點點鬍子喔！', '我最會爬高高了！'],
+  Creature.duck: ['呱呱呱～我是鴨子！', '我最喜歡在池塘游泳！', '我走路搖搖擺擺的！'],
+  Creature.goose: ['嘎嘎～我是鵝！', '我的脖子長長的！', '我幫阿嬤看門喔！'],
+  Creature.bunny: ['我是兔子，跳跳跳！', '我最喜歡吃紅蘿蔔！', '我的耳朵長長的！'],
+  Creature.puppy: ['汪汪～我是小狗！', '我們來玩丟球！', '我的尾巴搖呀搖！'],
+  Creature.tractor: ['噗噗噗～我是拖拉機！', '我的輪子大大的！', '我幫阿公搬好多東西！'],
 };
 
 /// When it just moved in.
@@ -385,6 +411,7 @@ List<String> _shared(Creature creature) => switch (creature.habitat) {
       Habitat.nightMarket => _atMarket,
       Habitat.polar => _inSnow,
       Habitat.candy => _sweet,
+      Habitat.farm => _onFarm,
     };
 
 /// One thing [creature] says at [moment]: what is going on comes first

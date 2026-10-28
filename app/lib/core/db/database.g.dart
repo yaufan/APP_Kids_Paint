@@ -816,6 +816,15 @@ class $ArtworksTable extends Artworks with TableInfo<$ArtworksTable, Artwork> {
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -832,6 +841,7 @@ class $ArtworksTable extends Artworks with TableInfo<$ArtworksTable, Artwork> {
     sharedAt,
     createdAt,
     updatedAt,
+    note,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -937,6 +947,12 @@ class $ArtworksTable extends Artworks with TableInfo<$ArtworksTable, Artwork> {
         updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
       );
     }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
     return context;
   }
 
@@ -1002,6 +1018,10 @@ class $ArtworksTable extends Artworks with TableInfo<$ArtworksTable, Artwork> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      ),
     );
   }
 
@@ -1038,6 +1058,9 @@ class Artwork extends DataClass implements Insertable<Artwork> {
   final DateTime? sharedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
+
+  /// What the child said about it, written on the back by a parent (0.18).
+  final String? note;
   const Artwork({
     required this.id,
     required this.childId,
@@ -1053,6 +1076,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
     this.sharedAt,
     required this.createdAt,
     required this.updatedAt,
+    this.note,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1079,6 +1103,9 @@ class Artwork extends DataClass implements Insertable<Artwork> {
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
     return map;
   }
 
@@ -1106,6 +1133,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
           : Value(sharedAt),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
     );
   }
 
@@ -1129,6 +1157,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
       sharedAt: serializer.fromJson<DateTime?>(json['sharedAt']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      note: serializer.fromJson<String?>(json['note']),
     );
   }
   @override
@@ -1149,6 +1178,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
       'sharedAt': serializer.toJson<DateTime?>(sharedAt),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'note': serializer.toJson<String?>(note),
     };
   }
 
@@ -1167,6 +1197,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
     Value<DateTime?> sharedAt = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
+    Value<String?> note = const Value.absent(),
   }) => Artwork(
     id: id ?? this.id,
     childId: childId ?? this.childId,
@@ -1182,6 +1213,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
     sharedAt: sharedAt.present ? sharedAt.value : this.sharedAt,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    note: note.present ? note.value : this.note,
   );
   Artwork copyWithCompanion(ArtworksCompanion data) {
     return Artwork(
@@ -1203,6 +1235,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
       sharedAt: data.sharedAt.present ? data.sharedAt.value : this.sharedAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      note: data.note.present ? data.note.value : this.note,
     );
   }
 
@@ -1222,7 +1255,8 @@ class Artwork extends DataClass implements Insertable<Artwork> {
           ..write('sentAt: $sentAt, ')
           ..write('sharedAt: $sharedAt, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('note: $note')
           ..write(')'))
         .toString();
   }
@@ -1243,6 +1277,7 @@ class Artwork extends DataClass implements Insertable<Artwork> {
     sharedAt,
     createdAt,
     updatedAt,
+    note,
   );
   @override
   bool operator ==(Object other) =>
@@ -1261,7 +1296,8 @@ class Artwork extends DataClass implements Insertable<Artwork> {
           other.sentAt == this.sentAt &&
           other.sharedAt == this.sharedAt &&
           other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.note == this.note);
 }
 
 class ArtworksCompanion extends UpdateCompanion<Artwork> {
@@ -1279,6 +1315,7 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
   final Value<DateTime?> sharedAt;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<String?> note;
   const ArtworksCompanion({
     this.id = const Value.absent(),
     this.childId = const Value.absent(),
@@ -1294,6 +1331,7 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
     this.sharedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.note = const Value.absent(),
   });
   ArtworksCompanion.insert({
     this.id = const Value.absent(),
@@ -1310,6 +1348,7 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
     this.sharedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.note = const Value.absent(),
   }) : childId = Value(childId),
        style = Value(style),
        detail = Value(detail),
@@ -1329,6 +1368,7 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
     Expression<DateTime>? sharedAt,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<String>? note,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1345,6 +1385,7 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
       if (sharedAt != null) 'shared_at': sharedAt,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (note != null) 'note': note,
     });
   }
 
@@ -1363,6 +1404,7 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
     Value<DateTime?>? sharedAt,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
+    Value<String?>? note,
   }) {
     return ArtworksCompanion(
       id: id ?? this.id,
@@ -1379,6 +1421,7 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
       sharedAt: sharedAt ?? this.sharedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      note: note ?? this.note,
     );
   }
 
@@ -1427,6 +1470,9 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
     return map;
   }
 
@@ -1446,7 +1492,8 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
           ..write('sentAt: $sentAt, ')
           ..write('sharedAt: $sharedAt, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('note: $note')
           ..write(')'))
         .toString();
   }
@@ -2445,6 +2492,7 @@ typedef $$ArtworksTableCreateCompanionBuilder = ArtworksCompanion Function({
   Value<DateTime?> sharedAt,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
+  Value<String?> note,
 });
 typedef $$ArtworksTableUpdateCompanionBuilder = ArtworksCompanion Function({
   Value<int> id,
@@ -2461,6 +2509,7 @@ typedef $$ArtworksTableUpdateCompanionBuilder = ArtworksCompanion Function({
   Value<DateTime?> sharedAt,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
+  Value<String?> note,
 });
 
 final class $$ArtworksTableReferences
@@ -2568,6 +2617,11 @@ class $$ArtworksTableFilterComposer
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2687,6 +2741,11 @@ class $$ArtworksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ChildrenTableOrderingComposer get childId {
     final $$ChildrenTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -2783,6 +2842,9 @@ class $$ArtworksTableAnnotationComposer
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
   $$ChildrenTableAnnotationComposer get childId {
     final $$ChildrenTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -2872,6 +2934,7 @@ class $$ArtworksTableTableManager
                 Value<DateTime?> sharedAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<String?> note = const Value.absent(),
               }) => ArtworksCompanion(
                 id: id,
                 childId: childId,
@@ -2887,6 +2950,7 @@ class $$ArtworksTableTableManager
                 sharedAt: sharedAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                note: note,
               ),
           createCompanionCallback:
               ({
@@ -2904,6 +2968,7 @@ class $$ArtworksTableTableManager
                 Value<DateTime?> sharedAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<String?> note = const Value.absent(),
               }) => ArtworksCompanion.insert(
                 id: id,
                 childId: childId,
@@ -2919,6 +2984,7 @@ class $$ArtworksTableTableManager
                 sharedAt: sharedAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                note: note,
               ),
           withReferenceMapper: (p0) => p0
               .map(

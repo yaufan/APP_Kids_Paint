@@ -44,6 +44,8 @@ PROMPTS = {
              "with colorful sprinkles, a pink and white candy-striped path, nobody",
     "polar": "an arctic landscape at night, green and purple northern lights, white icebergs, ice floes on a calm dark blue sea, "
              "snowy white ground, a red flag, small ice blocks",
+    "farm": "a sunny countryside farm, a red wooden barn with white trim and a grey silo, green rolling hills, rows of vegetables, "
+            "a golden haystack, a wooden fence along a green meadow, a small blue pond, a dirt track, wildflowers, blue sky, nobody",
 }
 
 _img2img = None

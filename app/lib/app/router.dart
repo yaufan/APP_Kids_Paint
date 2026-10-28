@@ -9,7 +9,9 @@ import '../features/album/replay_screen.dart';
 import '../features/canvas/canvas_screen.dart';
 import '../features/capture/capture_screen.dart';
 import '../features/lineart/style_picker_screen.dart';
+import '../features/parent/notes_screen.dart';
 import '../features/parent/parent_screen.dart';
+import '../features/parent/print_screen.dart';
 import '../features/parent/privacy_screen.dart';
 import '../features/parent/share_screen.dart';
 import '../features/scene/scene_screen.dart';
@@ -36,6 +38,12 @@ GoRouter buildRouter() => GoRouter(
           // The photo travels in memory; without it (e.g. after a restart) start over.
           redirect: (_, state) => state.extra is Uint8List ? null : '/capture',
           builder: (_, state) => StylePickerScreen(photo: state.extra! as Uint8List),
+        ),
+        // A drawing on paper, photographed (0.18): cleaned up, then onto the canvas.
+        GoRoute(
+          path: '/paper',
+          redirect: (_, state) => state.extra is Uint8List ? null : '/capture',
+          builder: (_, state) => StylePickerScreen(photo: state.extra! as Uint8List, paper: true),
         ),
         GoRoute(
           path: '/canvas/:id',
@@ -73,5 +81,7 @@ GoRouter buildRouter() => GoRouter(
         GoRoute(path: '/parent', builder: (_, _) => const ParentScreen()),
         GoRoute(path: '/parent/privacy', builder: (_, _) => const PrivacyScreen()),
         GoRoute(path: '/parent/share', builder: (_, _) => const ShareScreen()),
+        GoRoute(path: '/parent/notes', builder: (_, _) => const NotesScreen()),
+        GoRoute(path: '/parent/print', builder: (_, _) => const PrintScreen()),
       ],
     );

@@ -73,7 +73,9 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
 
   void _sound(Sfx sfx) => ref.read(soundsProvider).play(sfx);
 
-  bool get _blank => _page?.artwork.style == 'blank';
+  /// Paper with nothing printed on it: an empty sheet, or a drawing made on
+  /// real paper (0.18). The bucket changes the paper's color there.
+  bool get _blank => const {'blank', 'paper'}.contains(_page?.artwork.style);
 
   /// A zoo or aquarium creature: it moves into its scene instead of being mailed.
   Creature? get _creature => Creature.byName(_page?.artwork.template);

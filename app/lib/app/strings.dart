@@ -30,6 +30,17 @@ abstract final class Strings {
   static String openLetter(String festival) => '打開$festival的信';
   static String pinLabel(String place, int n) => '$place的明信片，$n 張';
   static String townFolk(String place) => '你在$place畫的畫';
+
+  /// What a screen reader calls the things in the town you can poke (0.18).
+  static String toy(String kind) => switch (kind) {
+        'train' => '捷運',
+        'duck' => '鴨子',
+        'bus' => '公車',
+        'scooter' => '機車',
+        'tower' => '台北101',
+        'cloud' => '雲',
+        _ => '汽車',
+      };
   static String postcardsHere(int n) => '$n 張明信片';
   static String latest(String date) => '最近 $date';
   static const drawHere = '在這裡再畫一張';
@@ -59,6 +70,10 @@ abstract final class Strings {
   static const camera = '用相機拍';
   static const photoLibrary = '從相簿選';
   static const captureHint = '對準你想畫的東西';
+
+  /// A drawing made on real paper, photographed into the town (0.18).
+  static const paperPhoto = '拍我畫在紙上的畫';
+  static const paperNotFound = '看不清楚你畫的畫，再拍一次好嗎？';
   static const backToMap = '回到地圖';
 
   // Turning the photo into a page.
@@ -179,6 +194,27 @@ abstract final class Strings {
   static const shareLineCreature = '謝謝你把我畫得這麼漂亮！';
   static const shareLineMine = '這是我畫的喔！';
   static String sentTo(String place) => '寄到$place';
+
+  // Printing coloring pages (0.18).
+  static const printRow = '印著色畫（A4）';
+  static const printTitle = '印著色畫';
+  static const printHint = '選幾張（最多 12 張），按「列印」會打開手機的列印選單：用連著的印表機印出來，或存成 PDF。';
+  static const printOwn = '用照片做的';
+  static const printFestivals = '節日';
+  static const printName = '畫畫小鎮著色畫';
+  static String printNow(int n) => n == 0 ? '列印' : '列印（$n 張）';
+  static const printFailed = '印不出來，等一下再試一次';
+
+  // The back of a postcard (0.18).
+  static const notes = '明信片背面';
+  static const notesRow = '幫孩子寫明信片背面';
+  static const pickToWrite = '選一張明信片，把孩子說的話寫在背面。孩子在明信片冊點播放鍵看重播時，可以翻過來聽。';
+  static const noteHint = '例如：這是我跟阿嬤在公園看到的鴨子';
+  static const saveNote = '寫好了';
+  static const noteSaved = '寫在背面了';
+  static const hasNote = '背面有字';
+  static const flip = '翻到背面';
+  static const flipBack = '翻回正面';
   static String savedToAlbum(int n) => n == 0 ? '沒有新作品要存' : '已存 $n 張到相簿';
   static const albumNotAllowed = '沒有權限存到相簿，請到手機的設定打開';
   static const savingToAlbum = '存到相簿中…';

@@ -32,7 +32,7 @@ import 'package:kids_paint/core/storage/artwork_store.dart';
 import 'package:kids_paint/features/canvas/coloring.dart';
 import 'package:kids_paint/features/capture/capture_screen.dart';
 
-import '../../integration_test/walkthrough.dart' show answerParentGate, WalkthroughSharer;
+import '../../integration_test/walkthrough.dart' show answerParentGate, walkthroughNote, WalkthroughPrinter, WalkthroughSharer;
 
 const _phone = Size(390, 844);
 const _captionHeight = 84.0;
@@ -54,6 +54,7 @@ const _residents = [
   Creature.sweetPotatoBalls,
   Creature.penguin, Creature.polarBear, Creature.seal, Creature.snowman, Creature.arcticFox, Creature.orca, Creature.sled, Creature.igloo,
   Creature.lollipop, Creature.cupcake, Creature.gingerbread, Creature.candy, Creature.jelly, Creature.cookie, Creature.cake, Creature.candyCane,
+  Creature.cow, Creature.pig, Creature.sheep, Creature.hen, Creature.chick, Creature.duck, Creature.goat, Creature.bunny,
 ];
 
 /// The photo album, pretend: the demo has no phone to save to.
@@ -99,6 +100,7 @@ void main() {
                     clockProvider.overrideWithValue(() => now),
                     photoAlbumProvider.overrideWithValue(_DemoAlbum()),
                     sharerProvider.overrideWithValue(WalkthroughSharer()),
+                    printerProvider.overrideWithValue(WalkthroughPrinter()),
                     systemSoundsProvider.overrideWithValue(const SilentSounds()),
                   ],
                   child: const KidsPaintApp(),
@@ -619,6 +621,135 @@ void main() {
     await tap(find.text(Strings.shareNow));
     await seconds(2.5);
     mark('share_end');
+
+    // 7b. The back of a postcard and printing (0.18).
+    mark('back');
+    await tap(find.byType(BackButton));
+    await seconds(0.5);
+    await tap(find.byType(BackButton));
+    await until(find.byKey(const ValueKey('share-row')));
+    final parentList = find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first;
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('notes-row')), 200, scrollable: parentList);
+    await frames(3);
+    caption.value = '新功能：幫孩子寫明信片背面\n（小朋友還不會寫字，爸媽把他說的話打進去）';
+    await seconds(2);
+    await tap(find.byKey(const ValueKey('notes-row')));
+    await until(find.byKey(ValueKey('note-pick-${coffee.id}')));
+    await seconds(1.5);
+    await tap(find.byKey(ValueKey('note-pick-${coffee.id}')));
+    await until(find.byKey(const ValueKey('note-field')));
+    await seconds(1);
+    await tester.enterText(find.byKey(const ValueKey('note-field')), walkthroughNote);
+    await seconds(2.5);
+    await tap(find.byKey(const ValueKey('note-save')));
+    await seconds(1.5);
+    await tap(find.byType(BackButton));
+    await until(find.byKey(const ValueKey('notes-row')));
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('print-row')), 200, scrollable: parentList);
+    await frames(3);
+    caption.value = '新功能：印著色畫（A4）\nAPP 的著色圖和照片做的都可以印，或存成 PDF';
+    await seconds(1.5);
+    await tap(find.byKey(const ValueKey('print-row')));
+    await until(find.byKey(const ValueKey('print-lunarNewYear')));
+    await seconds(1.5);
+    await tap(find.byKey(ValueKey('print-own-${coffee.id}')));
+    await tap(find.byKey(const ValueKey('print-lunarNewYear')));
+    await tap(find.byKey(const ValueKey('print-christmas')));
+    await seconds(1.5);
+    caption.value = '按「列印」打開手機的列印選單';
+    await tap(find.byKey(const ValueKey('print-now')));
+    await seconds(2);
+    caption.value = '小朋友看重播時，右上角可以翻到背面\n手機會念出爸媽寫的話';
+    GoRouter.of(tester.element(find.byType(Scaffold).first)).go('/replay/${coffee.id}');
+    await until(find.byKey(const ValueKey('replay-again')), max: 20);
+    await seconds(1.5);
+    await tap(find.byKey(const ValueKey('flip')));
+    await seconds(4);
+    await tap(find.byKey(const ValueKey('flip')));
+    await seconds(1.5);
+    mark('back_end');
+
+    // 7c. The town you can poke (0.18).
+    mark('toys');
+    GoRouter.of(tester.element(find.byType(Scaffold).first)).go('/');
+    await until(find.byKey(const ValueKey('poke-tower')));
+    caption.value = '新功能：小鎮裡的東西可以戳\n點捷運：開出去繞一圈再回來';
+    await seconds(1.5);
+    await tap(find.byKey(const ValueKey('poke-mrt')));
+    await seconds(3);
+    caption.value = '點鴨子：呱呱叫、泛起漣漪';
+    await touch(tester.getRect(find.byKey(const ValueKey('poke-duckRiver'))).centerLeft + const Offset(5, 0));
+    await seconds(2);
+    caption.value = '點車子：按喇叭跳一下';
+    await tap(find.byKey(const ValueKey('poke-car0')));
+    await seconds(1.5);
+    caption.value = '點台北 101：放煙火';
+    await tap(find.byKey(const ValueKey('poke-tower')));
+    await seconds(5);
+    caption.value = '點雲：下一小陣雨';
+    await tap(find.byKey(const ValueKey('poke-cloud')));
+    await seconds(3);
+    mark('toys_end');
+
+    // 7d. Grandma and grandpa's farm (0.18).
+    mark('farm');
+    caption.value = '新地方：阿公阿嬤的農場\n（地圖左下的阿公阿嬤家，旁邊有母雞和圍欄）';
+    await enterPlace(PlaceKind.grandma);
+    caption.value = '農場：乳牛、小豬、綿羊在草地上走\n小雞和兔子跳跳跳';
+    await seconds(5);
+    caption.value = '點一下乳牛：哞～';
+    await tap(find.bySemanticsLabel(Strings.resident(Creature.cow.label)));
+    await seconds(2.5);
+    caption.value = '畫一隻新的：12 個可以選';
+    await tap(find.bySemanticsLabel(Strings.drawNew(Habitat.farm.label)));
+    await until(find.byKey(const ValueKey('creature-tractor')));
+    await seconds(2.5);
+    await tap(find.byKey(const ValueKey('creature-tractor')));
+    await until(find.byKey(const ValueKey('page')));
+    caption.value = '拖拉機的著色圖';
+    await seconds(1);
+    await fill([(kidPalette[0], 0.5, 0.65), (kidPalette[5], 0.32, 0.42), (kidPalette[2], 0.3, 0.3)]);
+    caption.value = '畫好了 → 拖拉機在泥土路上開';
+    await tap(find.bySemanticsLabel(Strings.done));
+    await until(find.bySemanticsLabel(Strings.resident(Creature.tractor.label)));
+    await seconds(6);
+    mark('farm_end');
+
+    // 7e. A drawing on real paper, photographed (0.18).
+    mark('paper');
+    await tap(find.bySemanticsLabel(Strings.backToTown));
+    await until(find.bySemanticsLabel(Strings.takePhoto));
+    await seconds(1);
+    caption.value = '新功能：拍紙上的畫\n拍照畫面多了黃色的「蠟筆＋相機」';
+    await tap(find.bySemanticsLabel(Strings.takePhoto));
+    await until(find.byKey(const ValueKey('paper-photo')));
+    await seconds(2.5);
+    caption.value = '（影片裡用一張畫在紙上的乳牛照片代替真的拍照）';
+    GoRouter.of(tester.element(find.byType(CaptureScreen))).push('/paper', extra: File('test/assets/paper_drawing.jpg').readAsBytesSync());
+    await seconds(1);
+    caption.value = 'APP 找出紙、去掉桌子和影子，紙變透明\n只留下畫的線和顏色';
+    await until(find.byKey(const ValueKey('page')), max: 20);
+    await seconds(2.5);
+    caption.value = '可以再塗：油漆桶換紙的顏色，蠟筆畫草地';
+    await tap(find.bySemanticsLabel(Strings.paperColor));
+    await tap(find.byKey(ValueKey('swatch-${kidPalette[5]}')));
+    final sheetOfPaper = tester.getRect(find.byKey(const ValueKey('page')));
+    await touch(sheetOfPaper.topLeft + Offset(sheetOfPaper.width * 0.08, sheetOfPaper.height * 0.08));
+    await seconds(1);
+    await tap(find.bySemanticsLabel(Strings.crayon));
+    await tap(find.byKey(ValueKey('swatch-${kidPalette[3]}')));
+    await stroke([
+      for (var i = 0; i <= 14; i++) sheetOfPaper.topLeft + Offset(sheetOfPaper.width * (0.1 + i * 0.057), sheetOfPaper.height * 0.93 + (i.isEven ? -8 : 8)),
+    ]);
+    await seconds(1.5);
+    caption.value = '寄到公園：它也會剪下來，在公園旁邊跳';
+    await tap(find.bySemanticsLabel(Strings.done));
+    await until(find.bySemanticsLabel(Strings.sendTo(PlaceKind.park.label)));
+    await seconds(1);
+    await tap(find.bySemanticsLabel(Strings.sendTo(PlaceKind.park.label)));
+    await until(find.bySemanticsLabel(Strings.townFolk(PlaceKind.park.label)), max: 15);
+    await seconds(4);
+    mark('paper_end');
 
     // 8. Time to rest, gently (0.12).
     mark('rest');

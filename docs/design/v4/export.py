@@ -26,6 +26,7 @@ SCENES = {
     "nightMarket": 3,
     "polar": 1,
     "candy": 2,
+    "farm": 1,
 }
 
 # Parts of a scene's layout put back over its painting (scene units, 1000

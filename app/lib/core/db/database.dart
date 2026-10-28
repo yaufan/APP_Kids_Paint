@@ -61,6 +61,9 @@ class Artworks extends Table {
   DateTimeColumn get sharedAt => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  /// What the child said about it, written on the back by a parent (0.18).
+  TextColumn get note => text().nullable()();
 }
 
 /// Small key-value store for parent settings (daily time limit, ...).
@@ -78,7 +81,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'kids_paint'));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -108,6 +111,9 @@ class AppDatabase extends _$AppDatabase {
             // They already have a town: no first-day welcome (a parent can
             // still name it in the parent page).
             await into(settings).insertOnConflictUpdate(const Setting(key: 'welcomed', value: '1'));
+          }
+          if (from < 5) {
+            await m.addColumn(artworks, artworks.note);
           }
         },
         beforeOpen: (details) async {

@@ -224,6 +224,7 @@ class _TownScreenState extends ConsumerState<TownScreen> {
                 if (arts.isNotEmpty) kind: [for (final a in arts) store.open(a.folder).sprite],
             },
             onTownie: (_) => _sounds.play(Sfx.boingHigh),
+            onToy: (kind) => _sounds.play(toySound(kind)),
             focus: widget.focus,
             grow: widget.grow,
             phase: dayPhaseAt(now),

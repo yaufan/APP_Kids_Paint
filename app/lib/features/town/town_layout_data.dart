@@ -37,7 +37,7 @@ const townLayerOrder = ['space', 'polar', 'candy', 'home', 'school', 'park', 'sh
 /// Festivals with a decoration layer (`festival_<name>_<phase>.svg`).
 const townFestivalLayers = {'lunarNewYear', 'lantern', 'childrensDay', 'dragonBoat', 'midAutumn', 'christmas', 'newYearsEve'};
 
-/// Places you can go into (the zoo, the aquarium, the dinosaur park, the transport museum, the botanical garden, the insect museum, the shop, the night market, space, the polar sea, the candy house): always built; tapping opens their scene.
+/// Places you can go into (the zoo, the aquarium, the dinosaur park, the transport museum, the botanical garden, the insect museum, the shop, the night market, space, the polar sea, the candy house, grandma's farm): always built; tapping opens their scene.
 const townAttractions = <String, Rect>{
   'zoo': Rect.fromLTWH(596, 690, 172, 124),
   'aquarium': Rect.fromLTWH(12, 690, 178, 128),
@@ -50,7 +50,36 @@ const townAttractions = <String, Rect>{
   'space': Rect.fromLTWH(12, 44, 176, 180),
   'polar': Rect.fromLTWH(600, 70, 172, 154),
   'candy': Rect.fromLTWH(209, 112, 156, 112),
+  'grandma': Rect.fromLTWH(213, 886, 176, 136),
 };
 
 /// The tip of Taipei 101, where the New Year's Eve fireworks go up.
 const townTowerTop = Offset(537, 396);
+
+/// Things that do something when poked (0.18): what they are, the layer
+/// they are drawn after ('traffic': after every place), where their own
+/// picture (`toy_<name>_<phase>.svg`) goes and where a tap counts. The
+/// tower and the clouds have no picture of their own.
+const townToys = <String, ({String kind, String? after, Rect? art, Rect tap})>{
+  'mrt': (kind: 'train', after: 'land', art: Rect.fromLTWH(229, 292, 188, 30), tap: Rect.fromLTWH(229, 290, 188, 34)),
+  'duckRiver': (kind: 'duck', after: 'land', art: Rect.fromLTWH(349, 263, 32, 20), tap: Rect.fromLTWH(348, 254, 34, 32)),
+  'duckRiver2': (kind: 'duck', after: 'land', art: Rect.fromLTWH(365, 268, 32, 20), tap: Rect.fromLTWH(364, 259, 34, 32)),
+  'duckPark': (kind: 'duck', after: 'park', art: Rect.fromLTWH(303, 571, 32, 20), tap: Rect.fromLTWH(302, 562, 34, 32)),
+  'duckPark2': (kind: 'duck', after: 'park', art: Rect.fromLTWH(327, 579, 32, 20), tap: Rect.fromLTWH(326, 570, 34, 32)),
+  'duckAquarium': (kind: 'duck', after: 'aquarium', art: Rect.fromLTWH(154, 793, 32, 20), tap: Rect.fromLTWH(153, 784, 34, 32)),
+  'car0': (kind: 'car', after: 'traffic', art: Rect.fromLTWH(185, 420, 140, 40), tap: Rect.fromLTWH(233, 424, 44, 33)),
+  'car1': (kind: 'car', after: 'traffic', art: Rect.fromLTWH(425, 414, 140, 40), tap: Rect.fromLTWH(473, 418, 44, 33)),
+  'car2': (kind: 'scooter', after: 'traffic', art: Rect.fromLTWH(275, 626, 140, 40), tap: Rect.fromLTWH(330, 630, 30, 33)),
+  'car3': (kind: 'bus', after: 'traffic', art: Rect.fromLTWH(331, 528, 140, 40), tap: Rect.fromLTWH(372, 532, 58, 33)),
+  'car4': (kind: 'scooter', after: 'traffic', art: Rect.fromLTWH(455, 626, 140, 40), tap: Rect.fromLTWH(510, 630, 30, 33)),
+  'car5': (kind: 'car', after: 'traffic', art: Rect.fromLTWH(235, 832, 140, 40), tap: Rect.fromLTWH(283, 836, 44, 33)),
+  'car6': (kind: 'car', after: 'traffic', art: Rect.fromLTWH(10, 420, 140, 40), tap: Rect.fromLTWH(58, 424, 44, 33)),
+  'car7': (kind: 'car', after: 'traffic', art: Rect.fromLTWH(630, 624, 140, 40), tap: Rect.fromLTWH(678, 628, 44, 33)),
+  'car8': (kind: 'scooter', after: 'traffic', art: Rect.fromLTWH(570, 832, 140, 40), tap: Rect.fromLTWH(625, 836, 30, 33)),
+  'tower': (kind: 'tower', after: null, art: null, tap: Rect.fromLTWH(512, 430, 50, 198)),
+  'cloud': (kind: 'cloud', after: null, art: null, tap: Rect.fromLTWH(228.6, 86, 70.2, 39.6)),
+  'cloud2': (kind: 'cloud', after: null, art: null, tap: Rect.fromLTWH(393.8, 118, 54.6, 30.8)),
+  'cloud3': (kind: 'cloud', after: null, art: null, tap: Rect.fromLTWH(43.2, 110, 62.4, 35.2)),
+  'cloud4': (kind: 'cloud', after: null, art: null, tap: Rect.fromLTWH(643.6, 70, 70.2, 39.6)),
+  'cloud5': (kind: 'cloud', after: null, art: null, tap: Rect.fromLTWH(702.4, 140, 46.8, 26.4)),
+};

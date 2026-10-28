@@ -294,6 +294,20 @@ class _ParentScreenState extends ConsumerState<ParentScreen> {
                 color: KidColors.skyDark,
                 onTap: () => context.push('/parent/share'),
               ),
+              row(
+                const KidIcon('mail', size: 22, color: KidColors.skyDark),
+                Strings.notesRow,
+                key: const ValueKey('notes-row'),
+                color: KidColors.skyDark,
+                onTap: () => context.push('/parent/notes'),
+              ),
+              row(
+                const KidIcon('printer', size: 22, color: KidColors.skyDark),
+                Strings.printRow,
+                key: const ValueKey('print-row'),
+                color: KidColors.skyDark,
+                onTap: () => context.push('/parent/print'),
+              ),
             ]),
             card(Strings.voices, [
               // Its own Material: the card's white background would hide the tile's ink.

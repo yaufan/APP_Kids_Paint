@@ -68,6 +68,9 @@ class PlaceRepository {
         ..orderBy([(p) => OrderingTerm(expression: p.id)]))
       .watch();
 
+  Future<Place?> get(int? id) =>
+      id == null ? Future.value() : (_db.select(_db.places)..where((p) => p.id.equals(id))).getSingleOrNull();
+
   Future<void> rename(int id, String? label) => (_db.update(_db.places)..where((p) => p.id.equals(id)))
       .write(PlacesCompanion(label: Value(label?.trim().isEmpty ?? true ? null : label!.trim())));
 }
@@ -129,6 +132,16 @@ class ArtworkRepository {
     final art = await get(id);
     await (_db.update(_db.artworks)..where((a) => a.id.equals(id)))
         .write(ArtworksCompanion(isFavorite: Value(!art.isFavorite)));
+  }
+
+  /// The longest note a parent can write on a postcard's back.
+  static const noteLength = 60;
+
+  /// What the child said about it, on its back (blank: none).
+  Future<void> setNote(int id, String? note) {
+    final text = note?.trim() ?? '';
+    final kept = text.isEmpty ? null : String.fromCharCodes(text.runes.take(noteLength));
+    return (_db.update(_db.artworks)..where((a) => a.id.equals(id))).write(ArtworksCompanion(note: Value(kept)));
   }
 
   Future<void> touch(int id, {bool? completed}) =>

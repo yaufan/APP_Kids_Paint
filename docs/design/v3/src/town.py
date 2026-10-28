@@ -185,8 +185,7 @@ def land():
         '<path d="M2 24 Q30 -8 58 24" stroke="#FF5E5B" stroke-width="5" fill="none" stroke-linecap="round"/>'
         + "".join(f'<path d="M{8 + i * 11} 24 V{14 - (i in (2, 3)) * 6 + (i in (0, 4)) * 4}" stroke="#FF5E5B" stroke-width="2"/>' for i in range(5)) + '</g>',
         '<g transform="translate(70 270)"><path d="M-18 -6 h36 l-6 9 h-24 z" fill="#FFFFFF" stroke="#9FB3C8" stroke-width="1.4"/>'
-        '<path d="M0 -6 V-28 L 16 -10 Z" fill="#FFC94A" stroke="#D9A21C" stroke-width="1.2"/><path d="M0 -26 L-12 -10 H0" fill="#FF8FB1"/></g>',
-        duck(170, 276, 0.9), duck(186, 281, 0.75)))
+        '<path d="M0 -6 V-28 L 16 -10 Z" fill="#FFC94A" stroke="#D9A21C" stroke-width="1.2"/><path d="M0 -26 L-12 -10 H0" fill="#FF8FB1"/></g>'))
     # roads: three avenues across the whole world, one up the middle
     s.append(road_h(448) + road_h(652) + road_h(860))
     s.append(f'<rect x="{OX + 206 - 21}" y="296" width="42" height="{H - 296}" fill="#F4E4C8"/><rect x="{OX + 206 - 15}" y="296" width="30" height="{H - 296}" fill="#E2E7EE"/>'
@@ -198,12 +197,8 @@ def land():
     for px in range(14, W, 64):
         s.append(f'<rect x="{px}" y="330" width="9" height="30" fill="#C2CDDA" stroke="#A9B6C6" stroke-width="1.2"/>')
 
-    def mrt_car(x0):
-        return (f'<rect x="{x0}" y="296" width="58" height="22" rx="8" fill="#FFFFFF" stroke="#9FB3C8" stroke-width="1.4"/>'
-                f'<rect x="{x0}" y="309" width="58" height="5" fill="#4DA8FF"/>'
-                + "".join(f'<rect x="{x0 + 6 + i * 13}" y="300" width="9" height="7" rx="2" fill="#A9E0FF"/>' for i in range(4)))
-    s.append(mid(mrt_car(38), mrt_car(98), mrt_car(158),
-                 '<rect x="250" y="288" width="96" height="30" rx="6" fill="#E9F3FF" stroke="#9FB3C8" stroke-width="1.4"/>'
+    # (the train itself is a toy: mrt_train)
+    s.append(mid('<rect x="250" y="288" width="96" height="30" rx="6" fill="#E9F3FF" stroke="#9FB3C8" stroke-width="1.4"/>'
                  '<path d="M244 290 Q298 262 352 290 Z" fill="#7CC6FF" stroke="#4E9AD6" stroke-width="1.4"/>'
                  '<circle cx="298" cy="303" r="7" fill="#FFFFFF" stroke="#4DA8FF" stroke-width="2.2"/><path d="M294 303 h8" stroke="#4DA8FF" stroke-width="2.2"/>'))
     # trees that belong to no place, the tower, and the wings' own houses
@@ -255,11 +250,56 @@ def headlight(x, y, kind, flip):
     return f'<path d="M{fx} {y - 7} L{fx + d * 30} {y - 14} Q{fx + d * 36} {y - 5.5} {fx + d * 30} {y + 3} Z" fill="{MOON}" opacity=".22"/>'
 
 
-def traffic():
-    designed, wing = [], []
-    for x, y, color, kind, flip, column in CARS:
-        (designed if column else wing).append(car(x, y, color, kind, flip) + headlight(x, y, kind, flip))
-    return mid(*designed) + "".join(wing)
+# ---------------------------------------------------------------- toys
+
+def mrt_train():
+    """The MRT train by the station: three cars."""
+    def mrt_car(x0):
+        return (f'<rect x="{x0}" y="296" width="58" height="22" rx="8" fill="#FFFFFF" stroke="#9FB3C8" stroke-width="1.4"/>'
+                f'<rect x="{x0}" y="309" width="58" height="5" fill="#4DA8FF"/>'
+                + "".join(f'<rect x="{x0 + 6 + i * 13}" y="300" width="9" height="7" rx="2" fill="#A9E0FF"/>' for i in range(4)))
+    return mid(mrt_car(38), mrt_car(98), mrt_car(158))
+
+
+def toy_duck(after, x, y, s, flip=False):
+    return ("duck", after, (x - 16, y - 13, 32, 20), (x - 17, y - 22, 34, 32), lambda: duck(x, y, s, flip))
+
+
+def toy_car(x, y, color, kind, flip):
+    half = {"car": 22, "bus": 29, "scooter": 15}[kind]
+    # the picture leaves room for the headlights at night
+    return (kind, "traffic", (x - 70, y - 32, 140, 40), (x - half, y - 28, 2 * half, 33),
+            lambda: car(x, y, color, kind, flip) + headlight(x, y, kind, flip))
+
+
+def toy_cloud(x, y, s):
+    return ("cloud", None, None, (x + 4 * s, y, 78 * s, 44 * s), None)
+
+
+# Things in the town that do something when a child pokes them (0.18):
+# name -> (what it is, the layer it is drawn after, where its own picture
+# goes, where a tap counts, its picture). The tower and the clouds have no
+# picture of their own: they are part of the land and the sky.
+TOYS = {
+    "mrt": ("train", "land", (OX + 34, 292, 188, 30), (OX + 34, 290, 188, 34), mrt_train),
+    "duckRiver": toy_duck("land", OX + 170, 276, 0.9),
+    "duckRiver2": toy_duck("land", OX + 186, 281, 0.75),
+    "duckPark": toy_duck("park", OX + 124, 584, 0.9),
+    "duckPark2": toy_duck("park", OX + 148, 592, 0.8, True),
+    "duckAquarium": toy_duck("aquarium", 170, 806, 0.7, True),
+    **{f"car{i}": toy_car(x + (OX if column else 0), y, color, kind, flip) for i, (x, y, color, kind, flip, column) in enumerate(CARS)},
+    "tower": ("tower", None, None, (OX + 317, 430, 50, 198), None),
+    "cloud": toy_cloud(OX + 30, 86, 0.9),
+    "cloud2": toy_cloud(OX + 196, 118, 0.7),
+    "cloud3": toy_cloud(40, 110, 0.8),
+    "cloud4": toy_cloud(640, 70, 0.9),
+    "cloud5": toy_cloud(700, 140, 0.6),
+}
+
+
+def toys(after):
+    """The toys drawn after layer [after], where they stand (the mockups and previews)."""
+    return "".join(draw() for _, layer, _, _, draw in TOYS.values() if layer == after and draw)
 
 
 def home():
@@ -282,7 +322,6 @@ def park():
                '<path d="M20 520 C 60 530, 90 560, 120 600" stroke="#F4E4C8" stroke-width="9" fill="none" stroke-linecap="round"/>',
                '<path d="M90 584 C 100 556, 152 552, 172 572 C 188 592, 156 616, 122 612 C 98 610, 84 602, 90 584 Z" fill="#7CCFFF" stroke="#43A9E0" stroke-width="1.5"/>',
                '<path d="M108 590 q6 -3 12 0 M140 598 q6 -3 12 0" stroke="#D8F3FF" stroke-width="2" fill="none" stroke-linecap="round"/>',
-               duck(124, 584, 0.9), duck(148, 592, 0.8, True),
                '<g transform="translate(140 516)"><path d="M0 26 L8 -4 H22 L22 26" stroke="#FF8FB1" stroke-width="4" fill="none" stroke-linejoin="round"/><path d="M22 -4 Q 44 4 46 26" stroke="#FFC94A" stroke-width="7" fill="none" stroke-linecap="round"/></g>',
                tree(30, 512, 13), tree(62, 500, 11, "#58C46B"), tree(178, 640, 10, "#58C46B", "pine"), tree(28, 628, 12, "#4DB860", "palm"),
                flower_patch(40, 586), flower_patch(166, 488, ("#FFFFFF", "#FF8FB1", "#FFD166")))
@@ -371,7 +410,7 @@ def aquarium():
             + box(x0, base, 150, 42, 6, "#E3F4FB", roof="flat", door=(62, 26, 30, "#4DA8FF"))
             + portholes
             + f'<path d="M{x0} {base - 6} q9 -6 18 0 t18 0 t18 0 t18 0 t18 0 t18 0 t18 0 t18 0 t6 0 V{base} H{x0} Z" fill="#4DA8FF"/>'
-            + whale_top + duck(170, 806, 0.7, True))
+            + whale_top)
 
 
 def dino_park():
@@ -455,11 +494,19 @@ def insects():
 
 
 def grandma():
+    """Grandma and grandpa's house, their vegetables and, since 0.18, a
+    fence and a hen: their farm is behind it."""
+    fence = ('<path d="M108 1012 H 188 M108 1002 H 188" stroke="#C69060" stroke-width="3"/>'
+             + "".join(f'<rect x="{x}" y="994" width="5" height="22" rx="1.5" fill="#D9A574" stroke="#A8764A" stroke-width="1"/>' for x in range(110, 190, 16)))
+    hen = ('<g transform="translate(124 990)"><ellipse cx="0" cy="0" rx="8" ry="6.5" fill="#FFFFFF" stroke="#D8DEE8" stroke-width="1"/>'
+           '<circle cx="6" cy="-7" r="4.4" fill="#FFFFFF" stroke="#D8DEE8" stroke-width="1"/><path d="M5 -12 q2 -3 4 0" stroke="#FF5E5B" stroke-width="2.4" fill="none"/>'
+           '<path d="M10 -7 l4 1 -4 1 z" fill="#FFB020"/><circle cx="7" cy="-8" r=".9" fill="#2A211D"/>'
+           '<path d="M-3 6 v4 M2 6 v4" stroke="#FFB020" stroke-width="1.4"/></g>')
     return mid(box(36, 960, 96, 52, 8, "#E8836B", roof="gable", roof_h=24, windows=[(10, 14, 16, 14), (70, 14, 16, 14)], door=(40, 16, 30, "#7A4A2A")),
                '<path d="M58 990 c-2-3-6-1-4 2 l4 3 4-3 c2-3-2-5-4-2z M118 990 c-2-3-6-1-4 2 l4 3 4-3 c2-3-2-5-4-2z" fill="#FF8FB1"/>',
-               '<rect x="140" y="978" width="40" height="30" rx="6" fill="#C9A06B"/>'
-               + "".join(f'<circle cx="{148 + k * 12}" cy="986" r="4" fill="#5FCB79"/><circle cx="{148 + k * 12}" cy="1000" r="4" fill="#FF8A3D"/>' for k in range(3)),
-               tree(20, 940, 10, "#58C46B"))
+               '<rect x="140" y="950" width="40" height="30" rx="6" fill="#C9A06B"/>'
+               + "".join(f'<circle cx="{148 + k * 12}" cy="958" r="4" fill="#5FCB79"/><circle cx="{148 + k * 12}" cy="972" r="4" fill="#FF8A3D"/>' for k in range(3)),
+               fence, hen, tree(20, 940, 10, "#58C46B"))
 
 
 def travel():
@@ -566,7 +613,14 @@ ORDER = ["space", "polar", "candy", "home", "school", "park", "shop", "food", "t
 ATTRACTIONS = {"zoo": (596, 690, 172, 124), "aquarium": (12, 690, 178, 128), "dinoPark": (12, 476, 178, 170),
                "transport": (596, 476, 172, 170), "botanical": (12, 878, 178, 168), "insects": (596, 878, 172, 168),
                "shop": (OX + 230, 548, 90, 76), "food": (OX + 12, 680, 172, 120), "space": (12, 44, 176, 180), "polar": (600, 70, 172, 154),
-               "candy": (OX + 14, 112, 156, 112)}
+               "candy": (OX + 14, 112, 156, 112), "grandma": (OX + 18, 886, 176, 136)}
+
+
+def rect(r):
+    """A box as Dart."""
+    if r is None:
+        return "null"
+    return "Rect.fromLTWH(" + ", ".join(f"{round(v, 1):g}" for v in r) + ")"
 
 
 def lot(kind):
@@ -580,10 +634,11 @@ def svg(content, view=f"0 0 {W} {H}", width=W, height=H, extra=""):
 
 def town_map(dim=False, built=None):
     """The phone-sized crop (390 x 844) used by the mockups."""
-    parts = [base()]
+    parts = [base(), toys("land")]
     for kind in ORDER:
-        parts.append(SLOTS[kind][0]() if built is None or kind in built or SLOTS[kind][1] is None else lot(kind))
-    parts.append(traffic())
+        shown = built is None or kind in built or SLOTS[kind][1] is None
+        parts.append(SLOTS[kind][0]() + toys(kind) if shown else lot(kind))
+    parts.append(toys("traffic"))
     if dim:
         parts.append(f'<rect width="{W}" height="{H}" fill="rgba(25,45,35,.38)"/>')
     return svg("".join(parts), view=f"{OX} 0 390 844", width=390, height=844, extra='class="abs" style="left:0;top:0" aria-hidden="true"')
@@ -594,11 +649,11 @@ def world(phase="day", built=None, festival=None):
     import festivals
     global PHASE
     PHASE = phase
-    parts = [sky(phase), tint(land(), phase)]
+    parts = [sky(phase), tint(land() + toys("land"), phase)]
     for kind in ORDER:
-        layer = SLOTS[kind][0]() if built is None or kind in built or SLOTS[kind][1] is None else lot(kind)
-        parts.append(tint(layer, phase))
-    parts.append(tint(traffic(), phase))
+        shown = built is None or kind in built or SLOTS[kind][1] is None
+        parts.append(tint(SLOTS[kind][0]() + toys(kind) if shown else lot(kind), phase))
+    parts.append(tint(toys("traffic"), phase))
     if festival:
         parts.append(tint(festivals.DECOR[festival](), phase))
     PHASE = "day"
@@ -621,7 +676,10 @@ def export(app_dir):
 
         (out / f"sky_{phase}.svg").write_text(svg(sky(phase)))
         put("land", land())
-        put("traffic", traffic())
+        for name, (_, _, art, _, draw) in TOYS.items():
+            if draw:
+                x, y, w, h = art
+                (out / f"toy_{name}_{phase}.svg").write_text(tint(svg(draw(), view=f"{x} {y} {w} {h}", width=w, height=h), phase))
         for kind in ORDER:
             put(kind, DEFS + SLOTS[kind][0]())
             if SLOTS[kind][1]:
@@ -640,12 +698,20 @@ def export(app_dir):
     lines += ["};", "", "/// Back to front.", "const townLayerOrder = [" + ", ".join(f"'{k}'" for k in ORDER) + "];", "",
               "/// Festivals with a decoration layer (`festival_<name>_<phase>.svg`).",
               "const townFestivalLayers = {" + ", ".join(f"'{k}'" for k in festivals.DECOR) + "};", "",
-              "/// Places you can go into (the zoo, the aquarium, the dinosaur park, the transport museum, the botanical garden, the insect museum, the shop, the night market, space, the polar sea, the candy house): always built; tapping opens their scene.",
+              "/// Places you can go into (the zoo, the aquarium, the dinosaur park, the transport museum, the botanical garden, the insect museum, the shop, the night market, space, the polar sea, the candy house, grandma's farm): always built; tapping opens their scene.",
               "const townAttractions = <String, Rect>{",
               *[f"  '{k}': Rect.fromLTWH({x}, {y}, {w}, {h})," for k, (x, y, w, h) in ATTRACTIONS.items()],
               "};", "",
               "/// The tip of Taipei 101, where the New Year's Eve fireworks go up.",
-              f"const townTowerTop = Offset({OX + 342}, 396);", ""]
+              f"const townTowerTop = Offset({OX + 342}, 396);", "",
+              "/// Things that do something when poked (0.18): what they are, the layer",
+              "/// they are drawn after ('traffic': after every place), where their own",
+              "/// picture (`toy_<name>_<phase>.svg`) goes and where a tap counts. The",
+              "/// tower and the clouds have no picture of their own.",
+              "const townToys = <String, ({String kind, String? after, Rect? art, Rect tap})>{",
+              *[f"  '{k}': (kind: '{kind}', after: {f"'{after}'" if after else 'null'}, art: {rect(art)}, tap: {rect(tap)}),"
+                for k, (kind, after, art, tap, _) in TOYS.items()],
+              "};", ""]
     dart = pathlib.Path(app_dir) / "lib" / "features" / "town" / "town_layout_data.dart"
     dart.parent.mkdir(parents=True, exist_ok=True)
     dart.write_text("\n".join(lines))

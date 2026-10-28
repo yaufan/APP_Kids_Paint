@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:isolate';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -13,15 +14,19 @@ import '../../app/widgets.dart';
 import '../../core/places.dart';
 import '../../core/providers.dart';
 import '../canvas/page_image.dart';
+import '../capture/paper_photo.dart';
 import 'line_art.dart';
 
 /// The photo turns into coloring pages ("magic"), then the child taps the
 /// style they like. No settings: detail is a parent option (default simple).
+/// A photo of a drawing on [paper] (0.18) is cleaned up instead and goes
+/// straight onto the canvas.
 class StylePickerScreen extends ConsumerStatefulWidget {
-  const StylePickerScreen({super.key, required this.photo, this.detail = DetailLevel.simple});
+  const StylePickerScreen({super.key, required this.photo, this.detail = DetailLevel.simple, this.paper = false});
 
   final Uint8List photo;
   final DetailLevel detail;
+  final bool paper;
 
   /// The magic lasts at least this long, even when converting is quicker.
   static const magicTime = Duration(milliseconds: 1800);
@@ -32,16 +37,43 @@ class StylePickerScreen extends ConsumerStatefulWidget {
 
 class _StylePickerScreenState extends ConsumerState<StylePickerScreen> {
   late final Future<List<LineArt>> _pages;
+  late final Future<PaperDrawing?> _paper;
   bool _saving = false;
+
+  /// The drawing on paper could not be found or kept.
+  bool _paperFailed = false;
 
   @override
   void initState() {
     super.initState();
+    if (widget.paper) {
+      _paper = Future.wait([
+        _cleanPaper(widget.photo),
+        Future<void>.delayed(StylePickerScreen.magicTime),
+      ]).then((both) => both.first as PaperDrawing?);
+      _paper.then(_keepPaper, onError: (_) => _keepPaper(null));
+      return;
+    }
     final engine = ref.read(lineArtEngineProvider);
     _pages = Future.wait([
       Future.wait([for (final style in ArtStyle.values) engine.convert(widget.photo, style, widget.detail)]),
       Future<void>.delayed(StylePickerScreen.magicTime),
     ]).then((both) => both.first as List<LineArt>);
+  }
+
+  /// Off the screen's thread; static, so nothing of the screen goes along.
+  static Future<PaperDrawing?> _cleanPaper(Uint8List photo) => Isolate.run(() => paperDrawing(photo));
+
+  Future<void> _keepPaper(PaperDrawing? drawing) async {
+    if (!mounted) return;
+    if (drawing == null) return setState(() => _paperFailed = true);
+    try {
+      final child = await ref.read(currentChildProvider.future);
+      final artwork = await ref.read(artworkServiceProvider).savePaper(childId: child.id, photo: widget.photo, drawing: drawing);
+      if (mounted) context.go('/canvas/${artwork.id}');
+    } catch (_) {
+      if (mounted) setState(() => _paperFailed = true);
+    }
   }
 
   Future<void> _choose(ArtStyle style, LineArt page) async {
@@ -63,24 +95,25 @@ class _StylePickerScreenState extends ConsumerState<StylePickerScreen> {
     }
   }
 
+  Widget _failed(String text) => Scaffold(
+        body: PaperBackground(
+          child: SafeArea(
+            child: Stack(children: [
+              Center(child: VoiceBubble(text)),
+              Positioned(left: 14, top: 12, child: NavButton(icon: 'back', label: Strings.retake, onPressed: () => context.pop())),
+            ]),
+          ),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     final avatar = ref.watch(currentChildProvider).value?.avatar ?? animals.first;
+    if (widget.paper) return _paperFailed ? _failed(Strings.paperNotFound) : _Magic(photo: widget.photo, avatar: avatar);
     return FutureBuilder<List<LineArt>>(
       future: _pages,
       builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Scaffold(
-            body: PaperBackground(
-              child: SafeArea(
-                child: Stack(children: [
-                  const Center(child: VoiceBubble(Strings.convertFailed)),
-                  Positioned(left: 14, top: 12, child: NavButton(icon: 'back', label: Strings.retake, onPressed: () => context.pop())),
-                ]),
-              ),
-            ),
-          );
-        }
+        if (snapshot.hasError) return _failed(Strings.convertFailed);
         final pages = snapshot.data;
         if (pages == null || _saving) return _Magic(photo: widget.photo, avatar: avatar);
         return _Choice(

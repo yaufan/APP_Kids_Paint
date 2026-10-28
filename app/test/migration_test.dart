@@ -25,7 +25,33 @@ CREATE TABLE "settings" ("key" TEXT NOT NULL, "value" TEXT NOT NULL, PRIMARY KEY
 /// Version 3: artworks know the page they were colored from.
 final v3Schema = v2Schema.replaceFirst('"sent_at" INTEGER NULL,', '"template" TEXT NULL, "sent_at" INTEGER NULL,');
 
+/// Version 4: a town's name.
+final v4Schema = v3Schema.replaceFirst('"avatar" TEXT NOT NULL,', '"avatar" TEXT NOT NULL, "name" TEXT NULL,');
+
 void main() {
+  test('a version 4 database upgrades: postcards get a back to write on', () async {
+    final dir = Directory.systemTemp.createTempSync('kp_migration4');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final db = AppDatabase(NativeDatabase(File('${dir.path}/db.sqlite'), setup: (raw) {
+      if (raw.userVersion != 0) return;
+      raw.execute(v4Schema);
+      raw.execute("INSERT INTO children (avatar, name) VALUES ('cat', '小美')");
+      raw.execute("INSERT INTO places (child_id, kind) VALUES (1, 'park')");
+      raw.execute("INSERT INTO artworks (child_id, place_id, style, detail, folder, is_completed, sent_at) VALUES (1, 1, 'cute', 'simple', 'a', 1, 1761300000)");
+      raw.userVersion = 4;
+    }));
+    addTearDown(db.close);
+    final repo = ArtworkRepository(db);
+    final postcard = (await repo.watchPostcards(1).first).single;
+    expect((postcard.artwork.folder, postcard.artwork.note), ('a', null));
+    await repo.setNote(postcard.artwork.id, '  我跟阿嬤去公園  ');
+    expect((await repo.get(postcard.artwork.id)).note, '我跟阿嬤去公園');
+    await repo.setNote(postcard.artwork.id, ' ');
+    expect((await repo.get(postcard.artwork.id)).note, isNull, reason: 'a blank back is no back');
+    await repo.setNote(postcard.artwork.id, '鴨' * 100);
+    expect((await repo.get(postcard.artwork.id)).note, '鴨' * ArtworkRepository.noteLength);
+  });
+
   test('a version 3 database upgrades: the town keeps its animal name and skips the first-day welcome', () async {
     final dir = Directory.systemTemp.createTempSync('kp_migration3');
     addTearDown(() => dir.deleteSync(recursive: true));

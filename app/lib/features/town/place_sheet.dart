@@ -47,16 +47,19 @@ class PlaceSheet extends ConsumerWidget {
                 Text(names.isEmpty ? kind.label : names.join('、'),
                     style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 4),
-                Row(children: [
-                  const KidIcon('mail', size: 16, color: KidColors.inkSoft),
-                  const SizedBox(width: 4),
-                  Text(Strings.postcardsHere(postcards.length), style: const TextStyle(fontSize: 15, color: KidColors.inkSoft)),
-                  if (latest != null) ...[
-                    const SizedBox(width: 10),
-                    const KidIcon('clock', size: 16, color: KidColors.inkSoft),
+                // Two lines on a narrow phone.
+                Wrap(spacing: 10, runSpacing: 2, children: [
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    const KidIcon('mail', size: 16, color: KidColors.inkSoft),
                     const SizedBox(width: 4),
-                    Text(Strings.latest(shortDate(latest)), style: const TextStyle(fontSize: 15, color: KidColors.inkSoft)),
-                  ],
+                    Text(Strings.postcardsHere(postcards.length), style: const TextStyle(fontSize: 15, color: KidColors.inkSoft)),
+                  ]),
+                  if (latest != null)
+                    Row(mainAxisSize: MainAxisSize.min, children: [
+                      const KidIcon('clock', size: 16, color: KidColors.inkSoft),
+                      const SizedBox(width: 4),
+                      Text(Strings.latest(shortDate(latest)), style: const TextStyle(fontSize: 15, color: KidColors.inkSoft)),
+                    ]),
                 ]),
               ]),
             ),

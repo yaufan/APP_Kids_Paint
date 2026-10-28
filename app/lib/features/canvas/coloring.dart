@@ -286,7 +286,14 @@ class ColoringDocument {
 
   int get width => regions.width;
   int get height => regions.height;
-  bool get canUndo => ops.isNotEmpty;
+  /// The name of a photographed drawing's own picture (0.18): the sheet a
+  /// 'paper' page starts with, which undo never takes away.
+  static const paperPicture = 'paper';
+
+  /// How many of the first ops are the page itself, not to be undone.
+  int get _kept => ops.isNotEmpty && ops.first is PictureOp && (ops.first as PictureOp).picture == paperPicture ? 1 : 0;
+
+  bool get canUndo => ops.length > _kept;
 
   /// Bucket fill at a page position; returns false when nothing is there.
   bool fill(double x, double y, int color) {
@@ -309,7 +316,7 @@ class ColoringDocument {
   int get paper => ops.whereType<PaperOp>().lastOrNull?.color ?? 0xFFFFFFFF;
 
   void undo() {
-    if (ops.isEmpty) return;
+    if (!canUndo) return;
     ops.removeLast();
     rebuild();
   }

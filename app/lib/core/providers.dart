@@ -10,6 +10,7 @@ import 'db/database.dart';
 import 'festivals.dart';
 import 'places.dart';
 import 'repositories.dart';
+import 'printing.dart';
 import 'sharing.dart';
 import 'storage/artwork_store.dart';
 import 'sounds.dart';
@@ -32,6 +33,9 @@ final artworkServiceProvider = Provider(
 
 /// The phone's share sheet; tests use a pretend one.
 final sharerProvider = Provider<Sharer>((ref) => SystemSharer());
+
+/// The phone's print dialog; tests use recording ones.
+final printerProvider = Provider<PagePrinter>((ref) => SystemPrinter());
 
 /// The phone's photo album; tests use a pretend one.
 final photoAlbumProvider = Provider<PhotoAlbum>((ref) => SystemPhotoAlbum());

@@ -41,6 +41,6 @@ Weather _spell(int spell) {
 /// own snow.
 bool weatherReaches(Habitat? habitat) => switch (habitat) {
       null || Habitat.zoo || Habitat.dinoPark || Habitat.transport || Habitat.botanical || Habitat.insects => true,
-      Habitat.nightMarket || Habitat.candy => true,
+      Habitat.nightMarket || Habitat.candy || Habitat.farm => true,
       Habitat.aquarium || Habitat.shop || Habitat.space || Habitat.polar => false,
     };

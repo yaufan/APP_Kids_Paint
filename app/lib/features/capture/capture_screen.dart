@@ -10,7 +10,8 @@ import '../../app/widgets.dart';
 import '../../core/places.dart';
 import '../../core/providers.dart';
 
-/// Take a photo or pick one from the album (usually with a parent's help).
+/// Take a photo or pick one from the album (usually with a parent's help),
+/// or photograph a drawing made on paper (0.18).
 class CaptureScreen extends ConsumerWidget {
   const CaptureScreen({super.key});
 
@@ -18,7 +19,7 @@ class CaptureScreen extends ConsumerWidget {
   /// full-size photos are slow to decode on low-end phones.
   static const maxPhotoSide = 1600.0;
 
-  Future<void> _pick(BuildContext context, ImageSource source) async {
+  Future<void> _pick(BuildContext context, ImageSource source, {bool paper = false}) async {
     final file = await ImagePicker().pickImage(
       source: source,
       maxWidth: maxPhotoSide,
@@ -27,7 +28,7 @@ class CaptureScreen extends ConsumerWidget {
     );
     if (file == null || !context.mounted) return;
     final bytes = await file.readAsBytes();
-    if (context.mounted) context.push('/styles', extra: bytes);
+    if (context.mounted) context.push(paper ? '/paper' : '/styles', extra: bytes);
   }
 
   @override
@@ -39,6 +40,25 @@ class CaptureScreen extends ConsumerWidget {
           child: LayoutBuilder(builder: (context, box) {
             final wide = box.maxWidth > box.maxHeight;
             final size = ((wide ? box.maxHeight : box.maxWidth) * 0.42).clamp(150.0, 240.0);
+            final paper = PopIn(
+              delay: const Duration(milliseconds: 240),
+              child: ChunkyButton(
+                key: const ValueKey('paper-photo'),
+                label: Strings.paperPhoto,
+                onPressed: () => _pick(context, ImageSource.camera, paper: true),
+                color: KidColors.sun,
+                edge: const Color(0xFFE0A91C),
+                width: size * 0.9,
+                height: size * 0.42,
+                radius: size * 0.21,
+                depth: 7,
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  KidIcon('crayon', size: size * 0.2, color: Colors.white),
+                  SizedBox(width: size * 0.06),
+                  KidIcon('camera', size: size * 0.2, color: Colors.white),
+                ]),
+              ),
+            );
             final buttons = [
               PopIn(
                 child: Breathing(
@@ -74,8 +94,12 @@ class CaptureScreen extends ConsumerWidget {
             return Stack(children: [
               Center(
                 child: wide
-                    ? Row(mainAxisSize: MainAxisSize.min, children: buttons)
-                    : Column(mainAxisSize: MainAxisSize.min, children: buttons),
+                    ? Column(mainAxisSize: MainAxisSize.min, children: [
+                        Row(mainAxisSize: MainAxisSize.min, children: buttons),
+                        SizedBox(height: size * 0.12),
+                        paper,
+                      ])
+                    : Column(mainAxisSize: MainAxisSize.min, children: [...buttons, SizedBox(height: size * 0.16), paper]),
               ),
               Positioned(left: 14, top: 12, child: NavButton(icon: 'map', label: Strings.backToMap, color: KidColors.grassDark, onPressed: () => context.go('/'))),
               Positioned(

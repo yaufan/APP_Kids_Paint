@@ -29,7 +29,13 @@ enum Sfx {
   coin('coin'),
   chime('chime'),
   lullaby('lullaby'),
-  rainbow('rainbow');
+  rainbow('rainbow'),
+  // The town's toys (0.18).
+  quack('quack'),
+  honk('honk'),
+  toot('toot'),
+  firework('firework'),
+  drizzle('drizzle');
 
   const Sfx(this.file);
 
@@ -205,4 +211,13 @@ Ambience? ambienceFor(Habitat? habitat, Weather weather, DayPhase phase) {
 }
 
 /// The boing of a creature jumping when tapped: big ones lower.
+/// What a poked toy in the town sounds like ([townToys] kinds).
+Sfx toySound(String kind) => switch (kind) {
+      'duck' => Sfx.quack,
+      'train' => Sfx.toot,
+      'tower' => Sfx.firework,
+      'cloud' => Sfx.drizzle,
+      _ => Sfx.honk,
+    };
+
 Sfx boingOf(Creature creature) => creature.size >= 180 ? Sfx.boingLow : (creature.size <= 115 ? Sfx.boingHigh : Sfx.boingMid);

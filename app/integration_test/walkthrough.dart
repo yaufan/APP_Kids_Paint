@@ -13,6 +13,7 @@ import 'package:kids_paint/core/creatures.dart';
 import 'package:kids_paint/core/db/database.dart';
 import 'package:kids_paint/core/festivals.dart';
 import 'package:kids_paint/core/places.dart';
+import 'package:kids_paint/core/printing.dart';
 import 'package:kids_paint/core/providers.dart';
 import 'package:kids_paint/core/sharing.dart';
 import 'package:kids_paint/core/sounds.dart';
@@ -39,6 +40,40 @@ class WalkthroughSharer implements Sharer {
   Future<void> shareImage(Uint8List png, {required String name, Rect? origin}) async => shared.add(png);
 }
 
+/// Keeps what parents printed instead of opening the print dialog.
+class WalkthroughPrinter implements PagePrinter {
+  final printed = <List<Uint8List>>[];
+
+  @override
+  Future<void> printPages(List<Uint8List> pages, {required String name}) async => printed.add(pages);
+}
+
+/// A photo of a drawing on paper (0.18): a sheet on a wooden table, a red
+/// sun, a blue house and green grass in crayon, a lamp's shadow.
+Uint8List paperPhoto() {
+  final photo = img.Image(width: 900, height: 1200)..clear(img.ColorRgb8(150, 104, 70));
+  img.fillRect(photo, x1: 110, y1: 120, x2: 800, y2: 1080, color: img.ColorRgb8(238, 233, 216));
+  img.fillCircle(photo, x: 640, y: 300, radius: 90, color: img.ColorRgb8(226, 70, 52));
+  img.fillRect(photo, x1: 230, y1: 560, x2: 560, y2: 860, color: img.ColorRgb8(70, 120, 210));
+  img.fillPolygon(photo, vertices: [img.Point(200, 570), img.Point(395, 400), img.Point(590, 570)], color: img.ColorRgb8(200, 60, 120));
+  img.fillRect(photo, x1: 160, y1: 880, x2: 750, y2: 960, color: img.ColorRgb8(80, 170, 70));
+  // A soft shadow over the bottom of the sheet.
+  for (var y = 700; y < 1080; y++) {
+    for (var x = 110; x < 800; x++) {
+      final p = photo.getPixel(x, y);
+      final k = 1 - 0.18 * (y - 700) / 380;
+      p
+        ..r = p.r * k
+        ..g = p.g * k
+        ..b = p.b * k;
+    }
+  }
+  return img.encodeJpg(photo, quality: 88);
+}
+
+/// What the child said about the park postcard, written on its back.
+const walkthroughNote = '這是我在公園看到的咖啡杯，紅紅的好可愛';
+
 /// The whole app as a child (and then a parent) uses it, with a screenshot
 /// of every step. Shared by `test/flow_test.dart` (headless phone and tablet)
 /// and `integration_test/app_flow_test.dart` (iPhone/iPad simulators). Only
@@ -48,6 +83,7 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   final db = AppDatabase(NativeDatabase.memory());
   final storeDir = await tester.runAsync(() => Directory.systemTemp.createTemp('kids_paint_flow'));
   final sharer = WalkthroughSharer();
+  final printer = WalkthroughPrinter();
 
   await tester.pumpWidget(RepaintBoundary(
     key: walkthroughKey,
@@ -58,6 +94,7 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
         clockProvider.overrideWithValue(() => walkthroughNow),
         if (sounds != null) systemSoundsProvider.overrideWithValue(sounds),
         sharerProvider.overrideWithValue(sharer),
+        printerProvider.overrideWithValue(printer),
       ],
       child: const KidsPaintApp(),
     ),
@@ -248,6 +285,43 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   await tester.tap(find.byType(BackButton)); // to parent mode, still scrolled down to it
   await waitFor(tester, find.byKey(const ValueKey('share-row')));
   await idle(tester, 500);
+  // Writing on its back what the child said (0.18).
+  final parentList = find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first;
+  await tester.scrollUntilVisible(find.byKey(const ValueKey('notes-row')), 200, scrollable: parentList);
+  await tester.pump();
+  await tester.tap(find.byKey(const ValueKey('notes-row')));
+  await waitFor(tester, find.byKey(ValueKey('note-pick-${saved.single.id}')));
+  await idle(tester, 500);
+  await tester.tap(find.byKey(ValueKey('note-pick-${saved.single.id}')));
+  await waitFor(tester, find.byKey(const ValueKey('note-field')));
+  await idle(tester, 700);
+  await tester.enterText(find.byKey(const ValueKey('note-field')), walkthroughNote);
+  await idle(tester, 400);
+  await shot('12c_postcard_note');
+  await tester.tap(find.byKey(const ValueKey('note-save')));
+  await waitFor(tester, find.text(Strings.noteSaved));
+  await idle(tester, 600);
+  await tester.tap(find.byType(BackButton));
+  await waitFor(tester, find.byKey(const ValueKey('notes-row')));
+  await idle(tester, 500);
+  // Printing two of the app's pages (0.18).
+  await tester.scrollUntilVisible(find.byKey(const ValueKey('print-row')), 200, scrollable: parentList);
+  await tester.pump();
+  await tester.tap(find.byKey(const ValueKey('print-row')));
+  await waitFor(tester, find.byKey(const ValueKey('print-lunarNewYear')));
+  await idle(tester, 600);
+  await tester.tap(find.byKey(const ValueKey('print-lunarNewYear')));
+  await tester.tap(find.byKey(const ValueKey('print-christmas')));
+  await idle(tester, 400);
+  await shot('12d_print');
+  await tester.tap(find.byKey(const ValueKey('print-now')));
+  for (var i = 0; i < 100 && printer.printed.isEmpty; i++) {
+    await idle(tester, 100);
+  }
+  expect(printer.printed.single, hasLength(2));
+  await tester.tap(find.byType(BackButton));
+  await waitFor(tester, find.byKey(const ValueKey('print-row')));
+  await idle(tester, 500);
   // Further down the list (built only when scrolled to).
   await tester.scrollUntilVisible(find.text(Strings.privacy), 300,
       scrollable: find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first);
@@ -257,10 +331,20 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   await idle(tester, 500);
   await shot('13_privacy');
 
+  // The child turns the postcard over: the words on its back, read out.
+  GoRouter.of(tester.element(find.text(Strings.allOnPhone))).go('/replay/${saved.single.id}');
+  await waitFor(tester, find.byKey(const ValueKey('flip')));
+  await waitFor(tester, find.byKey(const ValueKey('replay-again')));
+  await idle(tester, 400);
+  await tester.tap(find.byKey(const ValueKey('flip')));
+  await idle(tester, 1000);
+  expect(find.text(walkthroughNote), findsOneWidget);
+  await shot('10d_postcard_back');
+
   // 10. Christmas Eve night: the town is lit, Gugu says good night and brings
   //     a letter with the Christmas page.
   walkthroughNow = DateTime(2026, 12, 24, 19, 30);
-  GoRouter.of(tester.element(find.text(Strings.allOnPhone))).go('/');
+  GoRouter.of(tester.element(find.byKey(const ValueKey('flip')))).go('/');
   final letter = find.bySemanticsLabel(Strings.openLetter(Festival.christmas.label));
   await waitFor(tester, letter);
   await idle(tester, 1200);
@@ -327,6 +411,19 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   await waitFor(tester, find.bySemanticsLabel(Strings.townFolk(PlaceKind.home.label)));
   await idle(tester, 2000);
   await shot('17_town_dusk');
+
+  // 12b. A drawing on real paper, photographed (0.18): onto the canvas, then to the park.
+  GoRouter.of(tester.element(find.byType(Scaffold).first)).push('/paper', extra: paperPhoto());
+  await waitFor(tester, find.byKey(const ValueKey('page')));
+  await idle(tester, 1000);
+  await shot('17c_paper_drawing');
+  await tester.tap(find.bySemanticsLabel(Strings.done));
+  final toPark = find.bySemanticsLabel(Strings.sendTo(PlaceKind.park.label));
+  await waitFor(tester, toPark);
+  await idle(tester, 600);
+  await tester.tap(toPark);
+  await waitFor(tester, find.bySemanticsLabel(Strings.pinLabel(PlaceKind.park.label, 2)));
+  await idle(tester, 1500);
 
   // 13. The zoo: color an elephant and a monkey, and they move in.
   walkthroughNow = DateTime(2026, 10, 27, 10);
@@ -484,8 +581,31 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   }
   await shot('31_candy');
 
-  // 19. The album as one timeline.
+  // 24. Grandma and grandpa's farm (0.18): a cow and a chick move in.
   await tester.tap(find.bySemanticsLabel(Strings.backToTown));
+  await waitFor(tester, find.bySemanticsLabel(Strings.blankPaper));
+  await idle(tester, 800);
+  await enterScene(tester, PlaceKind.grandma);
+  for (final (i, creature) in [Creature.cow, Creature.chick].indexed) {
+    await colorCreature(tester, creature, [kidPalette[i == 0 ? 6 : 2], kidPalette[1], kidPalette[4]],
+        onPicker: i == 0 ? () => shot('32a_farm_pick') : null);
+    await tester.tap(find.bySemanticsLabel(Strings.done));
+    await waitFor(tester, find.bySemanticsLabel(Strings.resident(creature.label)));
+    await idle(tester, 1800);
+  }
+  await shot('32_farm');
+
+  // 25. The town you can poke (0.18): the train drives off, a duck bobs, 101's fireworks.
+  await tester.tap(find.bySemanticsLabel(Strings.backToTown));
+  await waitFor(tester, find.byKey(const ValueKey('poke-tower')));
+  await idle(tester, 1000);
+  await tester.tap(find.byKey(const ValueKey('poke-mrt')));
+  await tester.tapAt(tester.getRect(find.byKey(const ValueKey('poke-duckRiver'))).centerLeft + const Offset(5, 0));
+  await tester.tap(find.byKey(const ValueKey('poke-tower')));
+  await idle(tester, 1300);
+  await shot('33_town_toys');
+
+  // 19. The album as one timeline (from the town, after poking it).
   await waitFor(tester, find.bySemanticsLabel(Strings.album));
   await idle(tester, 600);
   await tester.tap(find.bySemanticsLabel(Strings.album));

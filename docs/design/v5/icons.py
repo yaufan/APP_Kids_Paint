@@ -146,6 +146,7 @@ PLACES = {
     "food": ("takoyaki", "#FFE9CF"),
     "polar": ("penguin", "#DDF1FF"),
     "candy": ("lollipop", "#FFE3F1"),
+    "grandma": ("cow", "#E6F5D8"),
 }
 _BOXES = {}  # character -> its drawing's bounding box on its page
 

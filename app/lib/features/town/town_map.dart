@@ -62,6 +62,7 @@ class TownMap extends StatefulWidget {
     required this.avatar,
     this.townies = const {},
     this.onTownie,
+    this.onToy,
     this.onPin,
     this.onLot,
     this.onAttraction,
@@ -84,6 +85,10 @@ class TownMap extends StatefulWidget {
 
   /// One of them was tapped (it jumps).
   final ValueChanged<PlaceKind>? onTownie;
+
+  /// Something in the town was poked (0.18): what it is ('duck', 'car',
+  /// 'train', 'tower', 'cloud'...; [townToys]).
+  final ValueChanged<String>? onToy;
   final ValueChanged<PlaceKind>? onPin;
   final ValueChanged<PlaceKind>? onLot;
 
@@ -123,6 +128,20 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
   late final AnimationController _grow =
       AnimationController(vsync: this, duration: const Duration(milliseconds: 1600));
 
+  /// One per toy, made when it is first poked or drawn.
+  final _toys = <String, AnimationController>{};
+
+  AnimationController _toy(String name) => _toys.putIfAbsent(
+      name, () => AnimationController(vsync: this, duration: _ToyMotion.lengthOf(townToys[name]!.kind)));
+
+  void _poke(String name) {
+    final toy = _toy(name);
+    // The train is away: let it come back first.
+    if (toy.isAnimating && townToys[name]!.kind == 'train') return;
+    toy.forward(from: 0);
+    widget.onToy?.call(townToys[name]!.kind);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -134,6 +153,9 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
     _view.dispose();
     _life.dispose();
     _grow.dispose();
+    for (final toy in _toys.values) {
+      toy.dispose();
+    }
     super.dispose();
   }
 
@@ -167,7 +189,21 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
       _place(viewport, s);
       final size = townSize * s;
 
-      final layers = <Widget>[_layer('sky'), _layer('land')];
+      // The toys drawn after [layer], each with its own picture.
+      Iterable<Widget> toys(String layer) => [
+            for (final MapEntry(key: name, value: toy) in townToys.entries)
+              if (toy.after == layer && toy.art != null)
+                _ToySprite(
+                  key: ValueKey('toy-$name'),
+                  kind: toy.kind,
+                  art: toy.art!,
+                  scale: s,
+                  poked: _toy(name),
+                  child: _svg('toy_$name'),
+                ),
+          ];
+
+      final layers = <Widget>[_layer('sky'), _layer('land'), ...toys('land')];
       for (final name in townLayerOrder) {
         final kind = PlaceKind.byName(name);
         final slot = townSlots[name]!;
@@ -197,11 +233,12 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
           } else {
             layers.add(_layer(name));
           }
+          layers.addAll(toys(name));
         } else if (slot.lot != null) {
           layers.add(_layer('${name}_lot'));
         }
       }
-      layers.add(_layer('traffic'));
+      layers.addAll(toys('traffic'));
       final festival = widget.festival;
       if (festival != null && townFestivalLayers.contains(festival.name)) layers.add(_layer('festival_${festival.name}'));
       final night = widget.phase == DayPhase.night;
@@ -237,6 +274,33 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
           ),
       ];
 
+      // Toys that are there (the park's ducks once the park is built).
+      bool there(String? layer) => layer == null || layer == 'land' || layer == 'traffic' || _built(PlaceKind.byName(layer));
+      final pokes = [
+        for (final MapEntry(key: name, value: toy) in townToys.entries)
+          if (there(toy.after))
+            Positioned.fromRect(
+              rect: Rect.fromLTWH(toy.tap.left * s, toy.tap.top * s, toy.tap.width * s, toy.tap.height * s),
+              child: Semantics(
+                button: true,
+                label: Strings.toy(toy.kind),
+                child: GestureDetector(
+                  key: ValueKey('poke-$name'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: widget.interactive ? () => _poke(name) : null,
+                ),
+              ),
+            ),
+      ];
+      // What poking the tower and the clouds starts.
+      final effects = [
+        for (final MapEntry(key: name, value: toy) in townToys.entries)
+          if (toy.kind == 'tower')
+            _PokedFireworks(at: townTowerTop * s, poked: _toy(name))
+          else if (toy.kind == 'cloud')
+            _Rain(under: Rect.fromLTWH(toy.tap.left * s, toy.tap.top * s, toy.tap.width * s, toy.tap.height * s), poked: _toy(name)),
+      ];
+
       final home = townSlots['home']!.pin;
       final townies = [
         for (final MapEntry(key: kind, value: files) in widget.townies.entries)
@@ -250,6 +314,19 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
               label: Strings.townFolk(kind.label),
               onTap: widget.onTownie == null ? null : () => widget.onTownie!(kind),
             ),
+      ];
+      // A pin takes taps a little around it too, but under the toys.
+      final margins = [
+        for (final spot in widget.spots.values)
+          Positioned.fromRect(
+            rect: _Pin.boxOf(spot, townSlots[spot.kind.name]!.pin * s),
+            child: ExcludeSemantics(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: widget.onPin == null ? null : () => widget.onPin!(spot.kind),
+              ),
+            ),
+          ),
       ];
       final pins = [
         for (final spot in widget.spots.values)
@@ -269,6 +346,9 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
           ...layers,
           ...lots,
           ...attractions,
+          ...margins,
+          ...pokes,
+          ...effects,
           _Walker(life: _life, at: Offset((home.dx + 64) * s, (home.dy + 88) * s), avatar: widget.avatar),
           // Gugu sleeps on the MRT viaduct at night, away from every pin.
           if (night)
@@ -317,6 +397,15 @@ class _Pin extends StatefulWidget {
   final bool bounce;
   final VoidCallback? onTap;
 
+  static double sizeOf(TownSpot spot) => spot.today ? 72.0 : 58.0;
+  static const tip = 12.0;
+
+  /// Where a pin with its tip at [at] takes taps: the pin and around it.
+  static Rect boxOf(TownSpot spot, Offset at) {
+    final size = sizeOf(spot);
+    return Rect.fromLTWH(at.dx - size / 2 - 40, at.dy - size - tip - 20, size + 80, size + tip + 40);
+  }
+
   @override
   State<_Pin> createState() => _PinState();
 }
@@ -343,20 +432,19 @@ class _PinState extends State<_Pin> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final today = widget.spot.today;
-    final size = today ? 72.0 : 58.0;
-    const tip = 12.0;
+    final size = _Pin.sizeOf(widget.spot);
+    const tip = _Pin.tip;
     final ring = today ? KidColors.sun : Colors.white;
-    return Positioned(
-      left: widget.at.dx - size / 2 - 40,
-      top: widget.at.dy - size - tip - 20,
-      width: size + 80,
-      height: size + tip + 40,
+    return Positioned.fromRect(
+      rect: _Pin.boxOf(widget.spot, widget.at),
       child: Semantics(
         button: true,
         label: Strings.pinLabel(widget.spot.kind.label, widget.spot.count),
         excludeSemantics: true,
         child: GestureDetector(
-          behavior: HitTestBehavior.translucent,
+          // Only the pin itself: around it, a tap first reaches what is
+          // there (a duck, a car) and the pin's margin under them.
+          behavior: HitTestBehavior.deferToChild,
           onTap: widget.onTap,
           child: AnimatedBuilder(
             animation: _c,
@@ -693,10 +781,187 @@ class _FireworksState extends State<_Fireworks> with SingleTickerProviderStateMi
   }
 }
 
-class _FireworksPainter extends CustomPainter {
-  _FireworksPainter(this.t);
+/// Fireworks over 101 when it is poked (0.18): its three bursts, once.
+class _PokedFireworks extends StatelessWidget {
+  const _PokedFireworks({required this.at, required this.poked});
+
+  final Offset at;
+  final Animation<double> poked;
+
+  @override
+  Widget build(BuildContext context) {
+    const box = 240.0;
+    return Positioned(
+      left: at.dx - box / 2,
+      top: at.dy - box * 0.8,
+      width: box,
+      height: box,
+      child: IgnorePointer(
+        child: AnimatedBuilder(
+          animation: poked,
+          builder: (context, _) => poked.value == 0 || poked.value == 1
+              ? const SizedBox.shrink()
+              : CustomPaint(painter: _FireworksPainter(poked.value * _FireworksPainter.once, repeat: false)),
+        ),
+      ),
+    );
+  }
+}
+
+/// A little rain under a poked cloud (0.18).
+class _Rain extends StatelessWidget {
+  const _Rain({required this.under, required this.poked});
+
+  /// The cloud.
+  final Rect under;
+  final Animation<double> poked;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: under.left,
+      top: under.bottom - under.height * 0.2,
+      width: under.width,
+      height: 120,
+      child: IgnorePointer(
+        child: AnimatedBuilder(
+          animation: poked,
+          builder: (context, _) =>
+              poked.value == 0 || poked.value == 1 ? const SizedBox.shrink() : CustomPaint(painter: _RainPainter(poked.value)),
+        ),
+      ),
+    );
+  }
+}
+
+class _RainPainter extends CustomPainter {
+  _RainPainter(this.t);
 
   final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..strokeWidth = 2.4
+      ..strokeCap = StrokeCap.round;
+    for (var i = 0; i < 24; i++) {
+      // Each drop starts a little after the one before, and falls in a third of the time.
+      final start = (i * 0.618) % 1 * 0.62;
+      final p = (t - start) / 0.34;
+      if (p < 0 || p > 1) continue;
+      final x = size.width * (0.12 + 0.76 * ((i * 0.381) % 1));
+      final y = size.height * p;
+      paint.color = const Color(0xFF6FBFFF).withValues(alpha: 0.85 * (1 - p * 0.6));
+      canvas.drawLine(Offset(x, y), Offset(x - 1.5, y + 9), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RainPainter old) => old.t != t;
+}
+
+/// How long each kind of toy takes to do its thing.
+abstract final class _ToyMotion {
+  static Duration lengthOf(String kind) => switch (kind) {
+        'train' => const Duration(milliseconds: 5200),
+        'duck' => const Duration(milliseconds: 1100),
+        'tower' => const Duration(milliseconds: 5400),
+        'cloud' => const Duration(milliseconds: 2600),
+        _ => const Duration(milliseconds: 800), // cars, the bus, scooters
+      };
+}
+
+/// A toy's own picture at its place in the town, doing its thing when
+/// [poked] runs: the train drives off and comes back round, a duck bobs
+/// and makes ripples, a car hops.
+class _ToySprite extends StatelessWidget {
+  const _ToySprite({super.key, required this.kind, required this.art, required this.scale, required this.poked, required this.child});
+
+  final String kind;
+
+  /// Where the picture goes, in world points.
+  final Rect art;
+  final double scale;
+  final Animation<double> poked;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: poked,
+      builder: (context, child) {
+        final t = poked.value;
+        var left = art.left;
+        var lift = 0.0;
+        var turn = 0.0;
+        Widget picture = child!;
+        switch (kind) {
+          case 'train':
+            // Off to the right, and in again from the left.
+            final round = townSize.width + art.width;
+            left += Curves.easeInOutSine.transform(t) * round;
+            if (left > townSize.width) left -= round;
+          case 'duck':
+            lift = 5 * math.sin(math.pi * t * 3).abs() * (1 - t);
+            turn = 0.35 * math.sin(math.pi * t * 4) * (1 - t);
+            if (t > 0 && t < 1) {
+              picture = Stack(fit: StackFit.expand, clipBehavior: Clip.none, children: [
+                Positioned.fill(child: CustomPaint(painter: _RipplePainter(t))),
+                picture,
+              ]);
+            }
+          default:
+            // Two little hops.
+            lift = 8 * math.sin(math.pi * t * 2).abs() * (1 - 0.4 * t);
+        }
+        return Positioned(
+          left: left * scale,
+          top: (art.top - lift) * scale,
+          width: art.width * scale,
+          height: art.height * scale,
+          child: turn == 0 ? picture : Transform.rotate(angle: turn, child: picture),
+        );
+      },
+      child: child,
+    );
+  }
+}
+
+class _RipplePainter extends CustomPainter {
+  _RipplePainter(this.t);
+
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height * 0.68);
+    for (final delay in [0.0, 0.3]) {
+      final p = ((t - delay) / 0.7).clamp(0.0, 1.0);
+      if (p == 0) continue;
+      canvas.drawOval(
+        Rect.fromCenter(center: center, width: size.width * (0.6 + 1.2 * p), height: size.height * (0.25 + 0.5 * p)),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.6
+          ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.9 * (1 - p)),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RipplePainter old) => old.t != t;
+}
+
+class _FireworksPainter extends CustomPainter {
+  _FireworksPainter(this.t, {this.repeat = true});
+
+  final double t;
+
+  /// Over and over (New Year's Eve), or each burst once (poked).
+  final bool repeat;
+
+  /// How far [t] goes for every burst to finish once.
+  static const once = 0.66 + 0.45;
 
   static const _bursts = [
     (x: 0.5, y: 0.32, color: Color(0xFFFFCF3F), start: 0.0),
@@ -707,8 +972,8 @@ class _FireworksPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     for (final b in _bursts) {
-      final p = (t - b.start) % 1 / 0.45; // each burst lives for 45% of the loop
-      if (p > 1) continue;
+      final p = (repeat ? (t - b.start) % 1 : t - b.start) / 0.45; // each burst lives for 45% of the loop
+      if (p < 0 || p > 1) continue;
       final center = Offset(b.x * size.width, b.y * size.height);
       final r = size.width * 0.2 * Curves.easeOutCubic.transform(p);
       final paint = Paint()..color = b.color.withValues(alpha: (1 - p) * 0.95);
@@ -722,5 +987,5 @@ class _FireworksPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_FireworksPainter old) => old.t != t;
+  bool shouldRepaint(_FireworksPainter old) => old.t != t || old.repeat != repeat;
 }

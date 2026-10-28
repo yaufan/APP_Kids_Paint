@@ -206,12 +206,73 @@ def rainbow():
     return place(1.2, [(i * 0.055, 0.7 * marimba(NOTE[n], 0.5)) for i, n in enumerate(run)])
 
 
+# ---------------------------------------------------------------- the town's toys (0.18)
+
+toy_rng = np.random.default_rng(18)  # its own, so the sounds above stay the same
+
+
+def quack():
+    """A duck: two nasal quacks."""
+    def one(dur):
+        t = t_of(dur)
+        f = np.linspace(560, 380, len(t))
+        phase = np.cumsum(f) / SR
+        buzz = 2 * (phase % 1) - 1  # a sawtooth, nasal once filtered
+        x = bandpass(buzz, 700, 2600) + 0.3 * bandpass(buzz, 2600, 4200)
+        return x * env(len(t), 0.008, 0.05) * (0.6 + 0.4 * np.sin(np.pi * t / dur))
+    return place(0.42, [(0, one(0.15)), (0.2, 0.85 * one(0.17))])
+
+
+def honk():
+    """A little car horn: beep beep, two notes together, soft-edged."""
+    def one(dur):
+        t = t_of(dur)
+        x = sum(np.sign(np.sin(2 * np.pi * f * t)) for f in (415, 523))
+        return lowpass(x, 1800) * env(len(t), 0.01, 0.04)
+    return place(0.42, [(0, one(0.13)), (0.19, one(0.18))])
+
+
+def toot():
+    """The MRT pulling out: a three-note horn, a little wobbly."""
+    t = t_of(0.75)
+    wob = 1 + 0.006 * np.sin(2 * np.pi * 5 * t)
+    x = sum(sweep(f * wob) + 0.3 * sweep(2 * f * wob) for f in (NOTE["E4"], NOTE["G#4"], NOTE["B4"]))
+    return x * env(len(t), 0.06, 0.25)
+
+
+def firework():
+    """Whistling up, a soft boom, then crackles fading."""
+    n = int(0.55 * SR)
+    t = np.arange(n) / SR
+    whistle = sweep(np.linspace(700, 1900, n)) * np.linspace(0.15, 0.5, n) * env(n, 0.05, 0.02)
+    hiss = bandpass(toy_rng.standard_normal(n), 2000, 6000) * 0.12 * np.linspace(0.3, 1, n)
+    m = int(0.5 * SR)
+    boom = lowpass(toy_rng.standard_normal(m), 220) * 4 * decay(m, 0.12) * env(m, 0.004, 0.1)
+    crackles = np.zeros(int(1.1 * SR))
+    for i in toy_rng.integers(0, len(crackles) - 300, 26):
+        d = bandpass(toy_rng.standard_normal(300), 1500, 7000) * np.exp(-np.arange(300) / 30)
+        crackles[i:i + 300] += d * toy_rng.uniform(0.2, 0.6) * (1 - i / len(crackles))
+    return place(1.9, [(0, whistle + hiss), (0.55, boom), (0.62, crackles)])
+
+
+def drizzle():
+    """A little rain from one cloud: a patter that comes and goes."""
+    n = int(1.6 * SR)
+    hush = bandpass(toy_rng.standard_normal(n), 900, 4000) * 0.15
+    drops = np.zeros(n)
+    for i in toy_rng.integers(0, n - 300, 40):
+        d = bandpass(toy_rng.standard_normal(300), 1800, 6500) * np.exp(-np.arange(300) / 35)
+        drops[i:i + 300] += d * toy_rng.uniform(0.3, 0.8)
+    return (hush + drops) * np.sin(np.pi * np.arange(n) / n) ** 0.7
+
+
 SHORT = {
     "tap": (tap, 0.30), "pick": (pick, 0.35), "fill": (fill, 0.45), "swish": (swish, 0.20), "stamp": (stamp, 0.45),
     "squeak": (squeak, 0.22), "undo": (undo, 0.30), "sparkle": (sparkle, 0.30), "tada": (tada, 0.45), "hooray": (hooray, 0.45),
     "boing_low": (lambda: boing(170), 0.45), "boing_mid": (lambda: boing(250), 0.42), "boing_high": (lambda: boing(370), 0.38),
     "send": (send, 0.40), "rocket": (rocket, 0.40), "ding": (ding, 0.35), "coin": (coin, 0.35), "chime": (chime, 0.35),
     "lullaby": (lullaby, 0.30), "rainbow": (rainbow, 0.35),
+    "quack": (quack, 0.32), "honk": (honk, 0.26), "toot": (toot, 0.30), "firework": (firework, 0.36), "drizzle": (drizzle, 0.26),
 }
 
 

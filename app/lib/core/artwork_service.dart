@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 
 import '../features/canvas/coloring.dart';
+import '../features/capture/paper_photo.dart';
 import '../features/lineart/line_art.dart';
 import '../features/lineart/region_map.dart';
 import 'creatures.dart';
@@ -75,6 +76,33 @@ class ArtworkService {
     final folder = ArtworkStore.newFolderName();
     await _writePage(await _store.create(folder), page);
     return _repo.create(childId: childId, style: 'blank', detail: DetailLevel.simple.name, folder: folder);
+  }
+
+  /// A drawing the child made on paper and photographed (0.18): an empty
+  /// sheet the drawing's shape with the drawing on it, to color more and
+  /// send. The photo is kept like a photo page's (without its metadata).
+  Future<Artwork> savePaper({required int childId, required Uint8List photo, required PaperDrawing drawing}) async {
+    // The drawing's long side as long as a blank sheet's, with a margin.
+    const margin = 20;
+    final scale = (blankHeight - 2 * margin) / math.max(drawing.width, drawing.height);
+    final w = (drawing.width * scale).round() + 2 * margin, h = (drawing.height * scale).round() + 2 * margin;
+    final n = w * h;
+    final page = LineArt(
+      width: w,
+      height: h,
+      lines: Uint8List(n)..fillRange(0, n, 255),
+      regions: RegionMap(w, h, Uint16List(n)..fillRange(0, n, 1)),
+    );
+    final folder = ArtworkStore.newFolderName();
+    final files = await _store.create(folder);
+    await files.photo.writeAsBytes(await Isolate.run(() => withoutMetadata(photo)));
+    await _writePage(files, page);
+    final sheet = files.picture(ColoringDocument.paperPicture);
+    await sheet.parent.create(recursive: true);
+    await sheet.writeAsBytes(drawing.png);
+    final doc = ColoringDocument(page.regions, [PictureOp(ColoringDocument.paperPicture, w / 2, h / 2, drawing.width * scale)]);
+    await files.ops.writeAsString(doc.encodeOps(), flush: true);
+    return _repo.create(childId: childId, style: 'paper', detail: DetailLevel.simple.name, folder: folder);
   }
 
   Future<void> _writePage(ArtworkFiles files, LineArt page) async {

@@ -14,7 +14,9 @@ enum Habitat {
   // Postcards of eating out go to 好吃的店; inside it is the night market.
   nightMarket(PlaceKind.food, residents: Residents.visitors, ownName: '夜市'),
   polar(PlaceKind.polar, residents: Residents.visitors),
-  candy(PlaceKind.candy, residents: Residents.sweets);
+  candy(PlaceKind.candy, residents: Residents.sweets),
+  // Postcards to 阿公阿嬤家 go to grandma and grandpa's; behind it is their farm (0.18).
+  farm(PlaceKind.grandma, ownName: '農場');
 
   const Habitat(this.place, {this.residents = Residents.animals, this.ownName});
 
@@ -202,7 +204,20 @@ enum Creature {
   cookie('餅乾', Habitat.candy, Motion.roll, 120),
   gingerbread('薑餅人', Habitat.candy, Motion.walk, 135),
   cake('草莓蛋糕', Habitat.candy, Motion.sway, 140),
-  jelly('果凍', Habitat.candy, Motion.hop, 115);
+  jelly('果凍', Habitat.candy, Motion.hop, 115),
+  // Grandma and grandpa's farm (0.18): the chick and the bunny hop, the tractor drives.
+  cow('乳牛', Habitat.farm, Motion.walk, 180),
+  waterBuffalo('水牛', Habitat.farm, Motion.walk, 185),
+  pig('小豬', Habitat.farm, Motion.walk, 150),
+  hen('母雞', Habitat.farm, Motion.walk, 130),
+  chick('小雞', Habitat.farm, Motion.hop, 105),
+  sheep('綿羊', Habitat.farm, Motion.walk, 150),
+  goat('山羊', Habitat.farm, Motion.walk, 150),
+  duck('鴨子', Habitat.farm, Motion.walk, 125),
+  goose('鵝', Habitat.farm, Motion.walk, 140),
+  bunny('兔子', Habitat.farm, Motion.hop, 120),
+  puppy('小狗', Habitat.farm, Motion.walk, 135),
+  tractor('拖拉機', Habitat.farm, Motion.drive, 200);
 
   const Creature(this.label, this.habitat, this.motion, this.size);
 

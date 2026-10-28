@@ -132,6 +132,11 @@ Python 原型與測試結果：[prototypes/lineart](../prototypes/lineart/README
 - **魔法蠟筆（不出界）**：從 region map 取出第一下碰到的區塊當遮罩。
 - 蠟筆用紋理印章式筆刷；亮粉用粒子＋閃爍動畫。
 - 雙指縮放預設關閉；手掌誤觸偵測。
+- **拍紙上的畫**（0.18，`features/capture/paper_photo.dart`）：
+  1. 找紙：亮度用 Otsu 分成亮暗兩群，最大的一塊亮的就是紙（桌子、地板比較暗），往內縮 2% 去掉紙邊的影子。找不到夠大的就整張照片都算。
+  2. 紙本來的顏色：每 32×32 一格，取比較亮的 20% 平均；整格都被畫滿的，用旁邊最亮的一格或整張紙常見的顏色。格子之間平滑地內插，所以燈光的黃、手機的影子都會被除掉。
+  3. 每一點除以紙的顏色：很亮又沒什麼顏色的變透明，其他的留下來，顏色和深淺加強一點（照片裡的鉛筆、蠟筆比較淡）。
+  4. 只留畫的範圍（多留一點邊），存成 `stamps/paper.png`；頁面是一張同樣形狀的白紙，第一筆就是把它整張貼上去（`PictureOp`，名字 `paper`），復原不會拿掉它。油漆桶換紙的顏色，跟白紙一樣。
 
 ---
 
@@ -147,7 +152,8 @@ Place        地點（小朋友自己選，不存座標）
 
 Artwork      作品
   id, childId, placeId?, createdAt, updatedAt,
-  style(realistic|cute|template|blank), template?（節日或動物的著色圖）, detailLevel,
+  style(realistic|cute|template|blank|paper), template?（節日或動物的著色圖）, detailLevel,
+  note?（0.18：明信片背面，家長替小朋友寫的話）,
   originalPhotoPath?, lineArtPath, regionMapPath,
   coloredPath, thumbnailPath, strokesPath,
   voiceNotePath?, tags[], dominantColors[],
@@ -205,6 +211,8 @@ Artwork      作品
 - 縮時重播（0.17）：`Replay` 照 ops 的順序一步一步塗到新的空白頁，筆畫一個點一個點來，3～10 秒播完，最後一步整頁重畫，跟存的一模一樣。
 - 縮時影片（還沒做）：重播筆畫資料並逐格輸出，用原生影片編碼 API（Android MediaCodec／iOS AVAssetWriter）轉成 MP4。
 - 分享前一律移除 EXIF。
+- 明信片背面（0.18）：家長在家長模式打字（最多 60 個字），存在作品的 `note` 欄位（資料庫版本 5）。重播畫面右上角「翻到背面」用 `Transform` 繞 Y 軸翻過來，背面有那段話、郵票（小朋友的動物）、郵戳、寄到哪裡，並用手機內建語音念出來。
+- 列印（0.18）：`pdf` 套件把選的著色圖一張一頁排在 A4（邊界 15 mm，橫的圖整頁轉橫），`printing` 套件打開手機的列印選單（印表機或存成 PDF）。APP 本身不連網。
 
 ---
 
@@ -258,5 +266,6 @@ docs/                 規劃文件
 - flutter_riverpod 3、go_router 18、drift 2.35、image_picker、image、flutter_svg、flutter_tts、gal（存到相簿）、audioplayers（0.16 起，音效；聲音檔由 `docs/design/sounds/make_sounds.py` 用正弦波和雜訊合成）
 
 - share_plus（0.17 起，家長模式的分享；不需要任何權限）
+- pdf、printing（0.18 起，家長模式印著色畫；用系統的列印功能，不需要任何權限）
 
 **尚未加入**：自動去背（只畫主角）。0.17 的「剪下來」是剪塗了顏色的部分，不是辨認主角。
