@@ -248,6 +248,8 @@ class ColoringDocument {
   }
 
   void rebuild() {
+    // Every stroke is laid again from the start: none keeps its old mask.
+    _maskOp = null;
     final paper = _paper = this.paper;
     for (var i = 0; i < rgba.length ~/ 4; i++) {
       _set(i, paper);

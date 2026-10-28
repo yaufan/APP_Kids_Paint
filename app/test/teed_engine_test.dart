@@ -46,6 +46,18 @@ void main() {
     expect(loads, 1);
   });
 
+  test('when the weights fail to load once, the next photo tries again', () async {
+    var loads = 0;
+    final engine = TeedLineArtEngine(() async {
+      if (++loads == 1) throw const FileSystemException('busy');
+      return weights;
+    }, size: 256);
+    await expectLater(engine.convert(photo, ArtStyle.realistic, DetailLevel.simple), throwsA(anything));
+    final page = await engine.convert(photo, ArtStyle.realistic, DetailLevel.simple);
+    expect(page.lines, isNotEmpty);
+    expect(loads, 2);
+  });
+
   test('rejects data that is not an image', () {
     final engine = TeedLineArtEngine(() async => weights);
     expect(engine.convert(photo.sublist(0, 10), ArtStyle.realistic, DetailLevel.simple), throwsA(anything));

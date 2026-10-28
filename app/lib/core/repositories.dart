@@ -139,18 +139,20 @@ class ArtworkRepository {
 
   Future<void> delete(int id) => (_db.delete(_db.artworks)..where((a) => a.id.equals(id))).go();
 
-  /// Every child's finished pictures after the one with id [afterId], oldest first.
-  Future<List<Artwork>> finishedAfter(int afterId) => (_db.select(_db.artworks)
-        ..where((a) => a.isCompleted.equals(true) & a.id.isBiggerThanValue(afterId))
+  /// Every child's finished pictures, oldest first.
+  Future<List<Artwork>> finished() => (_db.select(_db.artworks)
+        ..where((a) => a.isCompleted.equals(true))
         ..orderBy([(a) => OrderingTerm.asc(a.id)]))
       .get();
 
-  /// Puts the postcard on the map at [placeId].
-  /// How many pictures were finished since [since] (today, on the rest screen).
-  Future<int> finishedSince(DateTime since) async => (await (_db.select(_db.artworks)
-            ..where((a) => a.isCompleted.equals(true) & a.updatedAt.isBiggerOrEqualValue(since)))
+  /// How many pictures [childId] started since [since] and finished (today,
+  /// on the rest screen). Opening an old one again does not count.
+  Future<int> finishedSince(int childId, DateTime since) async => (await (_db.select(_db.artworks)
+            ..where((a) => a.childId.equals(childId) & a.isCompleted.equals(true) & a.createdAt.isBiggerOrEqualValue(since)))
           .get())
       .length;
+
+  /// Puts the postcard on the map at [placeId].
 
   Future<void> send(int id, int placeId) {
     final now = DateTime.now();
@@ -238,9 +240,16 @@ class SettingsRepository {
   static const exportedKey = 'exported_up_to';
 
   /// The newest picture already saved to the photo album (an artwork id).
-  Future<int> exportedUpTo() async => int.tryParse(await _value(exportedKey) ?? '') ?? 0;
+  static const exportedIdsKey = 'exported_ids';
 
-  Future<void> setExportedUpTo(int id) => _put(exportedKey, '$id');
+  /// The pictures already saved to the photo album: their ids, and before
+  /// 0.15.1 only the highest id saved ([upTo]; everything up to it counts).
+  Future<({int upTo, Set<int> ids})> exported() async => (
+        upTo: int.tryParse(await _value(exportedKey) ?? '') ?? 0,
+        ids: {for (final s in (await _value(exportedIdsKey) ?? '').split(',')) ?int.tryParse(s)},
+      );
+
+  Future<void> addExported(int id) async => _put(exportedIdsKey, ({...(await exported()).ids, id}).join(','));
 
   static const playKey = 'play_today';
 

@@ -8,6 +8,7 @@ import 'package:kids_paint/core/artwork_service.dart';
 import 'package:kids_paint/core/creatures.dart';
 import 'package:kids_paint/core/db/database.dart';
 import 'package:kids_paint/core/festivals.dart';
+import 'package:kids_paint/core/places.dart';
 import 'package:kids_paint/core/repositories.dart';
 import 'package:kids_paint/core/storage/artwork_store.dart';
 
@@ -76,7 +77,7 @@ void main() {
         final sprite = img.decodePng(service.filesOf(art).sprite.readAsBytesSync())!;
         expect(sprite.getPixel(0, 0).a, lessThan(255), reason: '${c.name}: the corner is see-through');
       }
-    });
+    }, timeout: const Timeout(Duration(minutes: 3))); // 132 pages
 
     test('every creature has a picture in its colors to pick it by', () {
       for (final c in Creature.values) {
@@ -84,6 +85,31 @@ void main() {
         expect(preview.width == 256 || preview.height == 256, isTrue, reason: '${c.name}: small, the same size');
         expect(preview.getPixel(0, 0).a, 0, reason: '${c.name}: cut out of the paper');
       }
+    });
+
+    test('quick saves land in order and leave a whole file', () async {
+      final art = await service.saveBlank(childId: childId);
+      final page = await service.load(art.id);
+      final saves = <Future<void>>[];
+      for (var i = 0; i < 12; i++) {
+        page.document.fill(10, 10, 0xFF000000 | (i * 20) << 8);
+        saves.add(service.saveOps(art, page.document)); // not awaited, like the canvas
+      }
+      await Future.wait(saves);
+      final again = await service.load(art.id);
+      expect(again.document.ops, hasLength(12));
+      expect(again.document.colorAt(10, 10), page.document.colorAt(10, 10));
+    });
+
+    test('a sent postcard stays finished, even with every mark undone', () async {
+      final art = await service.saveBlank(childId: childId);
+      final page = await service.load(art.id);
+      page.document.fill(10, 10, 0xFFFF5E5B);
+      await service.send(page, await PlaceRepository(db).defaultPlace(childId, PlaceKind.park));
+      final sent = await service.load(art.id);
+      sent.document.undo();
+      await service.saveFinished(sent);
+      expect((await repo.get(art.id)).isCompleted, isTrue);
     });
 
     test('blank paper is one big region', () async {

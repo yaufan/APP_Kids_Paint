@@ -78,14 +78,36 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
     final page = _page;
     if (page == null || _leaving) return;
     setState(() => _leaving = true);
-    final place = await ref.read(placeRepositoryProvider).defaultPlace(page.artwork.childId, creature.habitat.place);
-    await _service.send(page, place);
+    try {
+      final place = await ref.read(placeRepositoryProvider).defaultPlace(page.artwork.childId, creature.habitat.place);
+      await _service.send(page, place);
+      await _evictPictures(page);
+    } catch (_) {
+      return _couldNotSave();
+    }
+    if (mounted) context.go('/scene/${creature.habitat.name}?new=${page.artwork.id}');
+  }
+
+  /// The pictures of [page] cached for the screens it shows up on.
+  Future<void> _evictPictures(LoadedPage page) async {
     final files = ref.read(artworkStoreProvider).open(page.artwork.folder);
     for (final file in [files.thumbnail, files.colored, files.sprite]) {
       await FileImage(file).evict();
     }
-    if (mounted) context.go('/scene/${creature.habitat.name}?new=${page.artwork.id}');
   }
+
+  /// Saving failed (the phone is full, say): the picture stays open and can
+  /// be tried again, nothing is stuck.
+  void _couldNotSave() {
+    if (!mounted) return;
+    setState(() => _leaving = false);
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(Strings.saveFailed)));
+  }
+
+  /// A page from the app (blank paper, a festival's or a creature's) left
+  /// without a single mark and never sent: nothing to keep, so it goes.
+  bool _untouched(LoadedPage page) =>
+      page.document.ops.isEmpty && page.artwork.sentAt == null && const {'blank', 'template'}.contains(page.artwork.style);
 
   @override
   void initState() {
@@ -147,11 +169,15 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
     final page = _page;
     if (_leaving) return;
     setState(() => _leaving = true);
-    if (page != null) {
-      await _service.saveFinished(page);
-      final files = ref.read(artworkStoreProvider).open(page.artwork.folder);
-      await FileImage(files.thumbnail).evict();
-      await FileImage(files.colored).evict();
+    try {
+      if (page != null && !push && _untouched(page)) {
+        await _service.delete(page.artwork);
+      } else if (page != null) {
+        await _service.saveFinished(page);
+        await _evictPictures(page);
+      }
+    } catch (_) {
+      return _couldNotSave();
     }
     if (!mounted) return;
     if (push) {

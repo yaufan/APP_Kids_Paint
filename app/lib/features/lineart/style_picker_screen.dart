@@ -47,15 +47,20 @@ class _StylePickerScreenState extends ConsumerState<StylePickerScreen> {
   Future<void> _choose(ArtStyle style, LineArt page) async {
     if (_saving) return;
     setState(() => _saving = true);
-    final child = await ref.read(currentChildProvider.future);
-    final artwork = await ref.read(artworkServiceProvider).saveNew(
-          childId: child.id,
-          photo: widget.photo,
-          page: page,
-          style: style,
-          detail: widget.detail,
-        );
-    if (mounted) context.go('/canvas/${artwork.id}');
+    try {
+      final child = await ref.read(currentChildProvider.future);
+      final artwork = await ref.read(artworkServiceProvider).saveNew(
+            childId: child.id,
+            photo: widget.photo,
+            page: page,
+            style: style,
+            detail: widget.detail,
+          );
+      if (mounted) context.go('/canvas/${artwork.id}');
+    } catch (_) {
+      // The phone could not keep it (full, say): the child can tap again.
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override

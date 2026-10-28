@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:isolate';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -29,6 +30,9 @@ class ArtworkService {
 
   final ArtworkRepository _repo;
   final ArtworkStore _store;
+
+  /// The writes of each artwork's operations still to finish, by folder.
+  final _opsWrites = <String, Future<void>>{};
 
   static const thumbnailSize = 320;
 
@@ -93,15 +97,34 @@ class ArtworkService {
 
   /// Quick autosave after every change: just the list of operations.
   Future<void> saveOps(Artwork artwork, ColoringDocument doc) async {
-    await _store.open(artwork.folder).ops.writeAsString(doc.encodeOps());
+    await _writeOps(artwork, doc.encodeOps());
     await _repo.touch(artwork.id);
+  }
+
+  /// Writes an artwork's operations ([json], as they were when asked) after
+  /// the writes before it, and whole: beside the file first, then moved
+  /// over it. Quick taps or a crash halfway never leave half a file.
+  Future<void> _writeOps(Artwork artwork, String json) {
+    final file = _store.open(artwork.folder).ops;
+    final write = (_opsWrites[artwork.folder] ?? Future<void>.value()).then((_) async {
+      final next = File('${file.path}.tmp');
+      await next.writeAsString(json, flush: true);
+      await next.rename(file.path);
+    });
+    // A failed write does not hold up the ones after it.
+    final queued = write.then<void>((_) {}, onError: (Object _) {});
+    _opsWrites[artwork.folder] = queued;
+    queued.whenComplete(() {
+      if (identical(_opsWrites[artwork.folder], queued)) _opsWrites.remove(artwork.folder);
+    });
+    return write;
   }
 
   /// Full save when leaving the canvas: operations, finished picture, thumbnail.
   Future<void> saveFinished(LoadedPage page) async {
     final files = _store.open(page.artwork.folder);
     final doc = page.document;
-    await files.ops.writeAsString(doc.encodeOps());
+    await _writeOps(page.artwork, doc.encodeOps());
     final (w, h, rgba, lines) = (doc.width, doc.height, Uint8List.fromList(doc.rgba), page.lines);
     final (colored, thumb) = await Isolate.run(() => renderColored(rgba, lines, w, h));
     await files.colored.writeAsBytes(colored);
@@ -110,7 +133,8 @@ class ArtworkService {
       final labels = doc.regions.labels;
       await files.sprite.writeAsBytes(await Isolate.run(() => renderSprite(rgba, lines, labels, w, h)));
     }
-    await _repo.touch(page.artwork.id, completed: doc.ops.isNotEmpty);
+    // A postcard already sent stays finished, even with everything undone.
+    await _repo.touch(page.artwork.id, completed: doc.ops.isNotEmpty || page.artwork.sentAt != null);
   }
 
   /// Finishes the page and puts it on the map at [place].

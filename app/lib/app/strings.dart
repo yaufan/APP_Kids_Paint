@@ -88,6 +88,7 @@ abstract final class Strings {
   static const eraser = '橡皮擦';
   static String stampOf(String shape) => '$shape印章';
   static const done = '畫好了，寄出';
+  static const saveFailed = '存不起來，等一下再試一次';
   static String colorName(String c) => '$c色';
 
   // Sending.

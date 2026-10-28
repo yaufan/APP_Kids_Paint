@@ -29,6 +29,9 @@ class RestCurtain extends ConsumerStatefulWidget {
   final GoRouter router;
   final Widget child;
 
+  /// How long a grown-up's choices stay on the rest screen after the gate.
+  static const unlockedFor = Duration(minutes: 1);
+
   /// Screens where a picture is being made: the rest screen waits.
   static bool busy(String path) => path.startsWith('/canvas') || path.startsWith('/send') || path.startsWith('/sent');
 
@@ -39,7 +42,7 @@ class RestCurtain extends ConsumerStatefulWidget {
 class _RestCurtainState extends ConsumerState<RestCurtain> {
   String _path = '/';
   String? _bubble;
-  Timer? _bubbleTimer;
+  Timer? _bubbleTimer, _lockAgain;
   var _warned = false, _toldWhenDone = false;
   var _asking = false, _unlocked = false;
   var _resting = false;
@@ -64,6 +67,7 @@ class _RestCurtainState extends ConsumerState<RestCurtain> {
   void dispose() {
     widget.router.routerDelegate.removeListener(_routeChanged);
     _bubbleTimer?.cancel();
+    _lockAgain?.cancel();
     super.dispose();
   }
 
@@ -113,7 +117,8 @@ class _RestCurtainState extends ConsumerState<RestCurtain> {
       _bubble = null;
     });
     final now = ref.read(clockProvider)();
-    final finished = await ref.read(artworkRepositoryProvider).finishedSince(DateTime(now.year, now.month, now.day));
+    final child = ref.read(currentChildProvider).value;
+    final finished = child == null ? 0 : await ref.read(artworkRepositoryProvider).finishedSince(child.id, DateTime(now.year, now.month, now.day));
     if (!mounted) return;
     setState(() => _finishedToday = finished);
     ref.read(voiceProvider).say('${Strings.restTitle(finished)}${Strings.restBody}');
@@ -130,6 +135,9 @@ class _RestCurtainState extends ConsumerState<RestCurtain> {
       _asking = false;
       _unlocked = ok;
     });
+    // A grown-up who walks away does not leave the buttons to the child.
+    _lockAgain?.cancel();
+    if (ok) _lockAgain = Timer(RestCurtain.unlockedFor, () => mounted ? setState(() => _unlocked = false) : null);
   }
 
   Future<void> _extend(int minutes) async {

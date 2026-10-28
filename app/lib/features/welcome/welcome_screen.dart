@@ -36,10 +36,14 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
 
   Future<void> _go(String buddy) async {
     setState(() => _saving = true);
-    final child = await ref.read(currentChildProvider.future);
-    await ref.read(childRepositoryProvider).update(child.id, name: _name.text, avatar: buddy);
-    await ref.read(settingsRepositoryProvider).setWelcomed();
-    ref.invalidate(welcomedProvider);
+    try {
+      final child = await ref.read(currentChildProvider.future);
+      await ref.read(childRepositoryProvider).update(child.id, name: _name.text, avatar: buddy);
+      await ref.read(settingsRepositoryProvider).setWelcomed();
+      ref.invalidate(welcomedProvider);
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override

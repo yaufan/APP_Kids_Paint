@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kids_paint/core/db/database.dart';
@@ -88,6 +89,24 @@ void main() {
     expect(kinds.first, PlaceKind.park);
     expect(kinds, isNot(contains(PlaceKind.zoo)));
     expect(kinds, isNot(contains(PlaceKind.dinoPark)));
+  });
+
+  test("today's count is the child's pictures started and finished today, not old ones opened again", () async {
+    final child = await children.ensureDefault();
+    final sibling = await children.add('cat');
+    final start = DateTime.now().subtract(const Duration(minutes: 5));
+    Future<Artwork> finished(int childId) async {
+      final art = await artworks.create(childId: childId, style: 'blank', detail: 'simple', folder: 'f${DateTime.now().microsecondsSinceEpoch}');
+      await artworks.touch(art.id, completed: true);
+      return art;
+    }
+
+    final old = await finished(child.id);
+    await (db.update(db.artworks)..where((a) => a.id.equals(old.id))).write(ArtworksCompanion(createdAt: Value(DateTime(2026, 1, 2))));
+    await artworks.touch(old.id, completed: true); // opened again today
+    await finished(child.id);
+    await finished(sibling.id);
+    expect(await artworks.finishedSince(child.id, start), 1);
   });
 
   test('daily limit has a default and can be changed', () async {

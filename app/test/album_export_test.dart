@@ -59,6 +59,19 @@ void main() {
     expect(album.saved, hasLength(3));
   });
 
+  test('a picture started before others and finished after they were saved still goes', () async {
+    final early = await service.saveBlank(childId: childId); // left unfinished for now
+    await finish();
+    final album = _Album();
+    expect(await export(album).saveNew(), 1);
+    final page = await service.load(early.id);
+    page.document.fill(10, 10, 0xFF4DA3FF);
+    await service.saveFinished(page);
+    expect(await export(album).waiting(), 1);
+    expect(await export(album).saveNew(), 1);
+    expect(album.saved, hasLength(2));
+  });
+
   test('nothing is saved, or marked saved, without permission', () async {
     await finish();
     expect(await export(_Album(allowed: false)).saveNew(), isNull);

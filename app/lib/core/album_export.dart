@@ -35,10 +35,16 @@ class AlbumExport {
   final ArtworkStore _store;
   final PhotoAlbum _album;
 
-  Future<List<File>> _waiting() async => [
-        for (final art in await _artworks.finishedAfter(await _settings.exportedUpTo()))
-          if (_store.open(art.folder).colored.existsSync()) _store.open(art.folder).colored,
-      ];
+  /// Finished pictures not in the album yet, oldest first, by id: one
+  /// started long ago and finished today is new too.
+  Future<List<(int, File)>> _waiting() async {
+    final exported = await _settings.exported();
+    return [
+      for (final art in await _artworks.finished())
+        if (art.id > exported.upTo && !exported.ids.contains(art.id) && _store.open(art.folder).colored.existsSync())
+          (art.id, _store.open(art.folder).colored),
+    ];
+  }
 
   /// How many finished pictures are not in the album yet.
   Future<int> waiting() async => (await _waiting()).length;
@@ -47,15 +53,11 @@ class AlbumExport {
   /// not be used.
   Future<int?> saveNew() async {
     if (!await _album.allow()) return null;
-    final arts = await _artworks.finishedAfter(await _settings.exportedUpTo());
     var saved = 0;
-    for (final art in arts) {
-      final picture = _store.open(art.folder).colored;
-      if (picture.existsSync()) {
-        await _album.add(picture);
-        saved++;
-      }
-      await _settings.setExportedUpTo(art.id);
+    for (final (id, picture) in await _waiting()) {
+      await _album.add(picture);
+      await _settings.addExported(id);
+      saved++;
     }
     return saved;
   }

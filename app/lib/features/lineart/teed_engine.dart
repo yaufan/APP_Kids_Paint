@@ -67,12 +67,23 @@ class TeedLineArtEngine implements LineArtEngine {
   Future<EdgeMap> _edgesOf(Uint8List photo) {
     final last = _last;
     if (last != null && identical(last.$1, photo)) return last.$2;
-    final weights = _weights ??= _loadWeights();
-    final size = this.size, edgeSize = this.edgeSize;
-    final edges = weights.then((w) => Isolate.run(() => edgeMapOf(photo, Teed.decode(w), size: size, edgeSize: edgeSize)));
+    final weights = _weights ??= _loadWeights().catchError((Object e) {
+      _weights = null; // try again next time
+      throw e;
+    });
+    final edges = weights.then((w) => _edgesInIsolate(photo, w, size, edgeSize));
     _last = (photo, edges);
+    // If it fails, the same photo is tried afresh next time.
+    edges.then<void>((_) {}, onError: (Object _) {
+      if (identical(_last?.$2, edges)) _last = null;
+    });
     return edges;
   }
+
+  /// [edgeMapOf] on another isolate. Its own function, so the closure sent
+  /// there carries only what it needs (not the futures around the call).
+  static Future<EdgeMap> _edgesInIsolate(Uint8List photo, Uint8List weights, int size, int edgeSize) =>
+      Isolate.run(() => edgeMapOf(photo, Teed.decode(weights), size: size, edgeSize: edgeSize));
 
   /// Decodes [photo] and finds its edges.
   static EdgeMap edgeMapOf(Uint8List photo, Teed teed, {int size = 1024, int edgeSize = 480}) {

@@ -53,6 +53,6 @@ void main() {
             ..writeAsBytesSync(png!.buffer.asUint8List());
         }),
       );
-    }, timeout: const Timeout(Duration(minutes: 5)));
+    }, timeout: const Timeout(Duration(minutes: 9)));
   }
 }

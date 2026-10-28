@@ -137,6 +137,22 @@ void main() {
       expect(colors, contains(red));
     });
 
+    test('a watercolor or neon stroke is still there after an undo redraws the page', () {
+      for (final brush in [Brush.watercolor, Brush.neon]) {
+        final doc = ColoringDocument(blank);
+        final stroke = CrayonOp(1, blue, 6, [(x: 10, y: 30)], brush: brush);
+        doc.add(stroke);
+        stroke.points.add((x: 50, y: 30));
+        doc.applyStroke(stroke, 1);
+        final drawn = doc.colorAt(30, 30);
+        expect(drawn, isNot(white), reason: '$brush');
+        doc
+          ..add(const PaperOp(0xFFFFD166))
+          ..undo();
+        expect(doc.colorAt(30, 30), drawn, reason: '$brush survives the redraw');
+      }
+    });
+
     test('every pen draws the same live, stroke by stroke, as when the page is opened again', () {
       for (final brush in Brush.values) {
         final live = ColoringDocument(blank)..add(const PaperOp(0xFFFFD166));
