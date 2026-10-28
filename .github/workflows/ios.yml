@@ -19,7 +19,7 @@ jobs:
       group: ios-${{ github.ref }}
       cancel-in-progress: true
     runs-on: macos-latest
-    timeout-minutes: 90
+    timeout-minutes: 150
     defaults:
       run:
         working-directory: app
@@ -53,29 +53,19 @@ jobs:
           print(f"ipad_name={ipad['name']}")
           EOF
 
-      # Wait for a full boot before installing: installing onto a simulator
-      # that is still booting can hang until the job times out. Each step
-      # builds the app (about 8 minutes) and walks through it (about 8 more).
+      # Each step builds the app (about 6 minutes) and walks through it
+      # (about 8 more); a launch that hangs is tried once more (see the script).
       - name: Walk-through on ${{ steps.sims.outputs.iphone_name }}
-        timeout-minutes: 35
+        timeout-minutes: 60
         env:
           SCREENSHOT_DIR: build/ios_screenshots/iphone
-        run: |
-          xcrun simctl boot "${{ steps.sims.outputs.iphone }}"
-          xcrun simctl bootstatus "${{ steps.sims.outputs.iphone }}" -b
-          flutter drive --driver=test_driver/integration_test.dart \
-            --target=integration_test/app_flow_test.dart -d "${{ steps.sims.outputs.iphone }}"
-          xcrun simctl shutdown "${{ steps.sims.outputs.iphone }}"
+        run: ../.github/ios_walk_through.sh "${{ steps.sims.outputs.iphone }}"
 
       - name: Walk-through on ${{ steps.sims.outputs.ipad_name }}
-        timeout-minutes: 35
+        timeout-minutes: 60
         env:
           SCREENSHOT_DIR: build/ios_screenshots/ipad
-        run: |
-          xcrun simctl boot "${{ steps.sims.outputs.ipad }}"
-          xcrun simctl bootstatus "${{ steps.sims.outputs.ipad }}" -b
-          flutter drive --driver=test_driver/integration_test.dart \
-            --target=integration_test/app_flow_test.dart -d "${{ steps.sims.outputs.ipad }}"
+        run: ../.github/ios_walk_through.sh "${{ steps.sims.outputs.ipad }}"
 
       - uses: actions/upload-artifact@v4
         if: always()
