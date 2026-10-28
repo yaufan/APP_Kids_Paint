@@ -570,3 +570,60 @@ def candy_scene():
 
 
 SCENES["candy"] = candy_scene
+
+
+# ---------------------------------------------------------------- grandma's farm (0.18)
+
+
+def farm_scene():
+    """Grandma and grandpa's farm (阿公阿嬤的農場): a red barn and a silo
+    under a big sky, green hills, rows of vegetables, a haystack and a
+    wooden fence; a pond for the ducks and the geese, a dirt track for the
+    tractor and a meadow for the animals."""
+    defs = ('<linearGradient id="fasky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9ED8FF"/>'
+            '<stop offset="1" stop-color="#E6F6FF"/></linearGradient>')
+    s = ['<rect width="1000" height="640" fill="url(#fasky)"/>',
+         '<circle cx="860" cy="110" r="58" fill="#FFE27A"/><circle cx="860" cy="110" r="80" fill="#FFE27A" opacity=".3"/>']
+    for x, y, k in [(170, 120, 1.1), (540, 80, 0.9), (380, 210, 0.7)]:
+        s.append("".join(f'<circle cx="{x + dx * k:.0f}" cy="{y + dy * k:.0f}" r="{r * k:.0f}" fill="#FFFFFF"/>'
+                         for dx, dy, r in [(-50, 14, 40), (52, 12, 42), (0, -10, 52)]))
+    # rolling hills
+    s.append('<path d="M0 520 C 160 420, 320 440, 480 500 C 640 420, 820 410, 1000 480 V 640 H 0 Z" fill="#A6DE97"/>'
+             '<path d="M0 580 C 200 520, 420 540, 620 580 C 780 540, 900 540, 1000 560 V 640 H 0 Z" fill="#8CD27D"/>')
+    # the barn and the silo
+    s.append('<rect x="560" y="430" width="74" height="210" rx="30" fill="#D9DEE6" stroke="#9AA6B6" stroke-width="5"/>'
+             '<path d="M560 450 Q 597 400 634 450 Z" fill="#B8C2CF" stroke="#9AA6B6" stroke-width="5"/>'
+             '<rect x="640" y="470" width="240" height="170" rx="6" fill="#E8574E" stroke="#B83A33" stroke-width="5"/>'
+             '<path d="M624 480 L 760 380 L 896 480 Z" fill="#C9413A" stroke="#B83A33" stroke-width="5" stroke-linejoin="round"/>'
+             '<path d="M624 480 L 760 380 L 896 480" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linejoin="round"/>'
+             '<rect x="712" y="540" width="96" height="100" fill="#FFFFFF"/><rect x="720" y="548" width="80" height="92" fill="#B83A33"/>'
+             '<path d="M720 548 L 800 640 M800 548 L 720 640" stroke="#FFFFFF" stroke-width="9"/>'
+             '<rect x="738" y="430" width="44" height="34" rx="4" fill="#FFE9A8" stroke="#FFFFFF" stroke-width="6"/>')
+    # rows of vegetables on the left
+    s.append('<path d="M20 640 L 70 560 H 360 L 410 640 Z" fill="#C79A6A"/>')
+    for i, y in enumerate([576, 598, 620]):
+        for x in range(60 + i * 8, 380 - i * 8, 34):
+            c = ["#58B368", "#FF9F45", "#58B368"][i]
+            s.append(f'<circle cx="{x}" cy="{y}" r="9" fill="{c}"/><circle cx="{x - 5}" cy="{y - 6}" r="6" fill="#6BCB77"/>')
+    # the haystack
+    s.append('<path d="M430 640 C 430 560, 470 530, 505 530 C 540 530, 580 560, 580 640 Z" fill="#F2C84B" stroke="#D9A21C" stroke-width="5"/>'
+             '<path d="M460 600 q 20 -14 40 0 M500 572 q 20 -14 40 0 M470 626 q 20 -14 40 0" stroke="#D9A21C" stroke-width="5" fill="none" stroke-linecap="round"/>')
+    # the meadow, a fence along it, the pond and the dirt track
+    s.append('<path d="M0 640 H 1000 V 1000 H 0 Z" fill="#B9E8A6"/>')
+    s.append('<path d="M0 676 H 1000" stroke="#C69060" stroke-width="10"/><path d="M0 708 H 1000" stroke="#C69060" stroke-width="10"/>'
+             + "".join(f'<rect x="{x}" y="650" width="16" height="76" rx="4" fill="#D9A574" stroke="#A8764A" stroke-width="4"/>' for x in range(20, 1000, 90)))
+    s.append('<path d="M120 860 C 120 800, 220 780, 300 790 C 390 800, 420 860, 370 900 C 320 940, 140 930, 120 860 Z" fill="#7CCFFF" stroke="#43A9E0" stroke-width="5"/>'
+             '<path d="M180 840 q 20 -10 40 0 M260 880 q 20 -10 40 0" stroke="#D8F3FF" stroke-width="6" fill="none" stroke-linecap="round"/>')
+    s.append('<path d="M560 1000 C 600 900, 720 830, 1000 800" fill="none" stroke="#E2C298" stroke-width="80" stroke-linecap="round"/>')
+    for i in range(40):
+        x, y = (i * 137.5) % 1000, 740 + (i * 61.7) % 250
+        if 110 < x < 430 and 770 < y < 950:
+            continue
+        s.append(f'<path d="M{x:.0f} {y:.0f} l 6 -14 l 6 14" fill="none" stroke="#7DC86A" stroke-width="4" stroke-linecap="round"/>')
+    for x, y, c in [(470, 780, "#FFFFFF"), (520, 940, "#FF8FB1"), (880, 920, "#FFD84D"), (60, 760, "#FFFFFF")]:
+        s.append("".join(f'<circle cx="{x + 9 * dx}" cy="{y + 9 * dy}" r="7" fill="{c}"/>' for dx, dy in [(0, -1), (1, 0), (0, 1), (-1, 0)])
+                 + f'<circle cx="{x}" cy="{y}" r="5" fill="#FFC94A"/>')
+    return _scene("".join(s), defs)
+
+
+SCENES["farm"] = farm_scene

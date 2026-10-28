@@ -2515,3 +2515,255 @@ def jelly():
         cheek(218, 520), cheek(382, 520),
         smile(300, 516, 28, 8),
     ]
+
+
+# ---------------------------------------------------------------- grandma's farm (0.18)
+
+
+def lowered(parts, dy):
+    """[parts] (a head) moved down by [dy], onto the body."""
+    return f'<g transform="translate(0 {dy})">{"".join(parts)}</g>'
+
+
+@character
+def cow():
+    hide, patch, muzzle = WHITE, "#4A4F5C", "#FFC2CF"
+    head = circle(300, 290, 132, hide)
+    body = ellipse(300, 566, 128, 104, hide)
+    ear = [ellipse(162, 262, 52, 24, hide, rot=-18), ellipse(166, 264, 30, 12, PINK, w=DETAIL, rot=-18)]
+    horn = [shape("M222 182 C 206 150, 212 118, 236 106 C 234 132, 244 156, 258 170 Z", CREAM)]
+    leg_ = [rect(212, 610, 64, 94, 28, hide), rect(212, 676, 64, 28, 12, patch)]
+    return [
+        *leg_, mirror(leg_),
+        body, clip("cow-body", body, [ellipse(216, 530, 56, 44, patch, w=DETAIL), ellipse(388, 600, 50, 40, patch, w=DETAIL),
+                                      ellipse(322, 488, 30, 22, patch, w=DETAIL)]), outline(body),
+        shape("M262 458 Q 300 498 338 458 L 338 480 Q 300 520 262 480 Z", RED, w=DETAIL),
+        circle(300, 514, 22, YELLOW),
+        lowered([
+            *horn, mirror(horn), *ear, mirror(ear),
+            head, clip("cow-head", head, [ellipse(384, 214, 54, 46, patch, w=DETAIL)]), outline(head),
+            ellipse(300, 364, 96, 60, muzzle),
+            nostril(268, 360, 7), nostril(332, 360, 7),
+            eye(248, 270, 17), eye(352, 270, 17),
+            cheek(206, 318), cheek(394, 318),
+            smile(300, 386, 26, 8),
+        ], 36),
+    ]
+
+
+@character
+def waterBuffalo():
+    hide, horn_color, muzzle = "#7A8494", "#E9DCC3", "#B9C0CC"
+    horn = [shape("M214 214 C 150 196, 104 150, 118 92 C 140 130, 176 152, 236 162 Z", horn_color)]
+    ear = [ellipse(176, 270, 46, 22, hide, rot=-12)]
+    leg_ = [rect(206, 612, 70, 92, 30, hide), rect(206, 678, 70, 26, 12, DARK)]
+    return [
+        *leg_, mirror(leg_),
+        ellipse(300, 570, 138, 108, hide),
+        lowered([
+            *horn, mirror(horn), *ear, mirror(ear),
+            ellipse(300, 290, 128, 120, hide),
+            line("M262 200 Q 300 186 338 200", w=DETAIL),
+            ellipse(300, 362, 92, 58, muzzle),
+            nostril(270, 358, 8), nostril(330, 358, 8),
+            eye(250, 278, 17), eye(350, 278, 17),
+            cheek(212, 326), cheek(388, 326),
+            smile(300, 386, 26, 8),
+        ], 48),
+    ]
+
+
+@character
+def pig():
+    skin, snout = "#FFB8C8", "#FF9AAE"
+    ear = [shape("M190 214 L 168 120 L 262 176 Z", skin)]
+    foot = [rect(220, 626, 60, 76, 26, skin), rect(220, 678, 60, 24, 10, "#E07A92")]
+    return [
+        tube("M418 548 C 470 530, 470 486, 444 494 C 424 500, 446 528, 470 512", 12, skin),
+        *foot, mirror(foot),
+        ellipse(300, 574, 140, 112, skin),
+        lowered([
+            *ear, mirror(ear),
+            circle(300, 316, 140, skin),
+            ellipse(300, 368, 64, 46, snout),
+            ellipse(280, 368, 10, 15, INK, w=0), ellipse(320, 368, 10, 15, INK, w=0),
+            eye(244, 292, 17), eye(356, 292, 17),
+            cheek(204, 352), cheek(396, 352),
+            smile(300, 430, 26, 8),
+        ], 22),
+    ]
+
+
+@character
+def hen():
+    feathers, comb, beak = WHITE, RED, ORANGE
+    wing = [ellipse(196, 516, 52, 76, "#F1EDE4", rot=18)]
+    leg_ = [tube("M262 640 V 690", 14, beak), tube("M240 696 H 284", 12, beak)]
+    return [
+        shape("M436 470 C 500 420, 520 360, 486 330 C 470 380, 446 410, 410 430 Z", "#E9E2D2"),
+        *leg_, mirror(leg_),
+        ellipse(300, 530, 144, 132, feathers),
+        *wing, mirror(wing),
+        shape(scallop(300, 182, 28, 52, 5), comb),
+        circle(300, 300, 110, feathers),
+        shape("M272 330 L 300 366 L 328 330 Z", beak),
+        ellipse(300, 384, 18, 26, comb),
+        eye(256, 288, 15), eye(344, 288, 15),
+        cheek(222, 330, 12, 8), cheek(378, 330, 12, 8),
+    ]
+
+
+@character
+def chick():
+    down, beak = YELLOW, ORANGE
+    wing = [ellipse(150, 470, 40, 58, "#FFC93A", rot=28)]
+    return [
+        tube("M262 640 V 690", 14, beak), tube("M338 640 V 690", 14, beak),
+        tube("M240 694 H 284", 12, beak), tube("M316 694 H 360", 12, beak),
+        *wing, mirror(wing),
+        shape("M280 236 C 272 200, 290 178, 300 170 C 310 188, 328 200, 320 236 Z", down),
+        circle(300, 430, 210, down),
+        shape("M268 452 L 300 488 L 332 452 Z", beak),
+        eye(240, 410, 17), eye(360, 410, 17),
+        cheek(196, 466), cheek(404, 466),
+    ]
+
+
+@character
+def sheep():
+    wool, face, hoof = WHITE, "#5A5E6A", DARK
+    ear = [ellipse(170, 286, 46, 20, face, rot=-14)]
+    leg_ = [rect(222, 620, 50, 84, 20, face)]
+    return [
+        *leg_, mirror(leg_),
+        shape(scallop(300, 540, 120, 156, 12), wool),
+        shape(scallop(300, 236, 70, 100, 8), wool),
+        *ear, mirror(ear),
+        ellipse(300, 330, 92, 104, face),
+        ellipse(300, 388, 50, 30, "#8D919C"),
+        nostril(286, 386, 5), nostril(314, 386, 5),
+        circle(262, 312, 26, WHITE, w=0), circle(338, 312, 26, WHITE, w=0),
+        eye(262, 312, 14), eye(338, 312, 14),
+        cheek(236, 356, 12, 8), cheek(364, 356, 12, 8),
+        smile(300, 410, 22, 7),
+    ]
+
+
+@character
+def goat():
+    coat, horn_color, beard = "#E8D6B9", "#B8A27E", "#FFFFFF"
+    horn = [shape("M246 170 C 222 126, 236 96, 264 90 C 252 116, 262 138, 276 158 Z", horn_color)]
+    ear = [ellipse(160, 270, 56, 22, coat, rot=12)]
+    leg_ = [rect(222, 612, 56, 92, 24, coat), rect(222, 680, 56, 24, 10, DARK)]
+    return [
+        *leg_, mirror(leg_),
+        ellipse(300, 566, 124, 100, coat),
+        lowered([
+            *horn, mirror(horn), *ear, mirror(ear),
+            ellipse(300, 286, 116, 126, coat),
+            shape("M270 392 Q 300 420 330 392 Q 324 470 300 486 Q 276 470 270 392 Z", beard),
+            ellipse(300, 360, 70, 44, "#F5E9D6"),
+            nostril(282, 354, 6), nostril(318, 354, 6),
+            eye(252, 272, 16), eye(348, 272, 16),
+            cheek(214, 318), cheek(386, 318),
+            smile(300, 378, 22, 7),
+        ], 40),
+    ]
+
+
+@character
+def duck():
+    feathers, beak = WHITE, ORANGE
+    wing = [ellipse(186, 514, 50, 70, "#EEF2F6", rot=16)]
+    return [
+        ellipse(262, 690, 40, 14, beak), ellipse(338, 690, 40, 14, beak),
+        ellipse(300, 540, 150, 128, feathers),
+        *wing, mirror(wing),
+        lowered([
+            circle(300, 296, 116, feathers),
+            ellipse(300, 352, 74, 30, beak),
+            line("M234 352 Q 300 366 366 352", w=DETAIL),
+            eye(256, 284, 15), eye(344, 284, 15),
+            cheek(214, 330, 12, 8), cheek(386, 330, 12, 8),
+            shape("M300 182 C 290 152, 310 136, 324 146 C 312 156, 312 168, 314 184 Z", feathers),
+        ], 18),
+    ]
+
+
+@character
+def goose():
+    feathers, beak, knob = WHITE, ORANGE, "#E87B2A"
+    wing = [ellipse(204, 556, 46, 66, "#EEF2F6", rot=14)]
+    return [
+        ellipse(262, 692, 38, 14, beak), ellipse(338, 692, 38, 14, beak),
+        ellipse(300, 580, 138, 108, feathers),
+        *wing, mirror(wing),
+        rect(258, 300, 84, 220, 42, feathers),
+        circle(300, 250, 98, feathers),
+        circle(300, 286, 22, knob),
+        ellipse(300, 320, 52, 26, beak),
+        line("M252 320 Q 300 332 348 320", w=DETAIL),
+        eye(258, 240, 14), eye(342, 240, 14),
+        cheek(226, 282, 11, 8), cheek(374, 282, 11, 8),
+    ]
+
+
+@character
+def bunny():
+    fur, inner = WHITE, "#FFC2CF"
+    ear = [ellipse(250, 156, 34, 108, fur, rot=-8), ellipse(252, 162, 16, 76, inner, w=DETAIL, rot=-8)]
+    foot = [ellipse(236, 684, 52, 24, fur)]
+    return [
+        circle(430, 600, 36, fur),
+        *foot, mirror(foot),
+        ellipse(300, 574, 120, 116, fur),
+        ellipse(300, 600, 64, 66, "#F6F0F4", w=DETAIL),
+        *ear, mirror(ear),
+        circle(300, 348, 128, fur),
+        ellipse(300, 400, 16, 11, "#FF8FA8", w=0),
+        line("M300 410 V 424 M300 424 Q 288 438 276 430 M300 424 Q 312 438 324 430", w=5),
+        eye(250, 344, 16), eye(350, 344, 16),
+        cheek(214, 400), cheek(386, 400),
+    ]
+
+
+@character
+def puppy():
+    fur, patch, muzzle = "#E3A867", "#B9763E", CREAM
+    ear = [ellipse(176, 300, 42, 78, patch, rot=14)]
+    foot = [ellipse(240, 684, 52, 26, fur), ellipse(240, 688, 26, 13, muzzle, w=DETAIL)]
+    return [
+        tube("M410 560 C 466 540, 476 500, 456 470", 24, fur),
+        *foot, mirror(foot),
+        ellipse(300, 572, 122, 116, fur),
+        ellipse(300, 596, 60, 70, muzzle, w=DETAIL),
+        lowered([
+            circle(300, 314, 134, fur),
+            *ear, mirror(ear),
+            ellipse(348, 270, 44, 40, patch, w=DETAIL),
+            ellipse(300, 370, 72, 52, muzzle),
+            ellipse(300, 350, 22, 15, INK, w=0),
+            line("M300 362 V 374 M300 374 Q 288 388 276 380 M300 374 Q 312 388 324 380", w=5),
+            tube("M300 392 V 412", 18, "#FF8FA8"),
+            eye(248, 300, 16), eye(352, 300, 16),
+            cheek(210, 352), cheek(390, 352),
+        ], 18),
+    ]
+
+
+@character
+def tractor():
+    body, wheel_color, cab = RED, DARK, "#FFE7A3"
+    return [
+        rect(150, 300, 190, 190, 20, cab),
+        rect(170, 322, 150, 110, 14, SKY, sw=DETAIL),
+        rect(310, 200, 24, 120, 10, DARK),
+        ellipse(322, 196, 26, 14, "#B8BCC8", rot=0),
+        rect(120, 470, 380, 120, 36, body),
+        rect(330, 400, 170, 110, 30, body),
+        circle(196, 610, 104, wheel_color), circle(196, 610, 48, "#B8BCC8"),
+        circle(430, 630, 70, wheel_color), circle(430, 630, 30, "#B8BCC8"),
+        eye(388, 448, 13), eye(452, 448, 13),
+        cheek(372, 486, 11, 7), cheek(470, 486, 11, 7),
+        smile(420, 486, 22, 7),
+    ]
