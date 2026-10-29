@@ -140,6 +140,8 @@ class SceneView {
 
   Offset toScreen(Offset scene) => origin + scene * scale;
 
+  Offset toScene(Offset screen) => (screen - origin) / scale;
+
   /// Creatures are drawn smaller when little of the scene fits across (a
   /// phone), so a full zoo does not pile up.
   double get creatureScale => (visible.width / 700).clamp(0.7, 1.0);

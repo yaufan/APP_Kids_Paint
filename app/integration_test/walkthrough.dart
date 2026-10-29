@@ -20,6 +20,7 @@ import 'package:kids_paint/core/sounds.dart';
 import 'package:kids_paint/core/storage/artwork_store.dart';
 import 'package:kids_paint/features/canvas/coloring.dart';
 import 'package:kids_paint/features/capture/capture_screen.dart';
+import 'package:kids_paint/features/scene/feeding.dart';
 
 /// Captures the screen under [name].
 typedef Shot = Future<void> Function(String name);
@@ -609,6 +610,12 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
     await idle(tester, 1800);
   }
   await shot('32_farm');
+
+  // 24b. Feeding (0.19): the cow and the chick come over and eat the hay.
+  await tester.tap(find.bySemanticsLabel(Strings.feed(feeders[Habitat.farm]!.food)));
+  await idle(tester, 4300);
+  await shot('32b_farm_feeding');
+  await idle(tester, 5000);
 
   await tester.tap(find.bySemanticsLabel(Strings.backToTown));
 

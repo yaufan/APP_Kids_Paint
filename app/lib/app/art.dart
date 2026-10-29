@@ -27,6 +27,10 @@ abstract final class Art {
   /// A place you go into, painted (docs/design/v4/draw_scenes.py).
   static String scene(Habitat h) => 'assets/scenes/${h.name}.jpg';
 
+  /// The food in a place where animals live, in three layers: the back of
+  /// its container, the food, the front (docs/design/v5/feeders.py).
+  static String feed(Habitat h, String layer) => '$_dir/feed/${h.name}_$layer.svg';
+
   static const pigeon = '$_dir/pigeon.svg';
   static const pigeonFlying = '$_dir/pigeon_flying.svg';
   static const pigeonFlyingLetter = '$_dir/pigeon_flying_letter.svg';

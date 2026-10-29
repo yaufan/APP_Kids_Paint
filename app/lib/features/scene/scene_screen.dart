@@ -24,6 +24,7 @@ import '../../core/voice.dart';
 import '../../core/weather.dart';
 import '../town/place_sheet.dart';
 import '../weather/weather_layer.dart';
+import 'feeding.dart';
 import 'motion.dart';
 
 /// Inside a place you can go into: every creature the child colored for it
@@ -39,6 +40,10 @@ import 'motion.dart';
 /// down and takes off (now and then one does by itself) and the stars
 /// twinkle; at the night market the lanterns glow and a tapped snack gets
 /// a ring thrown over it; at the polar sea it snows.
+///
+/// Tapped, an animal makes its own sound (a cow moos, a lion roars), and a
+/// vehicle its horn or siren (0.19). Where animals live there is food on
+/// the ground: tap it and the nearest animals come to eat ([Meal]).
 class SceneScreen extends ConsumerStatefulWidget {
   const SceneScreen({super.key, required this.habitat, this.arrived});
 
@@ -102,6 +107,13 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
   late final AnimationController _throw = AnimationController(vsync: this, duration: const Duration(milliseconds: 1700));
   ({int id, Offset at, double width})? _ring;
 
+  // Feeding (0.19): the food out now and who comes to eat it, and how full
+  // the food is between meals.
+  Meal? _meal;
+  double _food = 1;
+  final _mealTimers = <Timer>[];
+  Timer? _voiceLater;
+
   late final Sounds _sounds = ref.read(soundsProvider);
 
   /// The weather here now: sunny where it does not reach.
@@ -154,6 +166,10 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
     _chatter?.cancel();
     _hello?.cancel();
     _hush?.cancel();
+    _voiceLater?.cancel();
+    for (final t in _mealTimers) {
+      t.cancel();
+    }
     _customers?.cancel();
     _firstCustomer?.cancel();
     _launches?.cancel();
@@ -167,12 +183,12 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
 
   /// A random creature (not the one that just spoke) says something.
   void _chat() {
-    if (!mounted || _residents.isEmpty || _sale != null) return;
+    if (!mounted || _residents.isEmpty || _sale != null || _meal != null) return;
     final others = [for (final a in _residents) if (a.id != _saying?.id) a];
     _say((others.isEmpty ? _residents : others)[_random.nextInt(others.isEmpty ? _residents.length : others.length)]);
   }
 
-  void _say(Artwork art, {bool tapped = false}) {
+  void _say(Artwork art, {bool tapped = false, Duration voiceAfter = Duration.zero}) {
     final creature = Creature.byName(art.template);
     if (!mounted || creature == null) return;
     final now = ref.read(clockProvider)();
@@ -192,28 +208,90 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
       taps: taps,
       weather: _weather,
     );
-    _speak(art.id, lineFor(creature, _random, moment));
+    _speak(art.id, lineFor(creature, _random, moment), voiceAfter: voiceAfter);
   }
 
-  /// [id] (an artwork; 0 for a customer) says [text] in a bubble and out loud.
-  void _speak(int id, String text) {
+  /// [id] (an artwork; 0 for a customer) says [text] in a bubble and out
+  /// loud, the voice [voiceAfter] a call it just made.
+  void _speak(int id, String text, {Duration voiceAfter = Duration.zero}) {
     setState(() => _saying = (id: id, text: text));
     final voice = ref.read(voiceProvider);
     _voice = voice;
-    voice.say(text);
+    _voiceLater?.cancel();
+    if (voiceAfter == Duration.zero) {
+      voice.say(text);
+    } else {
+      _voiceLater = Timer(voiceAfter, () {
+        if (mounted && _saying?.text == text) voice.say(text);
+      });
+    }
     _hush?.cancel();
-    _hush = Timer(const Duration(milliseconds: 3200), () {
+    _hush = Timer(const Duration(milliseconds: 3200) + voiceAfter, () {
       if (mounted) setState(() => _saying = null);
     });
   }
 
   /// A child taps a resident: a rocket takes off, a snack at the night
-  /// market gets a ring thrown over it, anyone else jumps with a boing and talks.
+  /// market gets a ring thrown over it, anyone else jumps with its call (or
+  /// a boing) and talks.
   void _tapped(Artwork art, Creature creature, Pose pose) {
     if (creature == Creature.rocket) return _launch(art);
     if (widget.habitat == Habitat.nightMarket && creature.motion == Motion.shelf) return _toss(art, pose, creature);
-    _sounds.play(boingOf(creature));
-    _say(art, tapped: true);
+    final sound = callOf(creature);
+    _sounds.play(sound);
+    _say(art, tapped: true, voiceAfter: isCall(sound) ? _afterCall : Duration.zero);
+  }
+
+  /// Where the big draw button is, in scene units (with a little room around it).
+  Rect _drawButton(SceneView view) {
+    final pad = MediaQuery.paddingOf(context), screen = view.screen;
+    const room = _drawSize + 18 + 12;
+    return Rect.fromPoints(
+      view.toScene(Offset(screen.width - pad.right - room, screen.height - pad.bottom - room)),
+      view.toScene(Offset(screen.width, screen.height)),
+    );
+  }
+
+  static const _drawSize = 104.0;
+
+  /// The voice waits a moment after a moo or a roar.
+  static const _afterCall = Duration(milliseconds: 700);
+
+  /// The child puts out food: it fills up and the nearest animals come to
+  /// eat; the first to finish calls and says it was yummy.
+  void _feed(Feeder feeder, SceneView view, List<_Placed> placed) {
+    if (!mounted || _meal != null) return;
+    final meal = Meal.plan(
+      now: (_clock.lastElapsedDuration?.inMicroseconds ?? 0) / 1e6,
+      feeder: feeder,
+      around: [for (final p in placed) (id: p.art.id, creature: p.creature, pose: p.pose, area: p.area)],
+      view: view,
+      wasLeft: _food,
+      avoid: _drawButton(view),
+    );
+    setState(() => _meal = meal);
+    _sounds.play(Sfx.serve);
+    void later(double seconds, void Function() then) => _mealTimers.add(Timer(Duration(milliseconds: (seconds * 1000).round()), () {
+          if (mounted) then();
+        }));
+    for (final (i, e) in meal.eaters.indexed) {
+      later(e.arrive, () => _sounds.play(Sfx.munch));
+      if (i == 0) later(e.arrive + 1.6, () => _sounds.play(Sfx.munch));
+    }
+    if (meal.eaters.isNotEmpty) {
+      final first = meal.eaters.reduce((a, b) => a.full <= b.full ? a : b);
+      later(first.full, () {
+        _sounds.play(callOf(first.creature));
+        _speak(first.id, fedLines[_random.nextInt(fedLines.length)], voiceAfter: _afterCall);
+      });
+    }
+    later(meal.length, () {
+      _mealTimers.clear();
+      setState(() {
+        _meal = null;
+        _food = meal.eaters.isEmpty ? 1 : Meal.leftover;
+      });
+    });
   }
 
   /// A rocket counts down and takes off, and lands again a moment later.
@@ -401,7 +479,8 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
               builder: (context, _) {
                 final t = _clock.lastElapsedDuration?.inMicroseconds ?? 0;
                 final seconds = t / 1e6;
-                final placed = <({Artwork art, Creature creature, Pose pose})>[];
+                final placed = <_Placed>[];
+                final meal = _meal, into = meal == null ? 0.0 : seconds - meal.start;
                 final shelves = _shelves;
                 final spots = shelves == null ? const <Offset>[] : shelfSpots(view, boards: shelves);
                 final shelved = <Artwork>[];
@@ -416,7 +495,12 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
                   } else {
                     area = roamArea(creature, view);
                   }
-                  placed.add((art: art, creature: creature, pose: poseAt(creature.motion, seconds, art.id, area)));
+                  var pose = poseAt(creature.motion, seconds, art.id, area);
+                  final eater = meal?.eater(art.id);
+                  if (meal != null && eater != null) {
+                    pose = eater.pose(into, natural: pose, from: poseAt(creature.motion, meal.start + eater.delay, art.id, area));
+                  }
+                  placed.add((art: art, creature: creature, pose: pose, area: area));
                 }
                 _shelved = shelved;
                 final sale = _sale;
@@ -424,11 +508,7 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
                 // Farther back (higher up) first, so nearer creatures pass in front.
                 placed.sort((a, b) => a.pose.at.dy.compareTo(b.pose.at.dy));
                 final flight = _launching == null ? null : _flight(_liftoff.value);
-                return Stack(clipBehavior: Clip.none, children: [
-                  if (widget.habitat == Habitat.space || widget.habitat == Habitat.nightMarket)
-                    Positioned.fill(child: IgnorePointer(child: CustomPaint(painter: _Glow(widget.habitat, view, seconds)))),
-                  for (final p in placed)
-                    _Resident(
+                Widget resident(_Placed p) => _Resident(
                       key: ValueKey(p.art.id),
                       creature: p.creature,
                       sprite: FileImage(store.open(p.art.folder).sprite),
@@ -441,7 +521,27 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
                       flame: _launching == p.art.id && flight!.flame,
                       shake: _launching == p.art.id ? flight!.shake : 0,
                       onTap: () => _tapped(p.art, p.creature, p.pose),
+                    );
+                // The food stands on the ground: who is on the ground farther back goes behind it.
+                final feeder = feeders[widget.habitat];
+                bool behind(_Placed p) => feeder != null && p.pose.at.dy < feeder.at.dy && !_aloft.contains(p.creature.motion);
+                return Stack(clipBehavior: Clip.none, children: [
+                  if (widget.habitat == Habitat.space || widget.habitat == Habitat.nightMarket)
+                    Positioned.fill(child: IgnorePointer(child: CustomPaint(painter: _Glow(widget.habitat, view, seconds)))),
+                  for (final p in placed)
+                    if (behind(p)) resident(p),
+                  if (feeder != null)
+                    _Feeder(
+                      habitat: widget.habitat,
+                      feeder: feeder,
+                      view: view,
+                      level: meal?.level(into) ?? _food,
+                      // Full and waiting: now and then a little wiggle, to be tapped.
+                      wiggle: meal == null && _food >= 1 ? 0.05 * math.max(0.0, math.sin(seconds * 0.7) - 0.88) / 0.12 * math.sin(seconds * 22) : 0,
+                      onTap: () => _feed(feeder, view, placed),
                     ),
+                  for (final p in placed)
+                    if (!behind(p)) resident(p),
                   if (_ring case final ring?) _Ring(ring: ring, t: _throw.value, view: view),
                   if (widget.habitat == Habitat.polar)
                     Positioned.fill(child: IgnorePointer(child: CustomPaint(painter: _Snow(view, seconds)))),
@@ -546,8 +646,8 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
                     child: Pressable(
                       onTap: child == null ? null : () => _pick(child.id),
                       child: Container(
-                        width: 104,
-                        height: 104,
+                        width: _drawSize,
+                        height: _drawSize,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
@@ -569,6 +669,70 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
           if (_opening) const ModalBarrier(dismissible: false),
         ]);
       }),
+    );
+  }
+}
+
+/// A resident where it is now, and where it may go.
+typedef _Placed = ({Artwork art, Creature creature, Pose pose, Rect area});
+
+/// What is off the ground: never behind the food.
+const _aloft = {Motion.swim, Motion.float, Motion.fly, Motion.drift, Motion.shelf};
+
+/// The food: tap it and it fills up, and the animals come to eat (0.19).
+class _Feeder extends StatelessWidget {
+  const _Feeder({required this.habitat, required this.feeder, required this.view, required this.level, required this.wiggle, required this.onTap});
+
+  final Habitat habitat;
+  final Feeder feeder;
+  final SceneView view;
+
+  /// How full it is: 1 full, [Meal.leftover] eaten up.
+  final double level;
+
+  /// A tilt in radians, about its bottom.
+  final double wiggle;
+  final VoidCallback onTap;
+
+  /// A bigger target than the picture, for small fingers.
+  static const _pad = 14.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final width = feeder.width * view.creatureScale * view.scale, height = width * feederAspect;
+    final at = view.toScreen(feeder.at);
+    return Positioned(
+      left: at.dx - width / 2 - _pad,
+      top: at.dy - height - _pad,
+      width: width + 2 * _pad,
+      height: height + 2 * _pad,
+      child: Semantics(
+        button: true,
+        label: Strings.feed(feeder.food),
+        excludeSemantics: true,
+        child: GestureDetector(
+          key: const ValueKey('feeder'),
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(_pad),
+            child: Transform.rotate(
+              angle: wiggle,
+              alignment: Alignment.bottomCenter,
+              child: Stack(children: [
+                ArtSvg(Art.feed(habitat, 'back'), width: width, height: height),
+                Transform(
+                  // The food sinks toward the rim as it is eaten.
+                  alignment: const Alignment(0, 2 * feederRim - 1),
+                  transform: Matrix4.diagonal3Values(1, level.clamp(0.0, 1.3), 1),
+                  child: ArtSvg(Art.feed(habitat, 'food'), width: width, height: height),
+                ),
+                ArtSvg(Art.feed(habitat, 'front'), width: width, height: height),
+              ]),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

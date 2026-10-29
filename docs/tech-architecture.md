@@ -251,7 +251,7 @@ app/                  Flutter APP（說明見 app/README.md）
       send/           寄到哪裡、寄出慶祝
       album/          明信片冊
       parent/         家長確認、家長模式、隱私與安全
-      scene/          可以走進去的地方：角色的動作、商店的架子和客人
+      scene/          可以走進去的地方：角色的動作、商店的架子和客人、餵動物（feeding.dart）
       rest/           時間到了的提醒和休息畫面（蓋在所有畫面上）
   assets/art/         向量圖案（由 docs/design/v3/src/export_art.py 產生）
   test/               自動測試（區塊圖、著色、家長確認、資料庫與升級、照片中繼資料、版本、首頁、完整操作、
@@ -263,7 +263,7 @@ docs/                 規劃文件
 
 **套件版本**（第 1 階段骨架）
 - Flutter 3.47.8（Dart 3.13）
-- flutter_riverpod 3、go_router 18、drift 2.35、image_picker、image、flutter_svg、flutter_tts、gal（存到相簿）、audioplayers（0.16 起，音效；聲音檔由 `docs/design/sounds/make_sounds.py` 用正弦波和雜訊合成）
+- flutter_riverpod 3、go_router 18、drift 2.35、image_picker、image、flutter_svg、flutter_tts、gal（存到相簿）、audioplayers（0.16 起，音效；聲音檔由 `docs/design/sounds/make_sounds.py` 用正弦波和雜訊合成；0.19 起角色的叫聲用「嗡嗡的聲源＋共振峰濾波」做出母音，存成 16 kHz）
 
 - share_plus（0.17 起，家長模式的分享；不需要任何權限）
 - pdf、printing（0.18 起，家長模式印著色畫；用系統的列印功能，不需要任何權限）

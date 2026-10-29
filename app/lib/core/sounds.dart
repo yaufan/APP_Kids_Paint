@@ -35,7 +35,59 @@ enum Sfx {
   honk('honk'),
   toot('toot'),
   firework('firework'),
-  drizzle('drizzle');
+  drizzle('drizzle'),
+  // The residents' calls when tapped, and feeding them (0.19).
+  moo('moo'),
+  mooLow('moo_low'),
+  baa('baa'),
+  bleat('bleat'),
+  oink('oink'),
+  cluck('cluck'),
+  peep('peep'),
+  woof('woof'),
+  yip('yip'),
+  goose('goose'),
+  meow('meow'),
+  eep('eep'),
+  roar('roar'),
+  bigRoar('big_roar'),
+  rawr('rawr'),
+  trumpet('trumpet'),
+  whinny('whinny'),
+  monkey('monkey'),
+  grunt('grunt'),
+  grumble('grumble'),
+  hum('hum'),
+  blub('blub'),
+  whale('whale'),
+  narwhal('narwhal'),
+  dolphin('dolphin'),
+  click('click'),
+  puff('puff'),
+  dinoHorn('dino_horn'),
+  screech('screech'),
+  crack('crack'),
+  sirenFire('siren_fire'),
+  sirenPolice('siren_police'),
+  sirenAmbulance('siren_ambulance'),
+  beep('beep'),
+  jet('jet'),
+  chop('chop'),
+  elise('elise'),
+  backup('backup'),
+  putt('putt'),
+  whir('whir'),
+  buzz('buzz'),
+  slurp('slurp'),
+  cicada('cicada'),
+  ufo('ufo'),
+  alien('alien'),
+  squawk('squawk'),
+  bark('bark'),
+  hoot('hoot'),
+  jingle('jingle'),
+  serve('serve'),
+  munch('munch');
 
   const Sfx(this.file);
 
@@ -210,7 +262,6 @@ Ambience? ambienceFor(Habitat? habitat, Weather weather, DayPhase phase) {
   };
 }
 
-/// The boing of a creature jumping when tapped: big ones lower.
 /// What a poked toy in the town sounds like ([townToys] kinds).
 Sfx toySound(String kind) => switch (kind) {
       'duck' => Sfx.quack,
@@ -220,4 +271,70 @@ Sfx toySound(String kind) => switch (kind) {
       _ => Sfx.honk,
     };
 
+/// The boing of a creature jumping when tapped: big ones lower.
 Sfx boingOf(Creature creature) => creature.size >= 180 ? Sfx.boingLow : (creature.size <= 115 ? Sfx.boingHigh : Sfx.boingMid);
+
+/// What a tapped resident sounds like (0.19): animals call (a cow moos, a
+/// bee buzzes, the garbage truck plays Für Elise like in Taiwan), vehicles
+/// hoot and wail; plants, sweets and the rest jump with a [boingOf].
+Sfx callOf(Creature creature) => switch (creature) {
+      Creature.elephant => Sfx.trumpet,
+      Creature.giraffe => Sfx.hum,
+      Creature.lion || Creature.tiger => Sfx.roar,
+      Creature.panda || Creature.seaOtter || Creature.bunny => Sfx.eep,
+      Creature.zebra => Sfx.whinny,
+      Creature.monkey => Sfx.monkey,
+      Creature.hippo || Creature.koala || Creature.walrus => Sfx.grumble,
+      Creature.triceratops || Creature.stegosaurus || Creature.ankylosaurus => Sfx.grumble,
+      Creature.kangaroo || Creature.blackBear || Creature.polarBear || Creature.reindeer || Creature.pachycephalosaurus => Sfx.grunt,
+      Creature.flamingo || Creature.goose => Sfx.goose,
+      Creature.clownfish || Creature.octopus || Creature.turtle || Creature.shark || Creature.goldfish => Sfx.blub,
+      Creature.whale => Sfx.whale,
+      Creature.narwhal => Sfx.narwhal,
+      Creature.dolphin || Creature.orca => Sfx.dolphin,
+      Creature.jellyfish || Creature.starfish || Creature.butterfly || Creature.firefly => Sfx.sparkle,
+      Creature.crab || Creature.seahorse || Creature.mantis || Creature.ant || Creature.spider => Sfx.click,
+      Creature.pufferfish => Sfx.puff,
+      Creature.trex || Creature.spinosaurus => Sfx.bigRoar,
+      Creature.brachiosaurus || Creature.parasaurolophus => Sfx.dinoHorn,
+      Creature.pterosaur || Creature.raptor => Sfx.screech,
+      Creature.babyDino => Sfx.rawr,
+      Creature.dinoEgg => Sfx.crack,
+      Creature.fireTruck => Sfx.sirenFire,
+      Creature.policeCar => Sfx.sirenPolice,
+      Creature.ambulance => Sfx.sirenAmbulance,
+      Creature.bus || Creature.taxi => Sfx.honk,
+      Creature.scooter => Sfx.beep,
+      Creature.train || Creature.mrt => Sfx.toot,
+      Creature.airplane => Sfx.jet,
+      Creature.helicopter => Sfx.chop,
+      Creature.garbageTruck => Sfx.elise,
+      Creature.excavator => Sfx.backup,
+      Creature.tractor => Sfx.putt,
+      Creature.ladybug || Creature.dragonfly => Sfx.whir,
+      Creature.bee || Creature.beetle => Sfx.buzz,
+      Creature.snail => Sfx.slurp,
+      Creature.caterpillar => Sfx.munch,
+      Creature.cicada => Sfx.cicada,
+      Creature.ufo => Sfx.ufo,
+      Creature.alien => Sfx.alien,
+      Creature.spaceCat => Sfx.meow,
+      Creature.penguin => Sfx.squawk,
+      Creature.seal => Sfx.bark,
+      Creature.arcticFox => Sfx.yip,
+      Creature.snowyOwl => Sfx.hoot,
+      Creature.sled => Sfx.jingle,
+      Creature.cow => Sfx.moo,
+      Creature.waterBuffalo => Sfx.mooLow,
+      Creature.pig => Sfx.oink,
+      Creature.hen => Sfx.cluck,
+      Creature.chick => Sfx.peep,
+      Creature.sheep => Sfx.baa,
+      Creature.goat => Sfx.bleat,
+      Creature.duck => Sfx.quack,
+      Creature.puppy => Sfx.woof,
+      _ => boingOf(creature),
+    };
+
+/// Whether [sfx] is a call of its own rather than a boing.
+bool isCall(Sfx sfx) => sfx != Sfx.boingLow && sfx != Sfx.boingMid && sfx != Sfx.boingHigh;

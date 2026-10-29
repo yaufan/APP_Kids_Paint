@@ -455,3 +455,6 @@ const countdown = '3、2、1，發射！';
 
 /// The night market: what the snacks say when the child's ring lands on them.
 const ringed = ['套中了！好厲害！', '耶！被你套到了！', '好準喔！'];
+
+/// What an animal says when it has eaten the food the child put out (0.19).
+const fedLines = ['好好吃！', '謝謝你餵我！', '吃飽飽了！', '好好吃，還想再吃！'];

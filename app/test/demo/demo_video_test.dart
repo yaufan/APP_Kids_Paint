@@ -31,6 +31,7 @@ import 'package:kids_paint/core/sounds.dart';
 import 'package:kids_paint/core/storage/artwork_store.dart';
 import 'package:kids_paint/features/canvas/coloring.dart';
 import 'package:kids_paint/features/capture/capture_screen.dart';
+import 'package:kids_paint/features/scene/feeding.dart';
 
 import '../../integration_test/walkthrough.dart' show answerParentGate, walkthroughNote, WalkthroughPrinter, WalkthroughSharer;
 
@@ -714,6 +715,33 @@ void main() {
     await until(find.bySemanticsLabel(Strings.resident(Creature.tractor.label)));
     await seconds(6);
     mark('farm_end');
+
+    // 7d'. Animals call, and come to eat (0.19). The video has no sound: the captions say it.
+    mark('feed');
+    caption.value = '新功能：點動物，牠會叫\n乳牛「哞～」';
+    await tap(find.bySemanticsLabel(Strings.resident(Creature.cow.label)));
+    await seconds(2.2);
+    caption.value = '小豬「齁齁」';
+    await tap(find.bySemanticsLabel(Strings.resident(Creature.pig.label)));
+    await seconds(1.8);
+    caption.value = '拖拉機「噗噗噗」';
+    await tap(find.bySemanticsLabel(Strings.resident(Creature.tractor.label)));
+    await seconds(1.8);
+    caption.value = '新功能：餵動物\n點一下飼料槽';
+    await tap(find.bySemanticsLabel(Strings.feed(feeders[Habitat.farm]!.food)));
+    await seconds(1.2);
+    caption.value = '最近的動物走過來吃\n（拖拉機不吃）';
+    await seconds(4.5);
+    caption.value = '吃完說「好好吃！」，再回去玩';
+    await seconds(4.5);
+    caption.value = '每個有動物的地方都有吃的\n動物園是一籃水果';
+    await enterPlace(PlaceKind.zoo);
+    await seconds(1.5);
+    await tap(find.bySemanticsLabel(Strings.feed(feeders[Habitat.zoo]!.food)));
+    await seconds(5);
+    caption.value = '海洋館是貝殼裡的飼料、恐龍樂園是葉子\n昆蟲館是西瓜、極地是一桶魚';
+    await seconds(4);
+    mark('feed_end');
 
     // 7e. A drawing on real paper, photographed (0.18).
     mark('paper');
