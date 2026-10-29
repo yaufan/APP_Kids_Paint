@@ -91,17 +91,39 @@ jobs:
       # shown in the app must agree.
       - run: flutter test
 
+      # The NDK Flutter asks for is not on the runner. Downloading it took
+      # minutes on every run and once came back broken, so it is cached.
+      - name: NDK version
+        run: |
+          FLUTTER_ROOT=$(dirname "$(dirname "$(which flutter)")")
+          NDK=$(sed -n 's/.*val ndkVersion: String = "\(.*\)"/\1/p' \
+            "$FLUTTER_ROOT/packages/flutter_tools/gradle/src/main/kotlin/FlutterExtension.kt")
+          if [ -z "$NDK" ]; then echo "::warning::NDK version not found, not cached"; exit 0; fi
+          echo "NDK=$NDK" >> "$GITHUB_ENV"
+          echo "NDK_DIR=$ANDROID_HOME/ndk/$NDK" >> "$GITHUB_ENV"
+
+      - uses: actions/cache@v4
+        if: env.NDK != ''
+        with:
+          path: ${{ env.NDK_DIR }}
+          key: android-ndk-${{ env.NDK }}
+
       - name: Build Android APK
         run: |
-          flutter build apk --release --build-name="$VERSION" --build-number="$BUILD" \
+          flutter build apk --release --split-per-abi --build-name="$VERSION" --build-number="$BUILD" \
             --dart-define=APP_VERSION="$VERSION" --dart-define=APP_BUILD="$BUILD"
-          mv build/app/outputs/flutter-apk/app-release.apk "build/kids-paint-$VERSION.apk"
+          # One APK per kind of phone chip, about a third of one with all three.
+          for abi in arm64-v8a:arm64 armeabi-v7a:armv7 x86_64:x86_64; do
+            mv "build/app/outputs/flutter-apk/app-${abi%:*}-release.apk" "build/kids-paint-$VERSION-${abi#*:}.apk"
+          done
 
       # Same check as the App workflow: no network, location or advertising ID.
       - name: Check Android permissions
         run: |
           AAPT2=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)
-          "$AAPT2" dump permissions "build/kids-paint-$VERSION.apk" | tee permissions.txt
+          for apk in build/kids-paint-*.apk; do
+            "$AAPT2" dump permissions "$apk" | tee -a permissions.txt
+          done
           if grep -E 'INTERNET|LOCATION|AD_ID' permissions.txt; then
             echo "::error::The APK asks for a permission the app promises not to use"
             exit 1
@@ -113,5 +135,14 @@ jobs:
         run: |
           PRE=""
           if [ "$GITHUB_REF_NAME" != "main" ]; then PRE="--prerelease"; fi
-          gh release create "v$VERSION" "build/kids-paint-$VERSION.apk" \
-            --target "$GITHUB_SHA" --title "畫畫小鎮 $VERSION" --notes-file ../release-notes.md $PRE
+          # Which APK to pick goes above this version's notes.
+          {
+            echo "**下載哪一個？**"
+            echo "- 一般手機（大多數 2017 年以後的手機）：\`kids-paint-$VERSION-arm64.apk\`"
+            echo "- 很舊的手機（上面那個裝不起來的話）：\`kids-paint-$VERSION-armv7.apk\`"
+            echo "- 電腦上的 Android 模擬器、Intel 的 Chromebook：\`kids-paint-$VERSION-x86_64.apk\`"
+            echo
+            cat ../release-notes.md
+          } > ../notes.md
+          gh release create "v$VERSION" build/kids-paint-"$VERSION"-*.apk \
+            --target "$GITHUB_SHA" --title "畫畫小鎮 $VERSION" --notes-file ../notes.md $PRE

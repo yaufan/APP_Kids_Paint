@@ -65,20 +65,42 @@ jobs:
           echo "VERSION=$(sed -n 's/^version: *\([0-9.]*\).*/\1/p' pubspec.yaml)" >> "$GITHUB_ENV"
           echo "BUILD=$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
 
+      # The NDK Flutter asks for is not on the runner. Downloading it took
+      # minutes on every run and once came back broken, so it is cached.
+      - name: NDK version
+        run: |
+          FLUTTER_ROOT=$(dirname "$(dirname "$(which flutter)")")
+          NDK=$(sed -n 's/.*val ndkVersion: String = "\(.*\)"/\1/p' \
+            "$FLUTTER_ROOT/packages/flutter_tools/gradle/src/main/kotlin/FlutterExtension.kt")
+          if [ -z "$NDK" ]; then echo "::warning::NDK version not found, not cached"; exit 0; fi
+          echo "NDK=$NDK" >> "$GITHUB_ENV"
+          echo "NDK_DIR=$ANDROID_HOME/ndk/$NDK" >> "$GITHUB_ENV"
+
+      - uses: actions/cache@v4
+        if: env.NDK != ''
+        with:
+          path: ${{ env.NDK_DIR }}
+          key: android-ndk-${{ env.NDK }}
+
       # Signed with the debug key (see android/app/build.gradle.kts): fine for
       # installing on a test phone, not for Google Play.
       - name: Build Android APK
         run: |
-          flutter build apk --release --build-name="$VERSION" --build-number="$BUILD" \
+          flutter build apk --release --split-per-abi --build-name="$VERSION" --build-number="$BUILD" \
             --dart-define=APP_VERSION="$VERSION" --dart-define=APP_BUILD="$BUILD"
-          mv build/app/outputs/flutter-apk/app-release.apk "build/kids-paint-$VERSION-$BUILD.apk"
+          # One APK per kind of phone chip, about a third of one with all three.
+          for abi in arm64-v8a:arm64 armeabi-v7a:armv7 x86_64:x86_64; do
+            mv "build/app/outputs/flutter-apk/app-${abi%:*}-release.apk" "build/kids-paint-$VERSION-$BUILD-${abi#*:}.apk"
+          done
 
-      # The privacy promise, checked on the real package: no network, no
+      # The privacy promise, checked on the real packages: no network, no
       # location, no advertising ID (docs/safety-privacy.md).
       - name: Check Android permissions
         run: |
           AAPT2=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)
-          "$AAPT2" dump permissions "build/kids-paint-$VERSION-$BUILD.apk" | tee permissions.txt
+          for apk in build/kids-paint-*.apk; do
+            "$AAPT2" dump permissions "$apk" | tee -a permissions.txt
+          done
           if grep -E 'INTERNET|LOCATION|AD_ID' permissions.txt; then
             echo "::error::The APK asks for a permission the app promises not to use"
             exit 1
