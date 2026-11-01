@@ -1,6 +1,6 @@
 # 部署與安裝：Android 和 iOS
 
-> 目前版本 0.13.0：「畫畫小鎮」介面已經做進 APP，第一天可以幫小鎮取名字，小鎮會跟著時間和節日變化，還有動物園、海洋館、恐龍樂園、交通車館、植物園、昆蟲館、商店、太空、夜市和極地。
+> 目前版本 2.0.0：第二版，小鎮變成浮在天上的小島（見 [CHANGELOG](../CHANGELOG.md)）。
 
 ## 一頁看懂
 | | 現在就能測試 | 上架商店 |
@@ -16,6 +16,10 @@
 
 ### A. 現在就裝到手機（側載 APK）
 最簡單：GitHub 專案 → **Releases** → 選最新版本 → 下載 `kids-paint-版本-arm64.apk`（不用解壓縮，也不會過期）。版本怎麼發行見 [versioning.md](versioning.md)。
+
+最新版的網址固定是 <https://github.com/yaufan/APP_Kids_Paint/releases/latest>，出新版也不用換。用手機相機掃這個 QR code 就會打開：
+
+<img src="download-qr.png" alt="最新版下載頁的 QR code" width="200">
 
 從 0.19.0 起，每種手機晶片各有一個 APK（每個大約 35 MB，以前三種放在一起要 80 MB）：
 | 檔名結尾 | 給哪種手機 |
@@ -33,9 +37,32 @@
 5. 安裝完成，桌面會出現「畫畫小鎮」。
 
 注意：
-- 這個 APK 用測試用的金鑰簽章，以後換成 Google Play 版之前要先移除。
+- 這個 APK 用測試金鑰簽章（見下面「簽章」）；以後換成 Google Play 版之前要先移除。
 - Actions 的 Artifacts 保存 30 天；Releases 頁面的 APK 不會過期。
 - 沒有 Android 手機：電腦（Windows 也可以）安裝 Android Studio，用裡面的模擬器開 `-x86_64.apk`。
+
+### 簽章：同一把測試金鑰，新版才能直接蓋過舊版
+Android 只讓「同一把金鑰簽的」新版 APK 直接更新舊版；金鑰不同，手機會說「應用程式未安裝」，只能先移除再裝，**移除時小朋友的畫也會一起刪掉**。
+
+- **2.0.0 和以前的版本**：每次雲端打包都用一把臨時金鑰，所以每次換版本都要先移除。
+- **之後的版本**：雲端打包用一把固定的測試金鑰，放在 GitHub 專案的 Secrets（設定 → Secrets and variables → Actions）：
+  | Secret 名稱 | 內容 |
+  |---|---|
+  | `ANDROID_KEYSTORE_BASE64` | 金鑰檔 `kids-paint-test.p12` 轉成 base64 的文字 |
+  | `ANDROID_KEYSTORE_PASSWORD` | 金鑰的密碼 |
+- 從舊的臨時金鑰換到固定金鑰時要**最後移除一次**（先在家長模式把想留的畫存到相簿）；之後每一版都能直接更新，畫會留著。
+- 每個 APK 打包完都會檢查是不是這把金鑰簽的（工作流程裡的 `TEST_KEY_SHA256`）。發行版本時沒有這兩個 Secret 或金鑰不對，**Release 會停下來不發行**；平常的 App 檢查只會出現黃色警告，改用臨時金鑰。
+- 在自己的電腦打包（沒有設定 `KIDS_PAINT_KEYSTORE`）時用 Flutter 的 debug 金鑰，跟雲端版不能互相更新。
+- 金鑰檔和密碼**不能放進程式碼**（專案是公開的，別人拿到就能做出冒充的更新）。自己要另外備份，例如存在密碼管理器。
+- 金鑰不見了：照下面做一把新的，換掉兩個 Secret 和兩個工作流程（`.github/workflows/app.yml`、`release.yml`）裡的 `TEST_KEY_SHA256`；手機要再移除一次。
+  ```sh
+  keytool -genkeypair -keystore kids-paint-test.p12 -storetype pkcs12 -alias kidspaint \
+    -keyalg EC -groupname secp256r1 -validity 36500 -dname "CN=Hua Hua Town test key"
+  base64 -w0 kids-paint-test.p12          # 貼到 ANDROID_KEYSTORE_BASE64
+  keytool -list -v -keystore kids-paint-test.p12 -storetype pkcs12 | grep SHA256
+  # 去掉冒號、改成小寫，就是 TEST_KEY_SHA256
+  ```
+- 這把是**測試金鑰**，不是 Google Play 的上傳金鑰；Play 商店版的簽章由 Google 保管，跟這把不同，所以換成商店版時要先移除。
 
 ### B. 上架 Google Play
 1. **註冊開發者帳號**：[Google Play Console](https://play.google.com/console)，一次性 US$25，要驗證身分。

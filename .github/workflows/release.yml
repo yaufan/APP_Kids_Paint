@@ -22,6 +22,10 @@ concurrency:
   group: release
   cancel-in-progress: false
 
+# The fingerprint of the test key the APKs are signed with (docs/deployment.md).
+env:
+  TEST_KEY_SHA256: 69a4e28c011a4dd37048f43a2d244173250d28c0ff0c723fffbbd229bc57235d
+
 jobs:
   version:
     runs-on: ubuntu-latest
@@ -108,13 +112,42 @@ jobs:
           path: ${{ env.NDK_DIR }}
           key: android-ndk-${{ env.NDK }}
 
+      # The test key every APK is signed with (docs/deployment.md), from the
+      # repository's secrets: the same key every time, so phones can update.
+      - name: Signing key
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE" ]; then
+            echo "::error::No ANDROID_KEYSTORE_BASE64 secret: signed with a throwaway key, phones cannot update to it"
+            exit 1
+          else
+            # Spaces and line breaks from pasting the secret are dropped.
+            printf '%s' "$KEYSTORE" | tr -d ' \r\n' | base64 -d > "$RUNNER_TEMP/kids-paint.p12"
+            echo "KIDS_PAINT_KEYSTORE=$RUNNER_TEMP/kids-paint.p12" >> "$GITHUB_ENV"
+          fi
+
       - name: Build Android APK
+        env:
+          KIDS_PAINT_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
           flutter build apk --release --split-per-abi --build-name="$VERSION" --build-number="$BUILD" \
             --dart-define=APP_VERSION="$VERSION" --dart-define=APP_BUILD="$BUILD"
           # One APK per kind of phone chip, about a third of one with all three.
           for abi in arm64-v8a:arm64 armeabi-v7a:armv7 x86_64:x86_64; do
             mv "build/app/outputs/flutter-apk/app-${abi%:*}-release.apk" "build/kids-paint-$VERSION-${abi#*:}.apk"
+          done
+
+      # Signed with the test key, or a phone with the app on it cannot update.
+      - name: Check the signing key
+        run: |
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          for apk in build/kids-paint-*.apk; do
+            CERTS=$("$APKSIGNER" verify --print-certs "$apk")
+            if ! grep -q "SHA-256 digest: $TEST_KEY_SHA256" <<< "$CERTS"; then
+              echo "::error::$apk is not signed with the test key"
+              exit 1
+            fi
           done
 
       # Same check as the App workflow: no network, location or advertising ID.
