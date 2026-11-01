@@ -18,6 +18,7 @@ import 'package:kids_paint/core/sharing.dart';
 import 'package:kids_paint/core/sounds.dart';
 import 'package:kids_paint/core/storage/artwork_store.dart';
 import 'package:kids_paint/features/canvas/coloring.dart';
+import 'package:kids_paint/features/town/island_layout_data.dart';
 import 'package:kids_paint/features/town/town_screen.dart';
 
 /// Keeps what would have gone to the share sheet.
@@ -79,7 +80,11 @@ void main() {
 
   GoRouter router(WidgetTester tester) => GoRouter.of(tester.element(find.byType(Scaffold).first));
 
-  testWidgets('a picture sent to the park hops beside its pin and jumps when tapped', (tester) async {
+  testWidgets('a picture sent to the park hops on its island and jumps when tapped', (tester) async {
+    // A screen as big as the islands, so the park is on it.
+    tester.view.physicalSize = islandWorld * 2;
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
     await pumpApp(tester);
     await sendDrawing(tester, PlaceKind.park);
     await settle(tester, find.bySemanticsLabel(Strings.townFolk(PlaceKind.park.label)));

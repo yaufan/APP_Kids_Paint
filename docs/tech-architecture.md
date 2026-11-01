@@ -244,7 +244,7 @@ app/                  Flutter APP（說明見 app/README.md）
     core/             資料層：drift 資料庫、地點種類、作品資料夾、repositories、Riverpod providers、
                       角色台詞（看情況說）、每天的遊玩時間（play_time）、存到相簿（album_export）
     features/
-      town/           小鎮地圖（首頁）、圖釘、地點卡
+      town/           小鎮地圖（首頁，2.0 起是浮空小島：island_layout_data.dart 由 docs/design/v6/islands.py 產生）、圖釘、地點卡
       capture/        拍照、選相簿
       lineart/        轉換引擎介面（可替換）、TEED 描線（純 Dart）、塗色區塊圖、魔法變身與選風格
       canvas/         明信片著色：油漆桶、魔法蠟筆、復原、自動儲存

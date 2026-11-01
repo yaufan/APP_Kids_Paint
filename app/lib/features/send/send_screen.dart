@@ -10,6 +10,8 @@ import '../../core/db/database.dart';
 import '../../core/places.dart';
 import '../../core/providers.dart';
 import '../../core/sounds.dart';
+import '../../core/town_time.dart';
+import '../town/town_map.dart' show islandOf;
 
 /// "Where shall we send it?" Gugu holds the postcard; the child taps one of
 /// four big places (or "more places"). Pictures and voice, no reading.
@@ -187,7 +189,11 @@ class _PlaceCard extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    ArtSvg(Art.place(kind), size: compact ? 64 : 96),
+                    // The place's own island (2.0); its icon in the long list.
+                    if (compact)
+                      ArtSvg(Art.place(kind), size: 64)
+                    else
+                      ArtSvg(Art.island('island_${islandOf(kind)}', DayPhase.day), width: 128, height: 112),
                     const SizedBox(height: 4),
                     Text(
                       kind.label,

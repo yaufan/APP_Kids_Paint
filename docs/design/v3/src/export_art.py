@@ -1,4 +1,5 @@
-"""Writes the v3 art into the app: app/assets/art/**, the festival pages and lib/features/town/town_layout_data.dart.
+"""Writes the v3 art into the app: app/assets/art/**, the festival pages, and the floating islands
+(2.0, docs/design/v6/islands.py, which take their buildings from town.py).
 
     python3 export_art.py
 """
@@ -15,7 +16,6 @@ from PIL import Image
 import festivals
 import kit
 import screens
-import town
 
 APP = pathlib.Path(__file__).resolve().parents[4] / "app"
 ART = APP / "assets" / "art"
@@ -101,7 +101,10 @@ def main():
     write("tools/eraser.svg", screens.tool_eraser())
     for shape, svg in STAMPS.items():
         write(f"stamps/{shape}.svg", svg)
-    town.export(APP)
+    # The town is floating islands since 2.0; their buildings are town.py's.
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "v6"))
+    import islands
+    islands.export(APP)
 
 
 def export_pages():

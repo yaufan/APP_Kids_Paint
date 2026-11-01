@@ -288,10 +288,12 @@ void main() {
     await tap(find.bySemanticsLabel(Strings.done));
     await until(find.bySemanticsLabel(Strings.sendTo(PlaceKind.park.label)));
     await seconds(1.5);
+    mark('grow');
     await tap(find.bySemanticsLabel(Strings.sendTo(PlaceKind.park.label)));
-    caption.value = '寄出囉！第一次寄到公園，公園就蓋起來';
+    caption.value = '寄出囉！第一次寄到公園\n空空的公園島長出公園';
     await until(find.bySemanticsLabel(Strings.pinLabel(PlaceKind.park.label, 1)), max: 10);
     await seconds(3.5);
+    mark('grow_end');
     mark('own');
     caption.value = '新功能：塗好的東西會剪下來，住進小鎮\n在公園旁邊跳來跳去';
     final folk = find.bySemanticsLabel(Strings.townFolk(PlaceKind.park.label));
@@ -670,31 +672,47 @@ void main() {
     await seconds(1.5);
     mark('back_end');
 
-    // 7c. The town you can poke (0.18).
-    mark('toys');
+    // 7c. The floating islands (2.0), and the things on them to poke (0.18).
+    mark('islands');
     GoRouter.of(tester.element(find.byType(Scaffold).first)).go('/');
-    await until(find.byKey(const ValueKey('poke-tower')));
-    caption.value = '新功能：小鎮裡的東西可以戳\n點捷運：開出去繞一圈再回來';
-    await seconds(1.5);
-    await tap(find.byKey(const ValueKey('poke-mrt')));
+    await until(find.byKey(const ValueKey('poke-balloon')));
+    caption.value = '2.0：小鎮變成浮在天上的小島\n一個地方一座島，用吊橋連起來';
     await seconds(3);
-    caption.value = '點鴨子：呱呱叫、泛起漣漪';
-    await touch(tester.getRect(find.byKey(const ValueKey('poke-duckRiver'))).centerLeft + const Offset(5, 0));
-    await seconds(2);
-    caption.value = '點車子：按喇叭跳一下';
-    await tap(find.byKey(const ValueKey('poke-car0')));
-    await seconds(1.5);
+    final area = tester.getSize(find.byType(Scaffold).first);
+    Future<void> pan(double from, double to) =>
+        stroke([for (var i = 0; i <= 18; i++) Offset(area.width / 2, area.height * (from + (to - from) * i / 18))]);
+    caption.value = '往上滑：最高的是太空島、糖果島和極地島\n彩虹橋連到糖果島';
+    await pan(0.2, 0.75);
+    await pan(0.2, 0.75);
+    await seconds(2.5);
+    caption.value = '往下滑：最下面是海\n海洋館、沙灘和車站的小島浮在海上';
+    for (var i = 0; i < 5; i++) {
+      await pan(0.8, 0.2);
+    }
+    await seconds(2.5);
+    // Back to the middle, the balloon there.
+    final balloon = tester.getCenter(find.byKey(const ValueKey('poke-balloon')));
+    await stroke([
+      for (var i = 0; i <= 18; i++)
+        Offset(area.width / 2, area.height * 0.5) + Offset(area.width * 0.5 - balloon.dx, area.height * 0.55 - balloon.dy) * (i / 18),
+    ]);
+    caption.value = '小島會輕輕地上下飄\n點熱氣球：飛上去再下來';
+    await tap(find.byKey(const ValueKey('poke-balloon')));
+    await seconds(2.5);
+    caption.value = '點捷運：開過鐵軌橋到家，再開回來';
+    await tap(find.byKey(const ValueKey('poke-train')));
+    await seconds(3.5);
     caption.value = '點台北 101：放煙火';
     await tap(find.byKey(const ValueKey('poke-tower')));
-    await seconds(5);
+    await seconds(4.5);
     caption.value = '點雲：下一小陣雨';
-    await tap(find.byKey(const ValueKey('poke-cloud')));
+    await tap(find.byKey(const ValueKey('poke-cloud2')));
     await seconds(3);
-    mark('toys_end');
+    mark('islands_end');
 
     // 7d. Grandma and grandpa's farm (0.18).
     mark('farm');
-    caption.value = '新地方：阿公阿嬤的農場\n（地圖左下的阿公阿嬤家，旁邊有母雞和圍欄）';
+    caption.value = '新地方：阿公阿嬤的農場\n（阿公阿嬤家的小島，旁邊有母雞和圍欄）';
     await enterPlace(PlaceKind.grandma);
     caption.value = '農場：乳牛、小豬、綿羊在草地上走\n小雞和兔子跳跳跳';
     await seconds(5);

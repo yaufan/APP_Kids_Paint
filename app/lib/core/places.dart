@@ -1,5 +1,5 @@
 /// The kinds of places in a child's town (docs/town-map.md). Their names
-/// match the town art (`assets/art/town/`, `town_layout_data.dart`).
+/// match the island art (`assets/art/islands/`, `island_layout_data.dart`).
 enum PlaceKind {
   home('家'),
   grandma('阿公阿嬤家'),

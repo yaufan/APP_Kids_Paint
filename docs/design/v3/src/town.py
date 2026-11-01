@@ -6,6 +6,10 @@ Each place kind has its own layer (the building, or an empty lot before the
 first postcard arrives), so the app can stack only what a child has built.
 
     python3 town.py export   # writes app/assets/art/town/*.svg and town_layout_data.dart
+
+Since 2.0 the app shows the town as floating islands (docs/design/v6/islands.py),
+which take their buildings from here; `export` is kept for the first version's
+mockups and previews.
 """
 import math
 import pathlib

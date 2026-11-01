@@ -31,12 +31,12 @@ abstract final class Strings {
   static String pinLabel(String place, int n) => '$place的明信片，$n 張';
   static String townFolk(String place) => '你在$place畫的畫';
 
-  /// What a screen reader calls the things in the town you can poke (0.18).
+  /// What a screen reader calls the things on the islands you can poke (0.18, 2.0).
   static String toy(String kind) => switch (kind) {
         'train' => '捷運',
         'duck' => '鴨子',
-        'bus' => '公車',
-        'scooter' => '機車',
+        'boat' => '帆船',
+        'balloon' => '熱氣球',
         'tower' => '台北101',
         'cloud' => '雲',
         _ => '汽車',

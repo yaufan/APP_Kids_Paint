@@ -413,16 +413,16 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
   await idle(tester, 2000);
   await shot('17_town_dusk');
 
-  // The town you can poke (0.18): the train drives off, a duck bobs, 101's fireworks.
-  // First 101 into view, clear of the buttons at the bottom; to the right
-  // of the middle, so the train and the ducks stay on a phone's screen too.
+  // The islands you can poke (0.18, 2.0): the train crosses its bridge, the balloon rises,
+  // 101's fireworks. The balloon a little below the middle brings 101 above it, clear of
+  // the buttons at the top, and the train below it, clear of the buttons at the bottom.
   final screen = tester.getSize(find.byType(Scaffold).first);
-  final tower = tester.getCenter(find.byKey(const ValueKey('poke-tower')));
+  final balloon = tester.getCenter(find.byKey(const ValueKey('poke-balloon')));
   await tester.timedDragFrom(Offset(screen.width / 2, screen.height * 0.4),
-      Offset(screen.width * 0.72 - tower.dx, screen.height * 0.5 - tower.dy), const Duration(milliseconds: 900));
+      Offset(screen.width * 0.5 - balloon.dx, screen.height * 0.55 - balloon.dy), const Duration(milliseconds: 900));
   await idle(tester, 800);
-  await tester.tap(find.byKey(const ValueKey('poke-mrt')));
-  await tester.tapAt(tester.getRect(find.byKey(const ValueKey('poke-duckRiver'))).centerLeft + const Offset(5, 0));
+  await tester.tap(find.byKey(const ValueKey('poke-train')));
+  await tester.tap(find.byKey(const ValueKey('poke-balloon')));
   await tester.tap(find.byKey(const ValueKey('poke-tower')));
   await idle(tester, 1300);
   await shot('17d_town_toys');

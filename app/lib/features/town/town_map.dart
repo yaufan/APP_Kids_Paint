@@ -13,7 +13,7 @@ import '../../core/festivals.dart';
 import '../../core/places.dart';
 import '../../core/repositories.dart';
 import '../../core/town_time.dart';
-import 'town_layout_data.dart';
+import 'island_layout_data.dart';
 
 /// What the map shows at one kind of place: how many postcards, the newest.
 class TownSpot {
@@ -47,13 +47,28 @@ Map<PlaceKind, TownSpot> townSpots(List<Postcard> postcards, DateTime now) {
   };
 }
 
-/// The grass at the bottom edge of the land layer, for what comes below it.
-const _grass = {DayPhase.day: Color(0xFFA6DE97), DayPhase.dusk: Color(0xFFACBC80), DayPhase.night: Color(0xFF3D6381)};
+/// The sea below the world, where the map goes on under the buttons.
+const _sea = {DayPhase.day: Color(0xFF4DB6F0), DayPhase.dusk: Color(0xFF5F7FC4), DayPhase.night: Color(0xFF1C3A6E)};
 
-/// The child's town: drawn layers (sky, scenery, one building or empty lot
-/// per kind of place, a festival's decorations) with the child's postcards
-/// pinned on top. Every layer is drawn for day, dusk and night. Pans with a
-/// finger; phones first see the middle column, wide screens see more.
+/// Islands in the order they are drawn, back to front.
+final _islandOrder = islands.keys.toList();
+
+/// How far [island] floats up or down (world units) at [t], 0 to 1 through
+/// the map's 24-second loop: each island slowly, a little out of step with
+/// its neighbours. Off the islands (the sea, the sky), nothing moves.
+double islandBob(String? island, double t) {
+  if (island == null) return 0;
+  return 3.5 * math.sin(2 * math.pi * 3 * t + _islandOrder.indexOf(island) * 1.9);
+}
+
+/// The island a kind of place is on.
+String islandOf(PlaceKind kind) => islandPins[kind.name]?.island ?? kind.name;
+
+/// The child's town as floating islands (2.0): a sky from the stars down to
+/// the sea, one island per kind of place joined by bridges, a festival's
+/// decorations, and the child's postcards pinned on top. Every picture is
+/// drawn for day, dusk and night. The islands float gently; the map pans
+/// with a finger and first shows home.
 class TownMap extends StatefulWidget {
   const TownMap({
     super.key,
@@ -77,25 +92,27 @@ class TownMap extends StatefulWidget {
   final Map<PlaceKind, TownSpot> spots;
   final File Function(Artwork artwork) thumbnailOf;
 
-  /// The child's animal, walking near home.
+  /// The child's animal, walking on the home island.
   final String avatar;
 
-  /// The child's own pictures cut out, hopping beside their place's pin.
+  /// The child's own pictures cut out, hopping on their place's island.
   final Map<PlaceKind, List<File>> townies;
 
   /// One of them was tapped (it jumps).
   final ValueChanged<PlaceKind>? onTownie;
 
-  /// Something in the town was poked (0.18): what it is ('duck', 'car',
-  /// 'train', 'tower', 'cloud'...; [townToys]).
+  /// Something was poked: what it is ('train', 'duck', 'boat', 'balloon',
+  /// 'tower', 'cloud'; [islandToys]).
   final ValueChanged<String>? onToy;
   final ValueChanged<PlaceKind>? onPin;
+
+  /// An island nobody has sent a postcard to yet was tapped.
   final ValueChanged<PlaceKind>? onLot;
 
-  /// The zoo or the aquarium was tapped: go inside.
+  /// An island you can go into was tapped: go inside.
   final ValueChanged<PlaceKind>? onAttraction;
 
-  /// A place that was just built: it grows out of its lot.
+  /// A place that was just built: it grows on its island.
   final PlaceKind? grow;
 
   /// A place to scroll to and bounce (a postcard just arrived there).
@@ -107,13 +124,13 @@ class TownMap extends StatefulWidget {
   final bool interactive;
 
   /// Screen points covered at the bottom (the buttons): the map goes on
-  /// below its last row in grass, so that row can scroll up clear of them.
+  /// below its last row in sea, so that row can scroll up clear of them.
   final double bottomInset;
 
-  /// How many world points a screen of [width] shows across.
+  /// How many world points a screen of [viewport] shows across.
   static double scaleFor(Size viewport) {
-    final across = viewport.width.clamp(390.0, townSize.width);
-    return math.max(viewport.width / across, viewport.height / townSize.height);
+    final across = viewport.width.clamp(390.0, islandWorld.width);
+    return math.max(viewport.width / across, viewport.height / islandWorld.height);
   }
 
   @override
@@ -132,14 +149,14 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
   final _toys = <String, AnimationController>{};
 
   AnimationController _toy(String name) => _toys.putIfAbsent(
-      name, () => AnimationController(vsync: this, duration: _ToyMotion.lengthOf(townToys[name]!.kind)));
+      name, () => AnimationController(vsync: this, duration: _ToyMotion.lengthOf(islandToys[name]!.kind)));
 
   void _poke(String name) {
     final toy = _toy(name);
-    // The train is away: let it come back first.
-    if (toy.isAnimating && townToys[name]!.kind == 'train') return;
+    // The train, the boat and the balloon are away: let them come back first.
+    if (toy.isAnimating && {'train', 'boat', 'balloon'}.contains(islandToys[name]!.kind)) return;
     toy.forward(from: 0);
-    widget.onToy?.call(townToys[name]!.kind);
+    widget.onToy?.call(islandToys[name]!.kind);
   }
 
   @override
@@ -159,27 +176,32 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  /// Home, the zoo and the aquarium are always there; other places once a postcard arrives.
-  bool _built(PlaceKind kind) =>
-      kind == PlaceKind.home || townAttractions.containsKey(kind.name) || widget.spots.containsKey(kind);
+  /// Islands that grow are bare until a postcard arrives; the rest are always there.
+  bool _built(String island) => !islands[island]!.grows || widget.spots.containsKey(PlaceKind.byName(island));
 
   void _place(Size viewport, double s) {
     if (_laidOutFor == viewport) return;
     _laidOutFor = viewport;
-    final map = townSize * s + Offset(0, widget.bottomInset);
-    var tx = (viewport.width - map.width) / 2;
-    // Wide screens show little height: start at the mountains, not the sky.
-    var ty = viewport.width > viewport.height ? -170 * s : 0.0;
-    final focus = widget.focus ?? widget.grow;
-    if (focus != null) {
-      final pin = townSlots[focus.name]!.pin * s;
-      tx = viewport.width / 2 - pin.dx;
-      ty = viewport.height * 0.45 - pin.dy;
-    }
+    final map = islandWorld * s + Offset(0, widget.bottomInset);
+    // Home, or where a postcard just arrived, a little above the middle.
+    final at = islandPins[(widget.focus ?? widget.grow ?? PlaceKind.home).name]!.pin * s;
+    var tx = viewport.width / 2 - at.dx;
+    var ty = viewport.height * 0.42 - at.dy;
     tx = tx.clamp(math.min(0.0, viewport.width - map.width), 0.0);
     ty = ty.clamp(math.min(0.0, viewport.height - map.height), 0.0);
     _view.value = Matrix4.translationValues(tx, ty, 0);
   }
+
+  /// [child] floating with [island] (or still, off the islands).
+  Widget _afloat(String? island, double s, Widget child) => island == null
+      ? child
+      : AnimatedBuilder(
+          animation: _life,
+          builder: (context, child) => Transform.translate(offset: Offset(0, islandBob(island, _life.value) * s), child: child),
+          child: child,
+        );
+
+  Rect _scaled(Rect r, double s) => Rect.fromLTWH(r.left * s, r.top * s, r.width * s, r.height * s);
 
   @override
   Widget build(BuildContext context) {
@@ -187,128 +209,112 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
       final viewport = box.biggest;
       final s = TownMap.scaleFor(viewport);
       _place(viewport, s);
-      final size = townSize * s;
+      final size = islandWorld * s;
 
-      // The toys drawn after [layer], each with its own picture.
-      Iterable<Widget> toys(String layer) => [
-            for (final MapEntry(key: name, value: toy) in townToys.entries)
-              if (toy.after == layer && toy.art != null)
+      // The toys standing on [island] (null: the sea and the sky), each with its own picture.
+      Iterable<Widget> toys(String? island) => [
+            for (final MapEntry(key: name, value: toy) in islandToys.entries)
+              if (toy.on == island && toy.art != null)
                 _ToySprite(
                   key: ValueKey('toy-$name'),
                   kind: toy.kind,
                   art: toy.art!,
                   scale: s,
                   poked: _toy(name),
+                  float: island == null ? null : (_life, island),
                   child: _svg('toy_$name'),
                 ),
           ];
 
-      final layers = <Widget>[_layer('sky'), _layer('land'), ...toys('land')];
-      for (final name in townLayerOrder) {
+      final layers = <Widget>[_layer('sky'), _layer('bridges')];
+      for (final MapEntry(key: name, value: island) in islands.entries) {
         final kind = PlaceKind.byName(name);
-        final slot = townSlots[name]!;
-        if (_built(kind)) {
-          if (kind == widget.grow && slot.lot != null) {
-            final center = slot.lot!.center * s;
-            layers.add(Positioned.fill(
-              child: FadeTransition(
-                opacity: ReverseAnimation(CurvedAnimation(parent: _grow, curve: const Interval(0, 0.4))),
-                child: _svg('${name}_lot'),
-              ),
-            ));
-            layers.add(Positioned.fill(
-              child: AnimatedBuilder(
-                animation: _grow,
-                builder: (context, child) => Opacity(
-                  opacity: Curves.easeOut.transform((_grow.value / 0.3).clamp(0.0, 1.0)),
-                  child: Transform.scale(
-                    scale: 0.2 + 0.8 * Curves.elasticOut.transform(_grow.value),
-                    alignment: Alignment(center.dx / size.width * 2 - 1, center.dy / size.height * 2 - 1),
-                    child: child,
-                  ),
+        final rect = _scaled(island.box, s);
+        if (!_built(name)) {
+          layers.add(Positioned.fromRect(rect: rect, child: _afloat(name, s, _svg('island_${name}_lot'))));
+        } else if (kind == widget.grow && island.grows) {
+          // The bare island, and the place growing on it.
+          final base = (island.folks.first + island.folks.last) / 2 - island.box.topLeft;
+          layers.add(Positioned.fromRect(
+            rect: rect,
+            child: _afloat(
+              name,
+              s,
+              Stack(fit: StackFit.expand, children: [
+                FadeTransition(
+                  opacity: ReverseAnimation(CurvedAnimation(parent: _grow, curve: const Interval(0.2, 0.5))),
+                  child: _svg('island_${name}_lot'),
                 ),
-                child: _svg(name),
-              ),
-            ));
-          } else {
-            layers.add(_layer(name));
-          }
-          layers.addAll(toys(name));
-        } else if (slot.lot != null) {
-          layers.add(_layer('${name}_lot'));
+                AnimatedBuilder(
+                  animation: _grow,
+                  builder: (context, child) => Opacity(
+                    opacity: Curves.easeOut.transform((_grow.value / 0.3).clamp(0.0, 1.0)),
+                    child: Transform.scale(
+                      scale: 0.6 + 0.4 * Curves.elasticOut.transform(_grow.value),
+                      alignment: Alignment(base.dx / island.box.width * 2 - 1, base.dy / island.box.height * 2 - 1),
+                      child: child,
+                    ),
+                  ),
+                  child: _svg('island_$name'),
+                ),
+              ]),
+            ),
+          ));
+        } else {
+          layers.add(Positioned.fromRect(rect: rect, child: _afloat(name, s, _svg('island_$name'))));
         }
+        layers.addAll(toys(name));
       }
-      layers.addAll(toys('traffic'));
+      layers.addAll(toys(null));
       final festival = widget.festival;
-      if (festival != null && townFestivalLayers.contains(festival.name)) layers.add(_layer('festival_${festival.name}'));
+      if (festival != null && islandFestivalLayers.contains(festival.name)) layers.add(_layer('festival_${festival.name}'));
       final night = widget.phase == DayPhase.night;
 
-      final lots = [
-        for (final MapEntry(key: name, value: slot) in townSlots.entries)
-          if (slot.lot != null && !_built(PlaceKind.byName(name)))
-            Positioned.fromRect(
-              rect: Rect.fromLTWH(slot.lot!.left * s, slot.lot!.top * s, slot.lot!.width * s, slot.lot!.height * s),
-              child: Semantics(
-                button: true,
-                label: '${PlaceKind.byName(name).label}，還沒畫過',
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: widget.onLot == null ? null : () => widget.onLot!(PlaceKind.byName(name)),
-                ),
-              ),
-            ),
-      ];
-
-      final attractions = [
-        for (final MapEntry(key: name, value: rect) in townAttractions.entries)
-          Positioned.fromRect(
-            rect: Rect.fromLTWH(rect.left * s, rect.top * s, rect.width * s, rect.height * s),
-            child: Semantics(
-              button: true,
-              label: Strings.enter(_door(PlaceKind.byName(name))),
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: widget.onAttraction == null ? null : () => widget.onAttraction!(PlaceKind.byName(name)),
-              ),
-            ),
-          ),
+      // One tap target per island: go in, see its postcards, or hear that nothing is here yet.
+      final taps = [
+        for (final MapEntry(key: name, value: island) in islands.entries) _islandTap(name, island, s),
       ];
 
       // Toys that are there (the park's ducks once the park is built).
-      bool there(String? layer) => layer == null || layer == 'land' || layer == 'traffic' || _built(PlaceKind.byName(layer));
+      bool there(String? island) => island == null || _built(island);
       final pokes = [
-        for (final MapEntry(key: name, value: toy) in townToys.entries)
-          if (there(toy.after))
+        for (final MapEntry(key: name, value: toy) in islandToys.entries)
+          if (there(toy.on))
             Positioned.fromRect(
-              rect: Rect.fromLTWH(toy.tap.left * s, toy.tap.top * s, toy.tap.width * s, toy.tap.height * s),
-              child: Semantics(
-                button: true,
-                label: Strings.toy(toy.kind),
-                child: GestureDetector(
-                  key: ValueKey('poke-$name'),
-                  behavior: HitTestBehavior.opaque,
-                  onTap: widget.interactive ? () => _poke(name) : null,
+              rect: _scaled(toy.tap, s),
+              child: _afloat(
+                toy.on,
+                s,
+                Semantics(
+                  button: true,
+                  label: Strings.toy(toy.kind),
+                  child: GestureDetector(
+                    key: ValueKey('poke-$name'),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: widget.interactive ? () => _poke(name) : null,
+                  ),
                 ),
               ),
             ),
       ];
       // What poking the tower and the clouds starts.
       final effects = [
-        for (final MapEntry(key: name, value: toy) in townToys.entries)
+        for (final MapEntry(key: name, value: toy) in islandToys.entries)
           if (toy.kind == 'tower')
-            _PokedFireworks(at: townTowerTop * s, poked: _toy(name))
+            _PokedFireworks(at: islandTowerTop * s, poked: _toy(name), float: (_life, toy.on), scale: s)
           else if (toy.kind == 'cloud')
-            _Rain(under: Rect.fromLTWH(toy.tap.left * s, toy.tap.top * s, toy.tap.width * s, toy.tap.height * s), poked: _toy(name)),
+            _Rain(under: _scaled(toy.tap, s), poked: _toy(name)),
       ];
 
-      final home = townSlots['home']!.pin;
       final townies = [
         for (final MapEntry(key: kind, value: files) in widget.townies.entries)
           for (final (i, file) in files.indexed)
             _Townie(
               key: ValueKey('townie-${kind.name}-$i'),
               life: _life,
-              at: (townSlots[kind.name]!.pin + _townieSpots[i % _townieSpots.length]) * s,
+              island: islandOf(kind),
+              at: islands[islandOf(kind)]!.folks[i % islands[islandOf(kind)]!.folks.length] * s,
+              scale: s,
               image: FileImage(file),
               phase: i * 1.7 + kind.index,
               label: Strings.townFolk(kind.label),
@@ -318,44 +324,50 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
       // A pin takes taps a little around it too, but under the toys.
       final margins = [
         for (final spot in widget.spots.values)
-          Positioned.fromRect(
-            rect: _Pin.boxOf(spot, townSlots[spot.kind.name]!.pin * s),
-            child: ExcludeSemantics(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: widget.onPin == null ? null : () => widget.onPin!(spot.kind),
+          if (islandPins.containsKey(spot.kind.name))
+            Positioned.fromRect(
+              rect: _Pin.boxOf(spot, islandPins[spot.kind.name]!.pin * s),
+              child: _afloat(
+                islandOf(spot.kind),
+                s,
+                ExcludeSemantics(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: widget.onPin == null ? null : () => widget.onPin!(spot.kind),
+                  ),
+                ),
               ),
             ),
-          ),
       ];
       final pins = [
         for (final spot in widget.spots.values)
-          _Pin(
-            key: ValueKey('pin-${spot.kind.name}'),
-            spot: spot,
-            image: FileImage(widget.thumbnailOf(spot.latest)),
-            at: townSlots[spot.kind.name]!.pin * s,
-            bounce: spot.kind == widget.focus,
-            onTap: widget.onPin == null ? null : () => widget.onPin!(spot.kind),
-          ),
+          if (islandPins.containsKey(spot.kind.name))
+            _Pin(
+              key: ValueKey('pin-${spot.kind.name}'),
+              spot: spot,
+              image: FileImage(widget.thumbnailOf(spot.latest)),
+              at: islandPins[spot.kind.name]!.pin * s,
+              float: (_life, islandOf(spot.kind), s),
+              bounce: spot.kind == widget.focus,
+              onTap: widget.onPin == null ? null : () => widget.onPin!(spot.kind),
+            ),
       ];
 
       final map = SizedBox.fromSize(
         size: size,
         child: Stack(clipBehavior: Clip.none, children: [
           ...layers,
-          ...lots,
-          ...attractions,
+          ...taps,
           ...margins,
           ...pokes,
           ...effects,
-          _Walker(life: _life, at: Offset((home.dx + 64) * s, (home.dy + 88) * s), avatar: widget.avatar),
-          // Gugu sleeps on the MRT viaduct at night, away from every pin.
+          _Walker(life: _life, at: islandWalker * s, scale: s, avatar: widget.avatar),
+          // Gugu sleeps on the home island at night.
           if (night)
-            _SleepingPigeon(life: _life, perch: Offset((townColumnLeft + 24) * s, 318 * s))
+            _SleepingPigeon(life: _life, perch: islandPerch * s, scale: s)
           else
-            _FlyingPigeon(life: _life, mapWidth: size.width, y: 96 * s),
-          if (festival == Festival.newYearsEve && widget.phase != DayPhase.day) _Fireworks(at: townTowerTop * s),
+            _FlyingPigeon(life: _life, mapWidth: size.width, y: 548 * s),
+          if (festival == Festival.newYearsEve && widget.phase != DayPhase.day) _Fireworks(at: islandTowerTop * s, life: _life, scale: s),
           ...pins,
           // Over the pins' wide tap areas, so a tap reaches them.
           ...townies,
@@ -371,17 +383,50 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
               ? map
               : Column(mainAxisSize: MainAxisSize.min, children: [
                   map,
-                  Container(width: size.width, height: widget.bottomInset, color: _grass[widget.phase]),
+                  Container(width: size.width, height: widget.bottomInset, color: _sea[widget.phase]),
                 ]),
       );
     });
+  }
+
+  /// Tapping an island: inside if it has a place to go into, its postcards
+  /// if it has some, else a word that nothing has been sent there yet.
+  Widget _islandTap(String name, ({Rect box, Rect tap, String? enter, List<Offset> folks, bool grows}) island, double s) {
+    final kind = PlaceKind.byName(name);
+    final String? label;
+    final VoidCallback? onTap;
+    if (island.enter case final enter?) {
+      label = Strings.enter(_door(PlaceKind.byName(enter)));
+      onTap = widget.onAttraction == null ? null : () => widget.onAttraction!(PlaceKind.byName(enter));
+    } else if (!_built(name)) {
+      label = '${kind.label}，還沒畫過';
+      onTap = widget.onLot == null ? null : () => widget.onLot!(kind);
+    } else if (widget.spots.containsKey(kind)) {
+      label = null; // its pin says it
+      onTap = widget.onPin == null ? null : () => widget.onPin!(kind);
+    } else {
+      label = null;
+      onTap = null;
+    }
+    return Positioned.fromRect(
+      rect: _scaled(island.tap, s),
+      child: _afloat(
+        name,
+        s,
+        Semantics(
+          button: label != null,
+          label: label,
+          child: GestureDetector(key: ValueKey('island-$name'), behavior: HitTestBehavior.opaque, onTap: onTap),
+        ),
+      ),
+    );
   }
 
   /// What a place you can go into is called on its door (the night market
   /// is where 好吃的店 postcards go).
   static String _door(PlaceKind kind) => Habitat.of(kind)?.label ?? kind.label;
 
-  Widget _svg(String name) => ExcludeSemantics(child: SvgPicture.asset(Art.town(name, widget.phase), fit: BoxFit.fill));
+  Widget _svg(String name) => ExcludeSemantics(child: SvgPicture.asset(Art.island(name, widget.phase), fit: BoxFit.fill));
 
   Widget _layer(String name) => Positioned.fill(child: _svg(name));
 }
@@ -389,11 +434,14 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
 /// A postcard pinned at its place: the newest picture, how many there are,
 /// and a glow if one arrived today.
 class _Pin extends StatefulWidget {
-  const _Pin({super.key, required this.spot, required this.image, required this.at, this.bounce = false, this.onTap});
+  const _Pin({super.key, required this.spot, required this.image, required this.at, required this.float, this.bounce = false, this.onTap});
 
   final TownSpot spot;
   final ImageProvider image;
   final Offset at;
+
+  /// The map's loop, the island it is on and the map's scale: it floats with the island.
+  final (Animation<double>, String, double) float;
   final bool bounce;
   final VoidCallback? onTap;
 
@@ -435,112 +483,118 @@ class _PinState extends State<_Pin> with SingleTickerProviderStateMixin {
     final size = _Pin.sizeOf(widget.spot);
     const tip = _Pin.tip;
     final ring = today ? KidColors.sun : Colors.white;
+    final (life, island, scale) = widget.float;
     return Positioned.fromRect(
       rect: _Pin.boxOf(widget.spot, widget.at),
-      child: Semantics(
-        button: true,
-        label: Strings.pinLabel(widget.spot.kind.label, widget.spot.count),
-        excludeSemantics: true,
-        child: GestureDetector(
-          // Only the pin itself: around it, a tap first reaches what is
-          // there (a duck, a car) and the pin's margin under them.
-          behavior: HitTestBehavior.deferToChild,
-          onTap: widget.onTap,
-          child: AnimatedBuilder(
-            animation: _c,
-            builder: (context, child) {
-              final drop = widget.bounce ? -36 * (1 - Curves.bounceOut.transform(_c.value)) : 0.0;
-              return Stack(clipBehavior: Clip.none, children: [
-                if (today)
-                  for (final phase in [0.0, 0.5])
-                    Positioned(
-                      left: 40 + size / 2 - 30,
-                      top: 20 + size + tip - 16,
-                      child: Transform.scale(
-                        scale: 0.6 + ((_c.value + phase) % 1) * 1.2,
-                        child: Opacity(
-                          opacity: (1 - (_c.value + phase) % 1) * 0.7,
-                          child: Container(
-                            width: 60,
-                            height: 30,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(30),
-                              border: Border.all(color: KidColors.sun, width: 4),
+      // The whole pin floats with its island: the picture, its glow, where it takes taps.
+      child: AnimatedBuilder(
+        animation: life,
+        builder: (context, child) => Transform.translate(offset: Offset(0, islandBob(island, life.value) * scale), child: child),
+        child: Semantics(
+          button: true,
+          label: Strings.pinLabel(widget.spot.kind.label, widget.spot.count),
+          excludeSemantics: true,
+          child: GestureDetector(
+            // Only the pin itself: around it, a tap first reaches what is
+            // there (a duck, a car) and the pin's margin under them.
+            behavior: HitTestBehavior.deferToChild,
+            onTap: widget.onTap,
+            child: AnimatedBuilder(
+              animation: _c,
+              builder: (context, child) {
+                final drop = widget.bounce ? -36 * (1 - Curves.bounceOut.transform(_c.value)) : 0.0;
+                return Stack(clipBehavior: Clip.none, children: [
+                  if (today)
+                    for (final phase in [0.0, 0.5])
+                      Positioned(
+                        left: 40 + size / 2 - 30,
+                        top: 20 + size + tip - 16,
+                        child: Transform.scale(
+                          scale: 0.6 + ((_c.value + phase) % 1) * 1.2,
+                          child: Opacity(
+                            opacity: (1 - (_c.value + phase) % 1) * 0.7,
+                            child: Container(
+                              width: 60,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(30),
+                                border: Border.all(color: KidColors.sun, width: 4),
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                Positioned(
-                  left: 40 + size / 2 - 12,
-                  top: 20 + size + tip - 5,
-                  child: Container(
-                    width: 24,
-                    height: 9,
-                    decoration: BoxDecoration(color: const Color(0x381E3C28), borderRadius: BorderRadius.circular(9)),
-                  ),
-                ),
-                Positioned(left: 40, top: 20 + drop, child: child!),
-              ]);
-            },
-            child: SizedBox(
-              width: size,
-              height: size + tip,
-              child: Stack(clipBehavior: Clip.none, children: [
-                Positioned(
-                  left: size / 2 - 9,
-                  top: size - 1,
-                  child: CustomPaint(size: Size(18, tip + 1), painter: _TipPainter(ring)),
-                ),
-                Container(
-                  width: size,
-                  height: size,
-                  padding: EdgeInsets.all(today ? 6 : 5),
-                  decoration: BoxDecoration(
-                    color: ring,
-                    borderRadius: BorderRadius.circular(size * 0.3),
-                    boxShadow: KidShadows.soft(),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(size * 0.3 - 5),
-                    child: Image(image: widget.image, fit: BoxFit.cover, gaplessPlayback: true),
-                  ),
-                ),
-                if (today)
                   Positioned(
-                    right: -11,
-                    top: -11,
+                    left: 40 + size / 2 - 12,
+                    top: 20 + size + tip - 5,
                     child: Container(
-                      width: 32,
-                      height: 32,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: KidColors.coral,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 3),
-                      ),
-                      child: const KidIcon('star', size: 16, color: Colors.white, solid: true),
-                    ),
-                  )
-                else if (widget.spot.count > 1)
-                  Positioned(
-                    right: -9,
-                    top: -9,
-                    child: Container(
-                      constraints: const BoxConstraints(minWidth: 26),
-                      height: 26,
-                      padding: const EdgeInsets.symmetric(horizontal: 5),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: KidColors.coral,
-                        borderRadius: BorderRadius.circular(13),
-                        border: Border.all(color: Colors.white, width: 3),
-                      ),
-                      child: Text('${widget.spot.count}',
-                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700, height: 1)),
+                      width: 24,
+                      height: 9,
+                      decoration: BoxDecoration(color: const Color(0x381E3C28), borderRadius: BorderRadius.circular(9)),
                     ),
                   ),
-              ]),
+                  Positioned(left: 40, top: 20 + drop, child: child!),
+                ]);
+              },
+              child: SizedBox(
+                width: size,
+                height: size + tip,
+                child: Stack(clipBehavior: Clip.none, children: [
+                  Positioned(
+                    left: size / 2 - 9,
+                    top: size - 1,
+                    child: CustomPaint(size: Size(18, tip + 1), painter: _TipPainter(ring)),
+                  ),
+                  Container(
+                    width: size,
+                    height: size,
+                    padding: EdgeInsets.all(today ? 6 : 5),
+                    decoration: BoxDecoration(
+                      color: ring,
+                      borderRadius: BorderRadius.circular(size * 0.3),
+                      boxShadow: KidShadows.soft(),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(size * 0.3 - 5),
+                      child: Image(image: widget.image, fit: BoxFit.cover, gaplessPlayback: true),
+                    ),
+                  ),
+                  if (today)
+                    Positioned(
+                      right: -11,
+                      top: -11,
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: KidColors.coral,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 3),
+                        ),
+                        child: const KidIcon('star', size: 16, color: Colors.white, solid: true),
+                      ),
+                    )
+                  else if (widget.spot.count > 1)
+                    Positioned(
+                      right: -9,
+                      top: -9,
+                      child: Container(
+                        constraints: const BoxConstraints(minWidth: 26),
+                        height: 26,
+                        padding: const EdgeInsets.symmetric(horizontal: 5),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: KidColors.coral,
+                          borderRadius: BorderRadius.circular(13),
+                          border: Border.all(color: Colors.white, width: 3),
+                        ),
+                        child: Text('${widget.spot.count}',
+                            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700, height: 1)),
+                      ),
+                    ),
+                ]),
+              ),
             ),
           ),
         ),
@@ -570,12 +624,13 @@ class _TipPainter extends CustomPainter {
   bool shouldRepaint(_TipPainter old) => old.color != color;
 }
 
-/// The child's own animal, hopping on the sidewalk by home.
+/// The child's own animal, hopping on the home island.
 class _Walker extends StatelessWidget {
-  const _Walker({required this.life, required this.at, required this.avatar});
+  const _Walker({required this.life, required this.at, required this.scale, required this.avatar});
 
   final Animation<double> life;
   final Offset at;
+  final double scale;
   final String avatar;
 
   @override
@@ -586,7 +641,7 @@ class _Walker extends StatelessWidget {
         final t = life.value * 2 * math.pi * 16;
         return Positioned(
           left: at.dx - 24,
-          top: at.dy - 48 - 5 * math.sin(t).abs(),
+          top: at.dy - 48 - 5 * math.sin(t).abs() + islandBob('home', life.value) * scale,
           child: Transform.rotate(angle: 0.07 * math.sin(t), child: child),
         );
       },
@@ -595,16 +650,24 @@ class _Walker extends StatelessWidget {
   }
 }
 
-/// Where the child's pictures stand beside a pin (its tip), in world
-/// points: clear of the pin itself.
-const _townieSpots = [Offset(-58, 6), Offset(58, 12)];
-
-/// One of the child's own pictures, cut out, hopping beside its place's
-/// pin (0.17). Tapped, it jumps.
+/// One of the child's own pictures, cut out, hopping on its place's island
+/// (0.17). Tapped, it jumps.
 class _Townie extends StatefulWidget {
-  const _Townie({super.key, required this.life, required this.at, required this.image, required this.phase, required this.label, this.onTap});
+  const _Townie({
+    super.key,
+    required this.life,
+    required this.island,
+    required this.at,
+    required this.scale,
+    required this.image,
+    required this.phase,
+    required this.label,
+    this.onTap,
+  });
 
   final Animation<double> life;
+  final String island;
+  final double scale;
 
   /// Where its feet are.
   final Offset at;
@@ -638,7 +701,7 @@ class _TownieState extends State<_Townie> with SingleTickerProviderStateMixin {
         final hop = 4 * math.sin(t).abs() + 34 * math.sin(math.pi * _jump.value);
         return Positioned(
           left: widget.at.dx - size / 2 + 5 * math.sin(t / 5),
-          top: widget.at.dy - size - hop,
+          top: widget.at.dy - size - hop + islandBob(widget.island, widget.life.value) * widget.scale,
           width: size,
           height: size,
           child: Transform.rotate(angle: 0.08 * math.sin(t) + 2 * math.pi * Curves.easeInOut.transform(_jump.value), child: child),
@@ -686,9 +749,10 @@ class _FlyingPigeon extends StatelessWidget {
 
 /// Gugu asleep, little z's floating up.
 class _SleepingPigeon extends StatelessWidget {
-  const _SleepingPigeon({required this.life, required this.perch});
+  const _SleepingPigeon({required this.life, required this.perch, required this.scale});
 
   final Animation<double> life;
+  final double scale;
 
   /// Where Gugu's feet are.
   final Offset perch;
@@ -700,7 +764,10 @@ class _SleepingPigeon extends StatelessWidget {
       top: perch.dy - 70,
       width: 70,
       height: 72,
-      child: Stack(clipBehavior: Clip.none, children: [
+      child: AnimatedBuilder(
+        animation: life,
+        builder: (context, child) => Transform.translate(offset: Offset(0, islandBob('home', life.value) * scale), child: child),
+        child: Stack(clipBehavior: Clip.none, children: [
         const Positioned(left: 0, top: 28, child: ArtSvg(Art.pigeonAsleep, size: 44)),
         Positioned.fill(
           child: AnimatedBuilder(
@@ -709,6 +776,7 @@ class _SleepingPigeon extends StatelessWidget {
           ),
         ),
       ]),
+      ),
     );
   }
 }
@@ -749,9 +817,11 @@ class _ZzzPainter extends CustomPainter {
 /// New Year's Eve over 101: slow bursts, one at a time and never flashing
 /// (well under three flashes a second, for children sensitive to light).
 class _Fireworks extends StatefulWidget {
-  const _Fireworks({required this.at});
+  const _Fireworks({required this.at, required this.life, required this.scale});
 
   final Offset at;
+  final Animation<double> life;
+  final double scale;
 
   @override
   State<_Fireworks> createState() => _FireworksState();
@@ -775,7 +845,13 @@ class _FireworksState extends State<_Fireworks> with SingleTickerProviderStateMi
       width: box,
       height: box,
       child: IgnorePointer(
-        child: AnimatedBuilder(animation: _c, builder: (context, _) => CustomPaint(painter: _FireworksPainter(_c.value))),
+        child: AnimatedBuilder(
+          animation: Listenable.merge([_c, widget.life]),
+          builder: (context, _) => Transform.translate(
+            offset: Offset(0, islandBob('city', widget.life.value) * widget.scale),
+            child: CustomPaint(painter: _FireworksPainter(_c.value)),
+          ),
+        ),
       ),
     );
   }
@@ -785,10 +861,14 @@ class _FireworksState extends State<_Fireworks> with SingleTickerProviderStateMi
 /// bigger and bolder than New Year's Eve's (they go up in daylight too),
 /// each shot up from the tower first.
 class _PokedFireworks extends StatelessWidget {
-  const _PokedFireworks({required this.at, required this.poked});
+  const _PokedFireworks({required this.at, required this.poked, required this.float, required this.scale});
 
   final Offset at;
   final Animation<double> poked;
+
+  /// The map's loop and the island the tower is on.
+  final (Animation<double>, String?) float;
+  final double scale;
 
   @override
   Widget build(BuildContext context) {
@@ -800,10 +880,13 @@ class _PokedFireworks extends StatelessWidget {
       height: box,
       child: IgnorePointer(
         child: AnimatedBuilder(
-          animation: poked,
+          animation: Listenable.merge([poked, float.$1]),
           builder: (context, _) => poked.value == 0 || poked.value == 1
               ? const SizedBox.shrink()
-              : CustomPaint(painter: _FireworksPainter(poked.value * _FireworksPainter.lengthOf(bold: true), repeat: false, bold: true)),
+              : Transform.translate(
+                  offset: Offset(0, islandBob(float.$2, float.$1.value) * scale),
+                  child: CustomPaint(painter: _FireworksPainter(poked.value * _FireworksPainter.lengthOf(bold: true), repeat: false, bold: true)),
+                ),
         ),
       ),
     );
@@ -880,6 +963,8 @@ class _RainPainter extends CustomPainter {
 abstract final class _ToyMotion {
   static Duration lengthOf(String kind) => switch (kind) {
         'train' => const Duration(milliseconds: 5200),
+        'boat' => const Duration(milliseconds: 6400),
+        'balloon' => const Duration(milliseconds: 4200),
         'duck' => const Duration(milliseconds: 1100),
         'tower' => const Duration(milliseconds: 5400),
         'cloud' => const Duration(milliseconds: 2600),
@@ -887,11 +972,12 @@ abstract final class _ToyMotion {
       };
 }
 
-/// A toy's own picture at its place in the town, doing its thing when
-/// [poked] runs: the train drives off and comes back round, a duck bobs
-/// and makes ripples, a car hops.
+/// A toy's own picture at its place, doing its thing when [poked] runs:
+/// the train goes across its rail bridge to home and back, the boat sails
+/// off and comes back round, the balloon rises and comes down, a duck bobs
+/// and makes ripples.
 class _ToySprite extends StatelessWidget {
-  const _ToySprite({super.key, required this.kind, required this.art, required this.scale, required this.poked, required this.child});
+  const _ToySprite({super.key, required this.kind, required this.art, required this.scale, required this.poked, this.float, required this.child});
 
   final String kind;
 
@@ -899,26 +985,49 @@ class _ToySprite extends StatelessWidget {
   final Rect art;
   final double scale;
   final Animation<double> poked;
+
+  /// The map's loop and the island it stands on: it floats with it.
+  final (Animation<double>, String)? float;
   final Widget child;
+
+  /// Where along [islandRail] the train is, 0 (its stop) to 1 (home), as
+  /// an offset from its stop.
+  static Offset _alongRail(double u) {
+    final n = islandRail.length - 1;
+    final x = (u * n).clamp(0.0, n.toDouble());
+    final i = x.floor().clamp(0, n - 1);
+    return Offset.lerp(islandRail[i], islandRail[i + 1], x - i)! - islandRail.first;
+  }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: poked,
+      animation: float == null ? poked : Listenable.merge([poked, float!.$1]),
       builder: (context, child) {
         final t = poked.value;
         var left = art.left;
-        var lift = 0.0;
+        var lift = float == null ? 0.0 : -islandBob(float!.$2, float!.$1.value);
         var turn = 0.0;
         Widget picture = child!;
         switch (kind) {
           case 'train':
+            // Across to home, a moment there, and back.
+            final u = t < 0.45 ? Curves.easeInOutSine.transform(t / 0.45) : (t < 0.55 ? 1.0 : 1 - Curves.easeInOutSine.transform((t - 0.55) / 0.45));
+            final d = _alongRail(u);
+            left += d.dx;
+            lift -= d.dy;
+          case 'boat':
             // Off to the right, and in again from the left.
-            final round = townSize.width + art.width;
+            final round = islandWorld.width + art.width;
             left += Curves.easeInOutSine.transform(t) * round;
-            if (left > townSize.width) left -= round;
+            if (left > islandWorld.width) left -= round;
+            turn = 0.05 * math.sin(math.pi * t * 6);
+          case 'balloon':
+            // Up into the sky and gently down again.
+            lift += 90 * math.sin(math.pi * t);
+            left += 14 * math.sin(math.pi * t * 2);
           case 'duck':
-            lift = 5 * math.sin(math.pi * t * 3).abs() * (1 - t);
+            lift += 5 * math.sin(math.pi * t * 3).abs() * (1 - t);
             turn = 0.35 * math.sin(math.pi * t * 4) * (1 - t);
             if (t > 0 && t < 1) {
               picture = Stack(fit: StackFit.expand, clipBehavior: Clip.none, children: [
@@ -928,7 +1037,7 @@ class _ToySprite extends StatelessWidget {
             }
           default:
             // Two little hops.
-            lift = 8 * math.sin(math.pi * t * 2).abs() * (1 - 0.4 * t);
+            lift += 8 * math.sin(math.pi * t * 2).abs() * (1 - 0.4 * t);
         }
         return Positioned(
           left: left * scale,

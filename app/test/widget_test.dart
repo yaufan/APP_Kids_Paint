@@ -14,6 +14,7 @@ import 'package:kids_paint/core/providers.dart';
 import 'package:kids_paint/core/repositories.dart';
 import 'package:kids_paint/core/sounds.dart';
 import 'package:kids_paint/core/storage/artwork_store.dart';
+import 'package:kids_paint/features/town/island_layout_data.dart';
 
 void main() {
   Future<void> pumpApp(WidgetTester tester, DateTime now, {bool welcomed = true}) async {
@@ -123,6 +124,10 @@ void main() {
   });
 
   testWidgets('the zoo opens from the town and invites the child to color an animal', (tester) async {
+    // A screen as big as the islands, so the zoo's is on it.
+    tester.view.physicalSize = islandWorld * 2;
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
     await pumpApp(tester, DateTime(2026, 10, 25, 10));
     await tester.pump(const Duration(milliseconds: 100));
 

@@ -262,10 +262,11 @@ Ambience? ambienceFor(Habitat? habitat, Weather weather, DayPhase phase) {
   };
 }
 
-/// What a poked toy in the town sounds like ([townToys] kinds).
+/// What a poked toy on the islands sounds like ([islandToys] kinds).
 Sfx toySound(String kind) => switch (kind) {
       'duck' => Sfx.quack,
-      'train' => Sfx.toot,
+      'train' || 'boat' => Sfx.toot,
+      'balloon' => Sfx.swish,
       'tower' => Sfx.firework,
       'cloud' => Sfx.drizzle,
       _ => Sfx.honk,

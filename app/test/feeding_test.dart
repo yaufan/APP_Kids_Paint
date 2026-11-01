@@ -19,7 +19,7 @@ import 'package:kids_paint/features/scene/feeding.dart';
 import 'package:kids_paint/features/scene/motion.dart';
 
 import 'postcard_back_test.dart' show RecordingVoice;
-import 'town_toys_test.dart' show RecordingSounds;
+import 'islands_test.dart' show RecordingSounds;
 
 /// Animals make their sounds and come to eat (0.19).
 void main() {

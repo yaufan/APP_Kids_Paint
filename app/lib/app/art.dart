@@ -15,7 +15,8 @@ abstract final class Art {
   static String icon(String name, {bool solid = false}) => '$_dir/icons/$name${solid ? '_solid' : ''}.svg';
   static String place(PlaceKind kind) => '$_dir/places/${kind.name}.svg';
   static String animal(String kind) => '$_dir/animals/${animals.contains(kind) ? kind : animals.first}.svg';
-  static String town(String layer, DayPhase phase) => '$_dir/town/${layer}_${phase.name}.svg';
+  /// The floating islands (2.0, docs/design/v6/islands.py): an island, the sky, the bridges, a toy, a festival.
+  static String island(String layer, DayPhase phase) => '$_dir/islands/${layer}_${phase.name}.svg';
   static String festival(Festival f) => '$_dir/festivals/${f.name}.svg';
 
   /// A built-in coloring page (a festival's, a creature's): black lines on white.
