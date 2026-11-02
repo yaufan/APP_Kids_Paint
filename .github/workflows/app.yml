@@ -7,8 +7,11 @@ on:
     paths: ['app/**', '.github/workflows/app.yml']
   workflow_dispatch:
 
+# One run per commit: main and the working branch are pushed with the same
+# commit, and the private repository's free minutes should test it once
+# (docs/deployment.md, "GitHub Actions 的免費額度").
 concurrency:
-  group: app-${{ github.ref }}
+  group: app-${{ github.sha }}
   cancel-in-progress: true
 
 # The fingerprint of the test key the APKs are signed with (docs/deployment.md).
@@ -55,12 +58,15 @@ jobs:
       # app on a phone-sized screen and every step is captured.
       - run: flutter test
 
+      # Only when something failed: the private repository has 500 MB for
+      # all artifacts together. A full store does not fail the build.
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: failure()
+        continue-on-error: true
         with:
           name: app-screenshots
           path: app/build/screenshots/
-          retention-days: 30
+          retention-days: 3
 
       # Version from pubspec.yaml, build number from the commit count (only
       # ever grows, as the stores require). See docs/versioning.md.
@@ -139,8 +145,11 @@ jobs:
             exit 1
           fi
 
+      # The phone APK for testing between versions (all three are on each
+      # release). Kept 3 days, for the same 500 MB.
       - uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: kids-paint-android-apk
-          path: app/build/kids-paint-*.apk
-          retention-days: 30
+          path: app/build/kids-paint-*-arm64.apk
+          retention-days: 3

@@ -92,14 +92,14 @@ flutter run                   # 接上 Android 手機或模擬器
 flutter test test/demo/demo_video_test.dart --dart-define=DEMO=true
 ```
 
-每次推送到 GitHub，**Actions** 會自動：
-- 檢查程式、執行測試
-- 跑一次完整的模擬操作，產生手機和平板截圖（Artifacts：`app-screenshots`）
-- 建置 Android APK（Artifacts：`kids-paint-android-apk`）
+每次推送改到 `app/` 時，GitHub **Actions** 會自動：
+- 檢查程式、執行測試，包括一次完整的模擬操作和手機、平板截圖（截圖只在失敗時上傳，Artifacts：`app-screenshots`）
+- 建置 Android APK（Artifacts：`kids-paint-android-apk`，只有手機用的 arm64，保存 3 天）
+- 同一個提交推到 `main` 和工作分支時只跑一次（省私人專案的免費額度，見 [deployment.md](../docs/deployment.md)）
 
 **iPhone／iPad 模擬器測試**（`.github/workflows/ios.yml`）：
 - 會在 iPhone 和 iPad 模擬器上跑同一套模擬操作並截圖（Artifacts：`ios-simulator-screenshots`）
-- 雲端 Mac 主機消耗的免費時間是一般的 10 倍，所以只在三種情況執行：合併到 `main`、手動觸發，或 commit 訊息含 `[ios]`
+- 雲端 Mac 主機消耗的免費時間是一般的 10 倍，跑一次大約用掉 320 分鐘（每月只有 2,000 分鐘），所以只手動執行：Actions → **iOS Simulator** → Run workflow
 - 本機執行：`flutter drive --driver=test_driver/integration_test.dart --target=integration_test/app_flow_test.dart -d 裝置ID`
 
-這個 APK 用除錯金鑰簽署，可以直接裝到 Android 手機測試，但不能上架 Google Play。
+這個 APK 用測試金鑰簽署（見 [deployment.md](../docs/deployment.md) 的「簽章」），可以直接裝到 Android 手機測試，但不能上架 Google Play。

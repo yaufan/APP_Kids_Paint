@@ -13,7 +13,7 @@
 | 版本說明 | 專案根目錄的 `CHANGELOG.md` |
 | 程式的版本快照 | git 標籤 `v0.4.0`，在 GitHub 的 **Tags** |
 | 可以安裝的 APK | GitHub 的 **Releases** 頁面，每個版本三個（arm64、armv7、x86_64，見 [deployment.md](deployment.md)），不會過期 |
-| 每次推送的測試版 APK | GitHub Actions → App → 該次執行的 Artifacts（保存 30 天） |
+| 每次推送的測試版 APK | GitHub Actions → App → 該次執行的 Artifacts（只有 arm64，保存 3 天） |
 
 ## 發新版本的步驟
 1. 改 `app/pubspec.yaml` 的版本號，例如 `0.4.0` → `0.5.0`。

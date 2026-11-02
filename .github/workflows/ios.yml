@@ -1,23 +1,18 @@
 name: iOS Simulator
 
-# macOS runners use the private repo's free minutes ten times faster, so this
-# runs only on main, by hand, or for a push whose commit message has [ios].
+# By hand only: Actions -> iOS Simulator -> Run workflow. A Mac minute counts
+# as ten of the private repository's free minutes, and one run (iPhone and
+# iPad, about 32 minutes) uses some 320 of the 2,000 a month
+# (docs/deployment.md, "GitHub Actions 的免費額度").
 on:
-  push:
-    paths: ['app/**', '.github/workflows/ios.yml']
   workflow_dispatch:
+
+concurrency:
+  group: ios
+  cancel-in-progress: true
 
 jobs:
   simulators:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      github.ref == 'refs/heads/main' ||
-      contains(github.event.head_commit.message, '[ios]')
-    # On the job, not the workflow: a push without [ios] is skipped and must
-    # not cancel a walk-through that is still running.
-    concurrency:
-      group: ios-${{ github.ref }}
-      cancel-in-progress: true
     runs-on: macos-latest
     timeout-minutes: 200
     defaults:
@@ -67,9 +62,11 @@ jobs:
           SCREENSHOT_DIR: build/ios_screenshots/ipad
         run: ../.github/ios_walk_through.sh "${{ steps.sims.outputs.ipad }}"
 
+      # Kept 3 days: the private repository has 500 MB for all artifacts.
       - uses: actions/upload-artifact@v4
         if: always()
+        continue-on-error: true
         with:
           name: ios-simulator-screenshots
           path: app/build/ios_screenshots/
-          retention-days: 30
+          retention-days: 3

@@ -34,5 +34,5 @@
 - 每次推送都會在 GitHub Actions 自動測試、截圖，並建置可安裝的 Android APK；發行的版本放在 GitHub 的 Releases，最新版固定在 <https://github.com/yaufan/APP_Kids_Paint/releases/latest>（QR code 和安裝方法見 [docs/deployment.md](docs/deployment.md)）。
 
 ## 授權
-- **保留一切權利**：程式碼、圖畫、角色、聲音和文件的著作權都屬於作者。公開只是讓人看，沒有書面同意不可以複製、修改、放進別的 APP 或產品，也不可以拿來訓練 AI（見 [LICENSE](LICENSE)）。
+- **保留一切權利**：程式碼、圖畫、角色、聲音和文件的著作權都屬於作者。就算公開也只是讓人看，沒有書面同意不可以複製、修改、放進別的 APP 或產品，也不可以拿來訓練 AI（見 [LICENSE](LICENSE)）。
 - 字型、描線模型、Twemoji 圖案、樣本照片和套件是別人做的，照它們自己的授權（見 [NOTICE.md](NOTICE.md)）。
