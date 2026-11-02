@@ -25,6 +25,10 @@ import festivals  # noqa: E402
 import town  # noqa: E402
 from kit import cloud, duck, shade, tower101, tree, flower_patch  # noqa: E402
 
+# The islands' night (2.1): moonlit, not the first version's near-black, so
+# a child can still tell the places apart. Lamps and windows still glow.
+town.TINT = {**town.TINT, "night": ((0.7, 0.75, 0.86), (20, 26, 56))}
+
 APP = HERE.parents[2] / "app"
 W, H = 780, 1760
 SEA = 1650  # where the sea starts
@@ -63,14 +67,16 @@ ISLANDS = {
     "dinoPark": (110, 720, "grass", 0.95, False),
     "home": (390, 720, "grass", 1.55, False),
     "transport": (672, 720, "grass", 0.95, False),
-    "school": (215, 950, "grass", 1.1, False),
-    "temple": (565, 950, "grass", 1.2, False),
-    "zoo": (110, 1180, "meadow", 0.95, False),
-    "park": (390, 1180, "grass", 0.95, False),
-    "food": (672, 1180, "grass", 0.95, False),
+    # 2.1: the islands that start bare (GROWS) are out at the edges, the
+    # ones always built round home in the middle.
+    "zoo": (215, 950, "meadow", 0.95, False),
+    "food": (565, 950, "grass", 0.95, False),
+    "school": (110, 1180, "grass", 1.1, False),
+    "insects": (390, 1180, "meadow", 0.95, False),
+    "temple": (672, 1180, "grass", 1.2, False),
     "botanical": (130, 1410, "grass", 0.95, False),
     "grandma": (390, 1410, "meadow", 1.0, False),
-    "insects": (650, 1410, "meadow", 0.95, False),
+    "park": (650, 1410, "grass", 0.95, False),
     "aquarium": (130, 1660, "sand", 0.95, True),
     "water": (390, 1672, "sand", 1.0, True),
     "travel": (650, 1660, "sand", 1.0, True),
@@ -335,9 +341,9 @@ def sky(phase="day"):
     stops = {
         "day": [(0, "#5DAEF5"), (0.45, "#9BD6FF"), (0.9, "#D8F1FF")],
         "dusk": [(0, "#5E5AA8"), (0.4, "#9C8AD6"), (0.75, "#FF9F8A"), (0.92, "#FFD9A3")],
-        "night": [(0, "#0D1538"), (0.6, "#1D2A5E"), (0.92, "#3B4C8A")],
+        "night": [(0, "#141E4A"), (0.6, "#2A3A78"), (0.92, "#4A5FA6")],
     }[phase]
-    sea = {"day": ("#4DB6F0", "#8ED8FF"), "dusk": ("#5F7FC4", "#E6A58F"), "night": ("#1C3A6E", "#2E5590")}[phase]
+    sea = {"day": ("#4DB6F0", "#8ED8FF"), "dusk": ("#5F7FC4", "#E6A58F"), "night": ("#27508F", "#3D6CB0")}[phase]
     s = ['<defs><linearGradient id="isky" x1="0" y1="0" x2="0" y2="1">'
          + "".join(f'<stop offset="{o}" stop-color="{c}"/>' for o, c in stops) + '</linearGradient>'
          f'<linearGradient id="isea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{sea[1]}"/><stop offset="1" stop-color="{sea[0]}"/></linearGradient></defs>',
@@ -370,9 +376,9 @@ def sky(phase="day"):
 
 # Rope bridges between neighbours (from, to); the rainbow joins the candy island.
 BRIDGES = [
-    ("home", "mountain"), ("home", "city"), ("home", "dinoPark"), ("home", "transport"), ("home", "school"), ("home", "temple"),
-    ("mountain", "space"), ("city", "polar"), ("school", "zoo"), ("school", "park"), ("temple", "park"), ("temple", "food"),
-    ("park", "grandma"), ("zoo", "botanical"), ("food", "insects"), ("botanical", "aquarium"), ("grandma", "water"), ("insects", "travel"),
+    ("home", "mountain"), ("home", "city"), ("home", "dinoPark"), ("home", "transport"), ("home", "zoo"), ("home", "food"),
+    ("mountain", "space"), ("city", "polar"), ("zoo", "school"), ("zoo", "insects"), ("food", "insects"), ("food", "temple"),
+    ("insects", "grandma"), ("school", "botanical"), ("temple", "park"), ("botanical", "aquarium"), ("grandma", "water"), ("park", "travel"),
 ]
 RAINBOWS = [("mountain", "candy"), ("candy", "city")]
 RAIL = ("transport", "home")  # a rail bridge: the little train goes across and back

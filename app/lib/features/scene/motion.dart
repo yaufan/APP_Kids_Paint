@@ -97,6 +97,30 @@ Pose poseAt(Motion motion, double t, int seed, Rect area) {
   }
 }
 
+/// A creature a child picked up and put down (2.1): let go of at [from]
+/// at [since] seconds, to settle at [to]. It glides from where it was let
+/// go and then keeps to a little patch round [to] ([nearArea]) instead of
+/// all of [area].
+Pose settledAt(Motion motion, double t, int seed, Rect area, {required Offset from, required Offset to, required double since}) {
+  final near = nearArea(motion, area, to);
+  final natural = poseAt(motion, t, seed, near);
+  final start = poseAt(motion, since, seed, near).at;
+  final fade = math.exp(-math.max(0.0, t - since) / 0.5);
+  return (at: natural.at + (from - start) * fade, left: natural.left, tilt: natural.tilt, squash: natural.squash);
+}
+
+/// The patch of [area] round [spot] a creature put down there keeps to:
+/// what grows or stands on a shelf stays right on the spot.
+Rect nearArea(Motion motion, Rect area, Offset spot) {
+  final (w, h) = switch (motion) {
+    Motion.sway || Motion.shelf => (0.0, 0.0),
+    Motion.rail => (math.min(area.width, 300.0), 0.0),
+    _ => (math.min(area.width, 240.0), math.min(area.height, 90.0)),
+  };
+  final c = Offset(spot.dx.clamp(area.left + w / 2, area.right - w / 2), spot.dy.clamp(area.top + h / 2, area.bottom - h / 2));
+  return Rect.fromCenter(center: c, width: w, height: h);
+}
+
 /// The shop's shelves: where their tops are in the scene (docs/design/v3/src
 /// creatures.py SHOP_BOARDS), the lowest first.
 const shopBoards = [840.0, 670.0, 500.0];

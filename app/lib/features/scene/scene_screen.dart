@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -71,6 +72,17 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
   Voice? _voice;
   final _random = math.Random();
   List<Artwork> _residents = const [];
+
+  /// A resident held up by a finger (2.1): which, where its feet are
+  /// (scene units), and how far they are from the finger.
+  ({int id, Offset at, Offset grab})? _held;
+
+  /// Residents put down somewhere new this visit: let go of where, to
+  /// settle where, and when (on the scene's clock).
+  final _moved = <int, ({Offset from, Offset to, double since})>{};
+
+  /// Every resident's pose as last drawn, to pick it up from there.
+  final _poses = <int, Pose>{};
 
   /// Taps in a row on a creature (an artwork id): how many, and when the
   /// last was (on the scene's clock).
@@ -240,6 +252,42 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
     final sound = callOf(creature);
     _sounds.play(sound);
     _say(art, tapped: true, voiceAfter: isCall(sound) ? _afterCall : Duration.zero);
+  }
+
+  /// How high a resident held up is lifted off the ground (scene units).
+  static const _lift = 26.0;
+
+  double get _now => (_clock.lastElapsedDuration?.inMicroseconds ?? 0) / 1e6;
+
+  /// A finger holds a resident (pressed a moment, or dragged): it comes up
+  /// and follows the finger. Goods on a shelf and a rocket taking off stay.
+  void _pickUp(Artwork art, Creature creature, Offset finger, SceneView view) {
+    final pose = _poses[art.id];
+    if (pose == null || creature.motion == Motion.shelf || _launching == art.id || _held != null) return;
+    _sounds.play(Sfx.boingHigh);
+    HapticFeedback.selectionClick();
+    final at = view.toScene(finger);
+    setState(() => _held = (id: art.id, at: pose.at - const Offset(0, _lift), grab: pose.at - at));
+  }
+
+  void _carry(Offset finger, SceneView view) {
+    final held = _held;
+    if (held == null) return;
+    _held = (id: held.id, at: view.toScene(finger) + held.grab - const Offset(0, _lift), grab: held.grab);
+  }
+
+  /// Let go: it settles where it was put, as near as it may go (a fish
+  /// stays in the water, a cow on the grass), and wanders round there.
+  void _putDown(Artwork art, Creature creature, SceneView view) {
+    final held = _held;
+    if (held == null || held.id != art.id) return;
+    final area = roamArea(creature, view);
+    final to = Offset(held.at.dx.clamp(area.left, area.right), held.at.dy.clamp(area.top, area.bottom));
+    _sounds.play(Sfx.boingLow);
+    setState(() {
+      _moved[art.id] = (from: held.at, to: to, since: _now);
+      _held = null;
+    });
   }
 
   /// Where the big draw button is, in scene units (with a little room around it).
@@ -495,11 +543,20 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
                   } else {
                     area = roamArea(creature, view);
                   }
-                  var pose = poseAt(creature.motion, seconds, art.id, area);
+                  final moved = _moved[art.id];
+                  Pose natural(double t) => moved == null
+                      ? poseAt(creature.motion, t, art.id, area)
+                      : settledAt(creature.motion, t, art.id, area, from: moved.from, to: moved.to, since: moved.since);
+                  var pose = natural(seconds);
                   final eater = meal?.eater(art.id);
                   if (meal != null && eater != null) {
-                    pose = eater.pose(into, natural: pose, from: poseAt(creature.motion, meal.start + eater.delay, art.id, area));
+                    pose = eater.pose(into, natural: pose, from: natural(meal.start + eater.delay));
                   }
+                  final held = _held;
+                  if (held != null && held.id == art.id) {
+                    pose = (at: held.at, left: pose.left, tilt: 0.12 * math.sin(seconds * 6), squash: 1.0);
+                  }
+                  _poses[art.id] = pose;
                   placed.add((art: art, creature: creature, pose: pose, area: area));
                 }
                 _shelved = shelved;
@@ -507,6 +564,11 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
                 final sold = sale == null ? null : placed.where((p) => p.art.id == sale.item.id).firstOrNull;
                 // Farther back (higher up) first, so nearer creatures pass in front.
                 placed.sort((a, b) => a.pose.at.dy.compareTo(b.pose.at.dy));
+                // The one held up goes over everything.
+                final holding = placed.where((p) => p.art.id == _held?.id).toList();
+                placed
+                  ..removeWhere((p) => p.art.id == _held?.id)
+                  ..addAll(holding);
                 final flight = _launching == null ? null : _flight(_liftoff.value);
                 Widget resident(_Placed p) => _Resident(
                       key: ValueKey(p.art.id),
@@ -521,10 +583,15 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
                       flame: _launching == p.art.id && flight!.flame,
                       shake: _launching == p.art.id ? flight!.shake : 0,
                       onTap: () => _tapped(p.art, p.creature, p.pose),
+                      held: _held?.id == p.art.id ? _lift : null,
+                      onHold: (finger) => _pickUp(p.art, p.creature, finger, view),
+                      onCarry: (finger) => _carry(finger, view),
+                      onDrop: () => _putDown(p.art, p.creature, view),
                     );
                 // The food stands on the ground: who is on the ground farther back goes behind it.
                 final feeder = feeders[widget.habitat];
-                bool behind(_Placed p) => feeder != null && p.pose.at.dy < feeder.at.dy && !_aloft.contains(p.creature.motion);
+                bool behind(_Placed p) =>
+                    feeder != null && p.art.id != _held?.id && p.pose.at.dy < feeder.at.dy && !_aloft.contains(p.creature.motion);
                 return Stack(clipBehavior: Clip.none, children: [
                   if (widget.habitat == Habitat.space || widget.habitat == Habitat.nightMarket)
                     Positioned.fill(child: IgnorePointer(child: CustomPaint(painter: _Glow(widget.habitat, view, seconds)))),
@@ -770,6 +837,10 @@ class _Resident extends StatefulWidget {
     this.flame = false,
     this.shake = 0,
     this.onTap,
+    this.held,
+    this.onHold,
+    this.onCarry,
+    this.onDrop,
   });
 
   final Creature creature;
@@ -791,6 +862,15 @@ class _Resident extends StatefulWidget {
   final bool flame;
   final double shake;
   final VoidCallback? onTap;
+
+  /// Held up by a finger (2.1): how high off the ground (scene units). It
+  /// looks a little bigger, with its shadow on the ground below.
+  final double? held;
+
+  /// A finger picks it up, carries it (screen positions), lets it go.
+  final ValueChanged<Offset>? onHold;
+  final ValueChanged<Offset>? onCarry;
+  final VoidCallback? onDrop;
 
   @override
   State<_Resident> createState() => _ResidentState();
@@ -814,6 +894,13 @@ class _ResidentState extends State<_Resident> with TickerProviderStateMixin {
     super.dispose();
   }
 
+  /// Put down: it lands with a little hop.
+  void _letGo() {
+    if (widget.held == null) return;
+    _jump.forward(from: 0);
+    widget.onDrop?.call();
+  }
+
   @override
   Widget build(BuildContext context) {
     final view = widget.view;
@@ -832,18 +919,49 @@ class _ResidentState extends State<_Resident> with TickerProviderStateMixin {
         button: true,
         label: Strings.resident(widget.creature.label),
         excludeSemantics: true,
-        child: GestureDetector(
+        child: RawGestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: () {
-            _jump.forward(from: 0);
-            widget.onTap?.call();
+          gestures: {
+            TapGestureRecognizer: GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
+              TapGestureRecognizer.new,
+              (r) => r.onTap = () {
+                _jump.forward(from: 0);
+                widget.onTap?.call();
+              },
+            ),
+            // Pressed a moment, or dragged straight away: picked up either way.
+            LongPressGestureRecognizer: GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
+              () => LongPressGestureRecognizer(duration: const Duration(milliseconds: 250)),
+              (r) => r
+                ..onLongPressStart = ((d) => widget.onHold?.call(d.globalPosition))
+                ..onLongPressMoveUpdate = ((d) => widget.onCarry?.call(d.globalPosition))
+                ..onLongPressEnd = ((_) => _letGo()),
+            ),
+            PanGestureRecognizer: GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
+              PanGestureRecognizer.new,
+              (r) => r
+                ..dragStartBehavior = DragStartBehavior.down
+                ..onStart = ((d) => widget.onHold?.call(d.globalPosition))
+                ..onUpdate = ((d) => widget.onCarry?.call(d.globalPosition))
+                ..onEnd = ((_) => _letGo()),
+            ),
           },
           child: AnimatedBuilder(
             animation: Listenable.merge([_jump, _arrive]),
             builder: (context, child) {
               final hop = math.sin(math.pi * _jump.value) * 60 * view.scale;
               final grow = Curves.elasticOut.transform(_arrive.value);
+              final held = widget.held;
               return Stack(clipBehavior: Clip.none, alignment: Alignment.bottomCenter, children: [
+                if (held != null)
+                  Positioned(
+                    bottom: -held * view.scale - width * 0.05,
+                    child: Container(
+                      width: width * 0.62,
+                      height: width * 0.12,
+                      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(width)),
+                    ),
+                  ),
                 if (_arrive.value < 1)
                   Positioned(
                     bottom: -10,
@@ -864,7 +982,7 @@ class _ResidentState extends State<_Resident> with TickerProviderStateMixin {
                 Transform.translate(
                   offset: Offset(widget.shake * view.scale, -hop - widget.lift * view.scale),
                   child: Transform.scale(
-                    scale: (0.2 + 0.8 * grow) * widget.presence,
+                    scale: (0.2 + 0.8 * grow) * widget.presence * (held != null ? 1.12 : 1),
                     alignment: Alignment.bottomCenter,
                     child: Transform(
                       // What rolls turns about its middle; the rest lean from their feet.

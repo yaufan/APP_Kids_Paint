@@ -51,7 +51,7 @@ class CanvasScreen extends ConsumerStatefulWidget {
   ConsumerState<CanvasScreen> createState() => _CanvasScreenState();
 }
 
-class _CanvasScreenState extends ConsumerState<CanvasScreen> {
+class _CanvasScreenState extends ConsumerState<CanvasScreen> with SingleTickerProviderStateMixin {
   LoadedPage? _page;
   ui.Image? _lines;
   ui.Image? _colors;
@@ -65,6 +65,39 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
   int _paletteSet = 0; // which of [kidPaletteSets]
   int _color = kidPalette.first;
   CrayonOp? _stroke;
+
+  /// The page's drawing with a little paper round it (all of the page when
+  /// the drawing fills it): what the canvas shows until a child zooms in.
+  Rect? _fit;
+
+  /// What the canvas shows now, in page pixels: [_fit], or part of it
+  /// zoomed into. Always the shape of the page.
+  Rect? _view;
+
+  /// The magnifier's glide to a new view.
+  late final AnimationController _zoom = AnimationController(vsync: this, duration: const Duration(milliseconds: 280));
+  Rect? _zoomFrom, _zoomTo;
+
+  /// The magnifier is waiting for a tap on the spot to look at closely.
+  bool _aiming = false;
+
+  /// Fingers on the page and where they are (in the page's box).
+  final _fingers = <int, Offset>{};
+
+  /// The finger that draws, fills or stamps, and when and where it landed.
+  int? _finger;
+  Duration? _fingerTime;
+
+  /// What that finger put on the page: taken back if it was the first of
+  /// two fingers that zoom.
+  PaintOp? _touchOp;
+
+  /// Two fingers zooming: which, how far apart they started, the view then
+  /// and the page point between them.
+  ({int a, int b, double dist, Rect view, PagePoint focus})? _pinch;
+
+  /// A second finger came: nothing more is drawn until every finger is up.
+  bool _pinched = false;
   bool _refreshing = false;
   bool _dirty = false;
   bool _leaving = false;
@@ -123,6 +156,10 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
   @override
   void initState() {
     super.initState();
+    _zoom.addListener(() {
+      final from = _zoomFrom, to = _zoomTo;
+      if (from != null && to != null) setState(() => _view = Rect.lerp(from, to, Curves.easeOutCubic.transform(_zoom.value)));
+    });
     _load();
   }
 
@@ -134,6 +171,7 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
     setState(() {
       _page = page;
       _lines = lines;
+      _fit = pageFit(page.lines, doc.width, doc.height);
       if (_blank) _tool = Tool.crayon;
     });
     _refreshColors();
@@ -141,6 +179,7 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
 
   @override
   void dispose() {
+    _zoom.dispose();
     _lines?.dispose();
     _colors?.dispose();
     super.dispose();
@@ -199,8 +238,6 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
     }
   }
 
-  ({double x, double y}) _toPage(Offset local, double scale) => (x: local.dx / scale, y: local.dy / scale);
-
   /// The brush in hand, if the tool is one.
   Brush? get _brush => switch (_tool) {
         Tool.crayon => _pens[_pen].$1,
@@ -210,32 +247,175 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
         Tool.bucket || Tool.stamp => null,
       };
 
-  void _tapPage(Offset local, double scale, ColoringDocument doc) {
-    final p = _toPage(local, scale);
+  // Touch: a finger does its thing the moment it lands (2.1). The pan
+  // gesture waited until a finger had moved 36 points and left those out;
+  // a small child's short strokes and dabs did nothing.
+
+  /// The whole page, in page pixels.
+  Rect get _whole => Rect.fromLTWH(0, 0, (_page?.document.width ?? 1).toDouble(), (_page?.document.height ?? 1).toDouble());
+
+  /// What the canvas shows now, in page pixels.
+  Rect get _shown => _view ?? _fit ?? _whole;
+
+  /// Zoomed in closer than the drawing.
+  bool get _zoomedIn => _fit != null && _shown.width < _fit!.width * 0.97;
+
+  /// [view] slid back onto the page.
+  Rect _onPage(Rect view) {
+    final w = _whole;
+    final dx = view.left < 0 ? -view.left : (view.right > w.right ? w.right - view.right : 0.0);
+    final dy = view.top < 0 ? -view.top : (view.bottom > w.bottom ? w.bottom - view.bottom : 0.0);
+    return view.shift(Offset(dx, dy));
+  }
+
+  /// Moves the view to [to] in a short glide.
+  void _glideTo(Rect to) {
+    _zoomFrom = _shown;
+    _zoomTo = to;
+    _zoom.forward(from: 0);
+  }
+
+  /// The magnifier: zoom into the next spot touched, or back out to the
+  /// whole drawing.
+  void _magnifier() {
+    _sound(Sfx.tap);
+    if (_zoomedIn) {
+      setState(() => _aiming = false);
+      _glideTo(_fit!);
+    } else {
+      setState(() => _aiming = !_aiming);
+    }
+  }
+
+  ({double x, double y}) _toPage(Offset local, Rect view, double k) => (x: view.left + local.dx / k, y: view.top + local.dy / k);
+
+  /// The region at [p], or, on a line or just outside a small region, the
+  /// nearest one within a fingertip's reach, and a point inside it.
+  (int, PagePoint) _regionNear(ColoringDocument doc, PagePoint p) {
+    final regions = doc.regions;
+    final cx = p.x.floor(), cy = p.y.floor();
+    final here = regions.labelAt(cx, cy);
+    if (here != 0) return (here, p);
+    final reach = (doc.width * 0.035).ceil();
+    var best = 0, bestD = reach * reach + 1, bx = cx, by = cy;
+    for (var y = math.max(0, cy - reach); y <= math.min(doc.height - 1, cy + reach); y++) {
+      for (var x = math.max(0, cx - reach); x <= math.min(doc.width - 1, cx + reach); x++) {
+        final d = (x - cx) * (x - cx) + (y - cy) * (y - cy);
+        if (d >= bestD) continue;
+        final label = regions.labelAt(x, y);
+        if (label == 0) continue;
+        best = label;
+        bestD = d;
+        bx = x;
+        by = y;
+      }
+    }
+    return (best, (x: bx + 0.5, y: by + 0.5));
+  }
+
+  void _fingerDown(PointerDownEvent e, ColoringDocument doc, Rect view, double k) {
+    _fingers[e.pointer] = e.localPosition;
+    if (_fingers.length == 1) {
+      _finger = e.pointer;
+      _fingerTime = e.timeStamp;
+      _touchOp = null;
+      _pinched = false;
+      final p = _toPage(e.localPosition, view, k);
+      if (_aiming) {
+        // The magnifier: this is where to look closer.
+        setState(() => _aiming = false);
+        final fit = _fit ?? _whole;
+        _glideTo(_onPage(Rect.fromCenter(center: Offset(p.x, p.y), width: fit.width / 2.5, height: fit.height / 2.5)));
+        _finger = null;
+        return;
+      }
+      _touch(p, doc);
+    } else if (_fingers.length == 2 && !_pinched) {
+      // A second finger: the two of them zoom and move the page. A touch
+      // that only just began was the start of that, not a dab.
+      _pinched = true;
+      _stroke = null;
+      final young = e.timeStamp - (_fingerTime ?? Duration.zero) < const Duration(milliseconds: 400);
+      final op = _touchOp;
+      if (op != null && young && identical(doc.ops.lastOrNull, op)) doc.undo();
+      if (op != null) _changed();
+      _touchOp = null;
+      _finger = null;
+      final [a, b] = _fingers.keys.take(2).toList();
+      final pa = _fingers[a]!, pb = _fingers[b]!;
+      _pinch = (a: a, b: b, dist: math.max(1.0, (pa - pb).distance), view: view, focus: _toPage((pa + pb) / 2, view, k));
+    }
+  }
+
+  void _fingerMove(PointerMoveEvent e, ColoringDocument doc, Rect view, double k, Size box) {
+    if (!_fingers.containsKey(e.pointer)) return;
+    _fingers[e.pointer] = e.localPosition;
+    final pinch = _pinch;
+    if (pinch != null) {
+      final pa = _fingers[pinch.a], pb = _fingers[pinch.b];
+      if (pa == null || pb == null) return;
+      final fit = _fit ?? _whole;
+      final grow = (pa - pb).distance / pinch.dist;
+      final w = (pinch.view.width / grow).clamp(fit.width / 4, fit.width);
+      final h = w * pinch.view.height / pinch.view.width;
+      final kNow = box.width / w;
+      final mid = (pa + pb) / 2;
+      _zoom.stop();
+      setState(() => _view = _onPage(Rect.fromLTWH(pinch.focus.x - mid.dx / kNow, pinch.focus.y - mid.dy / kNow, w, h)));
+      return;
+    }
+    if (e.pointer != _finger || _pinched) return;
+    final p = _toPage(e.localPosition, view, k);
+    final stroke = _stroke;
+    if (stroke != null) {
+      stroke.points.add(p);
+      doc.applyStroke(stroke, stroke.points.length - 1);
+      _refreshColors();
+    } else if (_brush != null && _touchOp == null) {
+      // It landed off the drawing's regions: the stroke starts where the
+      // finger first finds one.
+      _startStroke(p, doc);
+    }
+  }
+
+  void _fingerUp(PointerEvent e) {
+    _fingers.remove(e.pointer);
+    if (e.pointer == _finger) {
+      _finger = null;
+      _endStroke();
+    }
+    if (_fingers.length < 2) _pinch = null;
+    if (_fingers.isEmpty) _pinched = false;
+  }
+
+  /// A finger lands on the page at [p]: the bucket fills, a stamp is
+  /// pressed, a brush starts its stroke.
+  void _touch(PagePoint p, ColoringDocument doc) {
     switch (_tool) {
       case Tool.bucket:
         if (_blank) {
-          doc.add(PaperOp(_color));
+          doc.add(_touchOp = PaperOp(_color));
           _sound(Sfx.fill);
           _changed();
-        } else if (doc.fill(p.x, p.y, _color)) {
-          _sound(Sfx.fill);
-          _changed();
+          return;
         }
+        final (region, _) = _regionNear(doc, p);
+        if (region == 0) return;
+        doc.add(_touchOp = FillOp(region, _color));
+        _sound(Sfx.fill);
+        _changed();
       case Tool.stamp:
         if (_picture != null) {
           _pressPicture(_picture!, p, doc);
           return;
         }
-        final region = doc.regions.labelAt(p.x.floor(), p.y.floor());
+        final (region, _) = _regionNear(doc, p);
         if (region == 0) return;
-        doc.add(StampOp(region, _color, _shape, p.x, p.y, doc.width * 0.075));
+        doc.add(_touchOp = StampOp(region, _color, _shape, p.x, p.y, doc.width * 0.075));
         _sound(Sfx.stamp);
         _changed();
       case Tool.crayon || Tool.rainbow || Tool.glitter || Tool.eraser:
-        // A tap with a brush leaves a dot.
         _startStroke(p, doc);
-        _endStroke();
     }
   }
 
@@ -261,18 +441,21 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
     }
   }
 
+  /// Starts a brush stroke at [p], in the region there or (on a line) the
+  /// nearest one.
   void _startStroke(PagePoint p, ColoringDocument doc) {
     final brush = _brush;
-    final region = doc.regions.labelAt(p.x.floor(), p.y.floor());
-    if (brush == null || region == 0) return;
+    if (brush == null) return;
+    final (region, start) = _regionNear(doc, p);
+    if (region == 0) return;
     final size = switch (_tool) {
       Tool.crayon => _pens[_pen].$2,
       Tool.rainbow => 0.024,
       Tool.glitter => 0.03,
       _ => 0.035, // the eraser
     };
-    _stroke = CrayonOp(region, _color, doc.width * size, [p], brush: brush);
-    doc.add(_stroke!);
+    _stroke = CrayonOp(region, _color, doc.width * size, [start], brush: brush);
+    doc.add(_touchOp = _stroke!);
     _sound(switch (brush) {
       Brush.rainbow || Brush.glitter || Brush.neon => Sfx.sparkle,
       Brush.eraser => Sfx.squeak,
@@ -287,19 +470,22 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
   }
 
   Widget _sheet(LoadedPage page) => LayoutBuilder(builder: (context, box) {
-        const pad = 12.0;
+        // On a phone the page is as wide as it can be: little paper round it.
+        final wide = MediaQuery.sizeOf(context).aspectRatio > 1;
+        final pad = wide ? 10.0 : 7.0, room = wide ? 20.0 : 10.0; // room for the stamp and the buddy peeking over the edges
         final doc = page.document;
-        final scale = math.min((box.maxWidth - 2 * pad - 24) / doc.width, (box.maxHeight - 2 * pad - 24) / doc.height);
-        final w = doc.width * scale, h = doc.height * scale;
+        final view = _shown;
+        final k = math.min((box.maxWidth - 2 * pad - room) / view.width, (box.maxHeight - 2 * pad - room) / view.height);
+        final w = view.width * k, h = view.height * k;
         final avatar = ref.watch(currentChildProvider).value?.avatar ?? animals.first;
         return Center(
           child: SizedBox(
-            width: w + 2 * pad + 24,
-            height: h + 2 * pad + 24,
+            width: w + 2 * pad + room,
+            height: h + 2 * pad + room,
             child: Stack(clipBehavior: Clip.none, children: [
               Positioned(
-                left: 12,
-                top: 12,
+                left: room / 2,
+                top: room / 2,
                 child: PostcardFrame(
                   tilt: -1,
                   padding: pad,
@@ -307,30 +493,31 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
                     key: const ValueKey('page'),
                     width: w,
                     height: h,
-                    child: GestureDetector(
-                      onTapUp: (d) => _tapPage(d.localPosition, scale, doc),
-                      onPanStart: _brush != null ? (d) => _startStroke(_toPage(d.localPosition, scale), doc) : null,
-                      onPanUpdate: _brush != null
-                          ? (d) {
-                              final stroke = _stroke;
-                              if (stroke == null) return;
-                              stroke.points.add(_toPage(d.localPosition, scale));
-                              doc.applyStroke(stroke, stroke.points.length - 1);
-                              _refreshColors();
-                            }
-                          : null,
-                      onPanEnd: _brush != null ? (_) => _endStroke() : null,
+                    child: Listener(
+                      behavior: HitTestBehavior.opaque,
+                      onPointerDown: (e) => _fingerDown(e, doc, view, k),
+                      onPointerMove: (e) => _fingerMove(e, doc, view, k, Size(w, h)),
+                      onPointerUp: _fingerUp,
+                      onPointerCancel: _fingerUp,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(10),
-                        child: CustomPaint(painter: PagePainter(colors: _colors, lines: _lines!)),
+                        child: CustomPaint(painter: PagePainter(colors: _colors, lines: _lines!, view: view)),
                       ),
                     ),
                   ),
                 ),
               ),
-              Positioned(right: -6, top: -10, child: ArtworkStamp(artwork: page.artwork, width: 72, height: 86)),
-              Positioned(right: 26, top: 38, child: Postmark(shortDate(page.artwork.createdAt).replaceAll('/', '.'), size: 52)),
-              Positioned(left: -6, bottom: -14, child: Transform.rotate(angle: -0.14, child: AnimalArt(avatar, size: 58))),
+              // Only for looks: a finger on them is a finger on the page.
+              Positioned(right: -6, top: -10, child: IgnorePointer(child: ArtworkStamp(artwork: page.artwork, width: 64, height: 76))),
+              Positioned(right: 22, top: 32, child: IgnorePointer(child: Postmark(shortDate(page.artwork.createdAt).replaceAll('/', '.'), size: 46))),
+              Positioned(left: -6, bottom: -14, child: IgnorePointer(child: Transform.rotate(angle: -0.14, child: AnimalArt(avatar, size: 52)))),
+              if (_aiming)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: room / 2 + pad + 10,
+                  child: IgnorePointer(child: Center(child: InfoChip(icon: 'zoom', text: Strings.zoomHint))),
+                ),
             ]),
           ),
         );
@@ -360,6 +547,12 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
               _changed();
             }
           : null,
+    );
+    final magnifier = NavButton(
+      icon: _zoomedIn ? 'zoomout' : 'zoom',
+      label: _zoomedIn ? Strings.zoomOut : Strings.zoomIn,
+      color: _aiming ? KidColors.coral : KidColors.sky,
+      onPressed: page == null || (_fit == null) ? null : _magnifier,
     );
     final tileWidth = wide ? 64.0 : 52.0;
     final art = tileWidth * 0.62;
@@ -512,10 +705,10 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
           child: SafeArea(
             child: Stack(children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                padding: wide ? const EdgeInsets.fromLTRB(14, 12, 14, 12) : const EdgeInsets.fromLTRB(8, 12, 8, 12),
                 child: wide
                     ? Row(children: [
-                        Column(children: [back, const SizedBox(height: 14), undo]),
+                        Column(children: [back, const SizedBox(height: 14), undo, const SizedBox(height: 14), magnifier]),
                         const SizedBox(width: 12),
                         Expanded(child: sheet),
                         const SizedBox(width: 12),
@@ -538,6 +731,8 @@ class _CanvasScreenState extends ConsumerState<CanvasScreen> {
                           const Spacer(),
                           if (page != null) InfoChip(icon: 'clock', text: shortDate(page.artwork.createdAt)),
                           const Spacer(),
+                          magnifier,
+                          const SizedBox(width: 10),
                           undo,
                         ]),
                         const SizedBox(height: 8),

@@ -88,6 +88,9 @@ abstract final class Strings {
 
   // Coloring.
   static const undo = '復原';
+  static const zoomIn = '放大鏡';
+  static const zoomOut = '看整張';
+  static const zoomHint = '點一下想放大的地方';
   static const bucket = '油漆桶';
   static const crayon = '魔法畫筆';
   // The kinds of pen under 魔法畫筆.

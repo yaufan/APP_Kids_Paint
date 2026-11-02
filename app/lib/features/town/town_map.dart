@@ -48,7 +48,7 @@ Map<PlaceKind, TownSpot> townSpots(List<Postcard> postcards, DateTime now) {
 }
 
 /// The sea below the world, where the map goes on under the buttons.
-const _sea = {DayPhase.day: Color(0xFF4DB6F0), DayPhase.dusk: Color(0xFF5F7FC4), DayPhase.night: Color(0xFF1C3A6E)};
+const _sea = {DayPhase.day: Color(0xFF4DB6F0), DayPhase.dusk: Color(0xFF5F7FC4), DayPhase.night: Color(0xFF27508F)};
 
 /// Islands in the order they are drawn, back to front.
 final _islandOrder = islands.keys.toList();

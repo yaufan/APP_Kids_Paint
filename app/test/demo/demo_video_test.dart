@@ -761,6 +761,89 @@ void main() {
     await seconds(4);
     mark('feed_end');
 
+    // 7d''. 2.1: pick a resident up and put it somewhere else; a finger colors
+    // the moment it lands; the drawing fills the page and the magnifier looks
+    // closer; a brighter night; the bare islands out at the edges.
+    mark('v21');
+    final stage = tester.getSize(find.byType(Scaffold).first);
+    Future<void> carry(Offset from, Offset to, {bool hold = true}) async {
+      finger.value = from;
+      final g = await tester.startGesture(from);
+      if (hold) await frames(4);
+      for (var i = 1; i <= 16; i++) {
+        final p = Offset.lerp(from, to, i / 16)!;
+        await g.moveTo(p);
+        finger.value = p;
+        await frames(1);
+      }
+      await frames(2);
+      await g.up();
+      finger.value = null;
+      await frames(2);
+    }
+
+    caption.value = '2.1：按住角色一下，就能抓起來\n跟著手指走，放開就住在那裡';
+    final lion = tester.getCenter(find.bySemanticsLabel(Strings.resident(Creature.lion.label)));
+    final spot = Offset(lion.dx < stage.width / 2 ? stage.width * 0.7 : stage.width * 0.3, lion.dy + 30);
+    await carry(lion, spot);
+    await seconds(3);
+    caption.value = '也可以直接拖：把大象搬到獅子旁邊';
+    final elephant = tester.getCenter(find.bySemanticsLabel(Strings.resident(Creature.elephant.label)));
+    await carry(elephant, spot + Offset(spot.dx > stage.width / 2 ? -100 : 100, 25), hold: false);
+    await seconds(3.5);
+
+    caption.value = '畫一隻長頸鹿：著色時角色變大了\n（四周空白的紙不顯示）';
+    await tap(find.bySemanticsLabel(Strings.drawNew(Habitat.zoo.label)));
+    await until(find.byKey(const ValueKey('creature-giraffe')));
+    await seconds(1);
+    await tap(find.byKey(const ValueKey('creature-giraffe')));
+    await until(find.byKey(const ValueKey('page')));
+    await seconds(2.5);
+    caption.value = '畫筆一碰就畫：點一下、短短一筆都有';
+    await tap(find.bySemanticsLabel(Strings.crayon));
+    await tap(find.byKey(ValueKey('swatch-${kidPalette[2]}')));
+    final giraffePage = tester.getRect(find.byKey(const ValueKey('page')));
+    for (final (dx, dy) in [(0.42, 0.62), (0.5, 0.66), (0.58, 0.62), (0.46, 0.72), (0.55, 0.74)]) {
+      final at = giraffePage.topLeft + Offset(giraffePage.width * dx, giraffePage.height * dy);
+      await stroke([at, at + const Offset(6, 3), at + const Offset(12, 0)]);
+    }
+    await seconds(1.5);
+    caption.value = '放大鏡：按一下，再點想塗的地方';
+    await tap(find.bySemanticsLabel(Strings.zoomIn));
+    await seconds(1.2);
+    await touch(giraffePage.topLeft + Offset(giraffePage.width * 0.5, giraffePage.height * 0.28));
+    await seconds(1.5);
+    caption.value = '放大了，小格子也好塗';
+    await tap(find.bySemanticsLabel(Strings.bucket));
+    for (final (color, dx, dy) in [(kidPalette[8], 0.3, 0.3), (kidPalette[1], 0.5, 0.5), (kidPalette[6], 0.7, 0.35)]) {
+      await tap(find.byKey(ValueKey('swatch-$color')));
+      await touch(giraffePage.topLeft + Offset(giraffePage.width * dx, giraffePage.height * dy));
+    }
+    await seconds(1.5);
+    caption.value = '再按一次放大鏡：看整張';
+    await tap(find.bySemanticsLabel(Strings.zoomOut));
+    await seconds(2);
+    caption.value = '畫好了 → 長頸鹿住進動物園';
+    await tap(find.bySemanticsLabel(Strings.done));
+    await until(find.bySemanticsLabel(Strings.resident(Creature.giraffe.label)));
+    await seconds(4);
+
+    final was = now;
+    now = DateTime(2026, 10, 27, 20, 30);
+    GoRouter.of(tester.element(find.byType(Scaffold).first)).go('/');
+    await until(find.byKey(const ValueKey('poke-balloon')));
+    caption.value = '晚上的小島變亮了\n看得清楚哪裡是哪裡';
+    await seconds(3.5);
+    caption.value = '一開始是空地的島（幼兒園、廟、公園、去旅行）\n移到左右兩邊；家旁邊是動物園和好吃的店';
+    for (var i = 0; i < 2; i++) {
+      await stroke([for (var j = 0; j <= 18; j++) Offset(stage.width / 2, stage.height * (0.75 - 0.4 * j / 18))]);
+    }
+    await seconds(4);
+    now = was;
+    await enterPlace(PlaceKind.zoo);
+    await seconds(1);
+    mark('v21_end');
+
     // 7e. A drawing on real paper, photographed (0.18).
     mark('paper');
     await tap(find.bySemanticsLabel(Strings.backToTown));
