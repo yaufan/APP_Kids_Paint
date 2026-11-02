@@ -4,9 +4,11 @@ name: Release
 # with the APK and the CHANGELOG.md notes. Releases not made from main are
 # marked pre-release. See docs/versioning.md.
 on:
-  # Automatic: a push that changes the version releases it once the tests
-  # pass. A version that is already released is skipped.
+  # Automatic: a push to main that changes the version releases it once the
+  # tests pass. A version that is already released is skipped. Other branches
+  # start nothing (CLAUDE.md: main is pushed once the owner has agreed).
   push:
+    branches: [main]
     paths:
       - app/pubspec.yaml
       - CHANGELOG.md

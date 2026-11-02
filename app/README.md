@@ -92,10 +92,10 @@ flutter run                   # 接上 Android 手機或模擬器
 flutter test test/demo/demo_video_test.dart --dart-define=DEMO=true
 ```
 
-每次推送改到 `app/` 時，GitHub **Actions** 會自動：
+推到 `main`、而且改到 `app/` 時，GitHub **Actions** 會自動：
 - 檢查程式、執行測試，包括一次完整的模擬操作和手機、平板截圖（截圖只在失敗時上傳，Artifacts：`app-screenshots`）
 - 建置 Android APK（Artifacts：`kids-paint-android-apk`，只有手機用的 arm64，保存 3 天）
-- 同一個提交推到 `main` 和工作分支時只跑一次（省私人專案的免費額度，見 [deployment.md](../docs/deployment.md)）
+- 推到其他分支不會跑；推 `main` 之前 Claude 會先問過你（省私人專案的免費額度，見 [deployment.md](../docs/deployment.md) 和 [CLAUDE.md](../CLAUDE.md)）
 
 **iPhone／iPad 模擬器測試**（`.github/workflows/ios.yml`）：
 - 會在 iPhone 和 iPad 模擬器上跑同一套模擬操作並截圖（Artifacts：`ios-simulator-screenshots`）

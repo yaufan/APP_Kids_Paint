@@ -19,13 +19,13 @@
 1. 改 `app/pubspec.yaml` 的版本號，例如 `0.4.0` → `0.5.0`。
 2. 在 `CHANGELOG.md` 最上面加一段 `## 0.5.0 — 日期`，寫這版改了什麼。
 3. 推送：**每次發版都把 `main` 更新到這一版**（`main` 是別人打開 GitHub 首先看到的）。
-   - 先推 `main`（`git push origin HEAD:main`），再推工作分支。
-   - 先推 `main`，Release 就從 `main` 發出正式版；工作分支那次會看到版本已經發行過而跳過。
+   - 工作分支隨時可以推，不會啟動 GitHub Actions。
+   - 推 `main`（`git push origin HEAD:main`）會啟動 App 和 Release，大約用掉 40 分鐘的免費額度，所以 Claude 會先問過你、說明這個月用了多少（見 [CLAUDE.md](../CLAUDE.md)）。
    - 雲端會自動：
      - 檢查 APP 裡的版本號、pubspec、CHANGELOG 三個要一致（`app/test/version_test.dart`），跑完所有測試。
      - 打包 APK、確認沒有網路／位置／廣告 ID 權限。
      - 建立標籤 `v0.5.0`，在 **Releases** 放上三個 APK、「下載哪一個」和這版的說明。
-     - 不是從 `main` 發行的版本會標成「預先發行版」（Pre-release）。
+     - 手動從別的分支發行的版本會標成「預先發行版」（Pre-release）。
      - 這個版本號已經發行過的話就跳過，不會重複發行。
 4. 進度看 GitHub → **Actions** → **Release**。
 

@@ -1,17 +1,20 @@
 name: App
 
+# Runs by itself only for main: pushing the working branch starts nothing,
+# and main is pushed once the owner has agreed to spend the private
+# repository's free minutes on it (CLAUDE.md).
 on:
   push:
+    branches: [main]
     paths: ['app/**', '.github/workflows/app.yml']
   pull_request:
     paths: ['app/**', '.github/workflows/app.yml']
   workflow_dispatch:
 
-# One run per commit: main and the working branch are pushed with the same
-# commit, and the private repository's free minutes should test it once
-# (docs/deployment.md, "GitHub Actions 的免費額度").
+# A newer push stops the run still testing the older one (docs/deployment.md,
+# "GitHub Actions 的免費額度").
 concurrency:
-  group: app-${{ github.sha }}
+  group: app-${{ github.ref }}
   cancel-in-progress: true
 
 # The fingerprint of the test key the APKs are signed with (docs/deployment.md).
