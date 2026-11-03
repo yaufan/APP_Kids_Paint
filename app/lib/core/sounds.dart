@@ -102,11 +102,41 @@ enum Ambience {
   bubbles('amb_bubbles'),
   space('amb_space'),
   crickets('amb_crickets'),
-  twinkle('amb_twinkle');
+  twinkle('amb_twinkle'),
+  // Picked by a parent (2.2): played everywhere instead of the places' own.
+  musicBox('amb_musicbox'),
+  xylophone('amb_xylophone'),
+  waves('amb_waves');
 
   const Ambience(this.file);
 
   final String file;
+}
+
+/// What plays in the background (2.2, a parent's choice): each place's own
+/// sound ([auto], the default), one sound everywhere, or nothing.
+enum Background {
+  auto(null),
+  musicBox(Ambience.musicBox),
+  xylophone(Ambience.xylophone),
+  waves(Ambience.waves),
+  birds(Ambience.birds),
+  rain(Ambience.rain),
+  quiet(null);
+
+  const Background(this.ambience);
+
+  /// What plays everywhere; null: the places' own ([auto]) or none ([quiet]).
+  final Ambience? ambience;
+
+  static Background byName(String? name) => values.where((b) => b.name == name).firstOrNull ?? Background.auto;
+
+  /// What is heard where the places would play [own].
+  Ambience? instead(Ambience? own) => switch (this) {
+        auto => own,
+        quiet => null,
+        _ => ambience,
+      };
 }
 
 /// The app's sounds. Screens [hold] the background sound they want while
@@ -176,6 +206,15 @@ class SystemSounds implements Sounds {
     _update();
   }
 
+  var _background = Background.auto;
+
+  /// A parent's choice of background (2.2).
+  set background(Background b) {
+    if (b == _background) return;
+    _background = b;
+    _update();
+  }
+
   void _setAway(bool away) {
     _away = away;
     _update();
@@ -214,7 +253,7 @@ class SystemSounds implements Sounds {
     _update();
   }
 
-  Ambience? get _wanted => !_enabled || _away ? null : _holders.current;
+  Ambience? get _wanted => !_enabled || _away ? null : _background.instead(_holders.current);
 
   void _update() {
     final wanted = _wanted;

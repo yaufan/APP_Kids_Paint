@@ -914,6 +914,106 @@ LOOPS = {
 }
 
 
+# ---------------------------------------------------------------- backgrounds a parent can pick (2.2)
+# Two little tunes written here for the app, and the sea. Each tune is as
+# long as its bars, and what still rings at the end is carried round to the
+# start, so it loops without a seam.
+
+pick_rng = np.random.default_rng(22)  # its own, so the sounds above stay the same
+
+
+def tune_loop(seconds, notes, sr=LOOP_SR):
+    """[notes]: (start seconds, signal); what rings past [seconds] wraps to the start."""
+    n = int(seconds * sr)
+    tail = max(len(sig) + int(start * sr) for start, sig in notes) - n
+    out = np.zeros(n + max(0, tail))
+    for start, sig in notes:
+        i = int(start * sr)
+        out[i:i + len(sig)] += sig
+    loop = out[:n].copy()
+    if tail > 0:
+        loop[:tail] += out[n:]
+    return loop
+
+
+def music_box_note(freq, dur, sr=LOOP_SR):
+    """A music box's comb: bright at first, then a long soft ring."""
+    t = t_of(dur, sr)
+    x = (np.sin(2 * np.pi * freq * t) * np.exp(-t / 0.9)
+         + 0.4 * np.sin(2 * np.pi * freq * 3.0 * t) * np.exp(-t / 0.18)
+         + 0.18 * np.sin(2 * np.pi * freq * 5.2 * t) * np.exp(-t / 0.06))
+    return x * env(len(t), 0.002, 0.08, sr)
+
+
+def music_box():
+    """A slow waltz in C, sixteen bars of three beats: the melody up high,
+    a low note on the first beat and the chord on the other two."""
+    beat = 0.6
+    melody = [("E5", 2), ("G5", 1), ("C6", 2), ("B5", 1), ("A5", 2), ("G5", 1), ("E5", 3),
+              ("F5", 2), ("A5", 1), ("G5", 2), ("E5", 1), ("D5", 2), ("F5", 1), ("E5", 2), ("D5", 1),
+              ("E5", 2), ("G5", 1), ("C6", 2), ("D6", 1), ("E6", 2), ("D6", 1), ("C6", 3),
+              ("A5", 2), ("C6", 1), ("G5", 2), ("E5", 1), ("D5", 2), ("G5", 1), ("C5", 3)]
+    chords = {"C": ("C4", "E4", "G4"), "G": ("G3", "B3", "D4"), "F": ("F3", "A3", "C4"), "Am": ("A3", "C4", "E4")}
+    bars = ["C", "G", "F", "C", "F", "C", "G", "G", "C", "C", "C", "Am", "F", "C", "G", "C"]
+    notes, at = [], 0.0
+    for name, beats in melody:
+        notes.append((at, 0.9 * music_box_note(NOTE[name], 2.2)))
+        at += beats * beat
+    for i, chord in enumerate(bars):
+        low, *rest = chords[chord]
+        start = i * 3 * beat
+        notes.append((start, 0.5 * music_box_note(NOTE[low], 1.8)))
+        for b in (1, 2):
+            for name in rest:
+                notes.append((start + b * beat, 0.22 * music_box_note(NOTE[name], 1.2)))
+    return tune_loop(len(bars) * 3 * beat, notes)
+
+
+def xylophone():
+    """A bouncy tune in G on a wooden xylophone, eight bars of four, a
+    marimba bass under it."""
+    beat = 0.5
+    melody = [("G5", .5), ("A5", .5), ("B5", 1), ("D6", 1), ("B5", 1), ("A5", 1), ("G5", 1), ("E5", 2),
+              ("G5", .5), ("A5", .5), ("B5", 1), ("D6", 1), ("E6", 1), ("D6", 2), ("B5", 2),
+              ("E6", 1), ("D6", 1), ("B5", 1), ("A5", 1), ("G5", 1), ("A5", 1), ("B5", 2),
+              ("A5", 1), ("B5", .5), ("A5", .5), ("G5", 1), ("E5", 1), ("G5", 3), (None, 1)]
+    bass = {"G": ("G3", "D3"), "C": ("C3", "G3"), "D": ("D3", "A3"), "Em": ("E3", "B3")}
+    bars = ["G", "Em", "G", "D", "C", "G", "D", "G"]
+    notes, at = [], 0.0
+    for name, beats in melody:
+        if name:
+            wood = 0.8 * marimba(NOTE[name], 0.5, LOOP_SR)
+            ring = 0.15 * bell(NOTE[name], 0.4, LOOP_SR, bright=0.3)
+            wood[:len(ring)] += ring
+            notes.append((at, wood))
+        at += beats * beat
+    for i, chord in enumerate(bars):
+        a, b = bass[chord]
+        notes.append((i * 4 * beat, 0.55 * marimba(NOTE[a], 0.7, LOOP_SR)))
+        notes.append(((i * 4 + 2) * beat, 0.45 * marimba(NOTE[b], 0.7, LOOP_SR)))
+    return tune_loop(len(bars) * 4 * beat, notes)
+
+
+def waves(n):
+    """Waves coming in and drawing back: a low rush that swells and fades
+    every few seconds, a little foam hiss as each one breaks."""
+    t = np.arange(n) / LOOP_SR
+    rush = lowpass(pick_rng.standard_normal(n), 700, LOOP_SR)
+    foam = bandpass(pick_rng.standard_normal(n), 1800, 5000, LOOP_SR)
+    swell = np.zeros(n)
+    k = 0.0
+    while k < n / LOOP_SR:
+        d = t - k
+        swell += np.where(d > 0, (1 - np.exp(-d / 1.1)) * np.exp(-d / 2.2), 0) * pick_rng.uniform(0.7, 1.0)
+        k += pick_rng.uniform(3.6, 4.6)
+    crash = np.clip(np.gradient(swell) * LOOP_SR * 1.5, 0, None)
+    return rush * (0.1 + 1.6 * swell) + foam * 0.35 * crash
+
+
+PICKED = {"amb_musicbox": (music_box, 0.32), "amb_xylophone": (xylophone, 0.32)}
+LOOPS["amb_waves"] = (waves, 12, 0.30)
+
+
 def write(path, x, peak, sr):
     x = np.asarray(x, dtype=np.float64)
     x = x / max(1e-9, np.abs(x).max()) * peak
@@ -934,8 +1034,10 @@ def main():
         write(OUT / f"{name}.wav", resample_poly(make(), CALL_SR, SR), peak, CALL_SR)
     for name, (make, seconds, peak) in LOOPS.items():
         write(OUT / f"{name}.wav", seamless(make, seconds), peak, LOOP_SR)
+    for name, (make, peak) in PICKED.items():
+        write(OUT / f"{name}.wav", make(), peak, LOOP_SR)
     total = sum(p.stat().st_size for p in OUT.glob("*.wav"))
-    print(f"{len(SHORT) + len(CALLS) + len(LOOPS)} sounds, {total / 1024:.0f} KB in {OUT}")
+    print(f"{len(SHORT) + len(CALLS) + len(LOOPS) + len(PICKED)} sounds, {total / 1024:.0f} KB in {OUT}")
 
 
 if __name__ == "__main__":

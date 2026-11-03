@@ -383,7 +383,8 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
               ? map
               : Column(mainAxisSize: MainAxisSize.min, children: [
                   map,
-                  Container(width: size.width, height: widget.bottomInset, color: _sea[widget.phase]),
+                  AnimatedContainer(
+                      duration: const Duration(milliseconds: 1600), width: size.width, height: widget.bottomInset, color: _sea[widget.phase]),
                 ]),
       );
     });
@@ -426,7 +427,15 @@ class _TownMapState extends State<TownMap> with TickerProviderStateMixin {
   /// is where 好吃的店 postcards go).
   static String _door(PlaceKind kind) => Habitat.of(kind)?.label ?? kind.label;
 
-  Widget _svg(String name) => ExcludeSemantics(child: SvgPicture.asset(Art.island(name, widget.phase), fit: BoxFit.fill));
+  /// A layer drawn for the time of day: a new phase fades in over the old
+  /// one (2.2: a sped-up day changes while the child watches).
+  Widget _svg(String name) => ExcludeSemantics(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 1600),
+          layoutBuilder: (current, previous) => Stack(fit: StackFit.expand, children: [...previous, ?current]),
+          child: SvgPicture.asset(Art.island(name, widget.phase), key: ValueKey(widget.phase), fit: BoxFit.fill),
+        ),
+      );
 
   Widget _layer(String name) => Positioned.fill(child: _svg(name));
 }

@@ -88,6 +88,25 @@ abstract final class Strings {
 
   // Coloring.
   static const undo = '復原';
+  // Parent mode (2.2): the town's day, and the background sound.
+  static const dayCycle = '白天和晚上';
+  static const dayCycleHint = '縮時：玩一下就看到天黑、天亮。不管選哪一個，真的到了晚上，咕咕都會提醒該睡覺了。';
+  static String dayCycleName(String cycle) => switch (cycle) {
+        'real' => '跟著真正的時間',
+        'lapse' => '縮時：一天 10 分鐘',
+        _ => '很快：一天 3 分鐘',
+      };
+  static const background = '背景音';
+  static const backgroundHint = '「跟著地方」是小鎮的鳥叫、海洋館的泡泡、太空的聲音這些；選別的，每個地方都放同一種。';
+  static String backgroundName(String background) => switch (background) {
+        'auto' => '跟著地方',
+        'musicBox' => '音樂盒',
+        'xylophone' => '木琴',
+        'waves' => '海浪',
+        'birds' => '鳥叫',
+        'rain' => '下雨',
+        _ => '安靜',
+      };
   static const zoomIn = '放大鏡';
   static const zoomOut = '看整張';
   static const zoomHint = '點一下想放大的地方';

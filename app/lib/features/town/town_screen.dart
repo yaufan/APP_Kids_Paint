@@ -58,12 +58,18 @@ class _TownScreenState extends ConsumerState<TownScreen> {
 
   late final Sounds _sounds = ref.read(soundsProvider);
 
+  /// How the town looks now: by the clock, or in its sped-up day (2.2).
+  DayPhase _phase(DateTime now) => townPhase(now, ref.read(dayCycleProvider), ref.read(dayStartProvider));
+
+  /// What the last tick saw: the phase, and the minute (the weather).
+  (DayPhase, int)? _seen;
+
   /// The background sound of the town now: birds by day, crickets at
   /// night, the rain or the wind when they come.
   void _listen() {
     final now = ref.read(clockProvider)();
     final weather = weatherAt(now);
-    _sounds.hold(this, ambienceFor(null, weather, dayPhaseAt(now)));
+    _sounds.hold(this, ambienceFor(null, weather, _phase(now)));
     if (weather == Weather.rainbow) {
       final spell = DateTime(now.year, now.month, now.day, now.hour - now.hour % weatherSpell.inHours);
       if (_chimedRainbow != spell) {
@@ -77,14 +83,21 @@ class _TownScreenState extends ConsumerState<TownScreen> {
   void initState() {
     super.initState();
     _listen();
-    _tick = Timer.periodic(const Duration(minutes: 1), (_) {
+    // A sped-up day changes every half minute or so: look often, redraw
+    // only when the phase or the minute (the weather) has changed.
+    _tick = Timer.periodic(const Duration(seconds: 2), (_) {
       if (!mounted) return;
+      final now = ref.read(clockProvider)();
+      final seen = (_phase(now), now.minute);
+      if (seen == _seen) return;
+      _seen = seen;
       setState(() {});
       _listen();
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final now = ref.read(clockProvider)();
       final today = DateTime(now.year, now.month, now.day);
+      // Bedtime goes by the clock, even when the town's day is sped up.
       if (mounted && widget.focus == null && dayPhaseAt(now) == DayPhase.night && _saidGoodnight != today) {
         _saidGoodnight = today;
         _say(Strings.bedtime);
@@ -227,7 +240,7 @@ class _TownScreenState extends ConsumerState<TownScreen> {
             onToy: (kind) => _sounds.play(toySound(kind)),
             focus: widget.focus,
             grow: widget.grow,
-            phase: dayPhaseAt(now),
+            phase: townPhase(now, ref.watch(dayCycleProvider), ref.read(dayStartProvider)),
             festival: festival?.festival,
             onPin: (kind) => Habitat.of(kind) != null ? _enter(kind) : _openPlace(kind, postcards),
             onLot: (_) => _say(Strings.emptyLot),

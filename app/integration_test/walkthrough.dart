@@ -15,6 +15,7 @@ import 'package:kids_paint/core/festivals.dart';
 import 'package:kids_paint/core/places.dart';
 import 'package:kids_paint/core/printing.dart';
 import 'package:kids_paint/core/providers.dart';
+import 'package:kids_paint/core/town_time.dart';
 import 'package:kids_paint/core/sharing.dart';
 import 'package:kids_paint/core/sounds.dart';
 import 'package:kids_paint/core/storage/artwork_store.dart';
@@ -93,6 +94,8 @@ Future<void> runWalkthrough(WidgetTester tester, {required Uint8List photo, requ
         databaseProvider.overrideWithValue(db),
         artworkStoreProvider.overrideWithValue(ArtworkStore(storeDir!)),
         clockProvider.overrideWithValue(() => walkthroughNow),
+        // The night and dusk shots go by the clock, not a sped-up day.
+        dayCycleProvider.overrideWithBuild((ref, _) => DayCycle.real),
         if (sounds != null) systemSoundsProvider.overrideWithValue(sounds),
         sharerProvider.overrideWithValue(sharer),
         printerProvider.overrideWithValue(printer),

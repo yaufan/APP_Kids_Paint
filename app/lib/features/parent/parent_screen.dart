@@ -11,6 +11,8 @@ import '../../core/places.dart';
 import '../../core/play_time.dart';
 import '../../core/providers.dart';
 import '../../core/repositories.dart';
+import '../../core/sounds.dart';
+import '../../core/town_time.dart';
 
 /// Parent mode (behind the parent gate): children, time limit, the town's
 /// places, privacy and data.
@@ -263,6 +265,20 @@ class _ParentScreenState extends ConsumerState<ParentScreen> {
               const Text(Strings.dailyLimitHint, style: TextStyle(fontSize: 14, color: KidColors.inkSoft)),
               const SizedBox(height: 6),
             ]),
+            card(Strings.dayCycle, [
+              Wrap(spacing: 8, runSpacing: 8, children: [
+                for (final c in DayCycle.values)
+                  ChoiceChip(
+                    key: ValueKey('cycle-${c.name}'),
+                    label: Text(Strings.dayCycleName(c.name)),
+                    selected: ref.watch(dayCycleProvider) == c,
+                    onSelected: (_) => ref.read(dayCycleProvider.notifier).set(c),
+                  ),
+              ]),
+              const SizedBox(height: 8),
+              const Text(Strings.dayCycleHint, style: TextStyle(fontSize: 14, color: KidColors.inkSoft)),
+              const SizedBox(height: 6),
+            ]),
             card(Strings.ourPlaces, [
               const Text(Strings.ourPlacesHint, style: TextStyle(fontSize: 14, color: KidColors.inkSoft)),
               const SizedBox(height: 10),
@@ -332,6 +348,21 @@ class _ParentScreenState extends ConsumerState<ParentScreen> {
                   onChanged: (on) => ref.read(soundOnProvider.notifier).set(on),
                 ),
               ),
+              const SizedBox(height: 6),
+              const Text(Strings.background, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              Wrap(spacing: 8, runSpacing: 8, children: [
+                for (final b in Background.values)
+                  ChoiceChip(
+                    key: ValueKey('background-${b.name}'),
+                    label: Text(Strings.backgroundName(b.name)),
+                    selected: ref.watch(backgroundProvider) == b,
+                    onSelected: ref.watch(soundOnProvider) ? (_) => ref.read(backgroundProvider.notifier).set(b) : null,
+                  ),
+              ]),
+              const SizedBox(height: 8),
+              const Text(Strings.backgroundHint, style: TextStyle(fontSize: 14, color: KidColors.inkSoft)),
+              const SizedBox(height: 6),
             ]),
             card(Strings.other, [
               row(const KidIcon('shield', size: 22, color: KidColors.grassDark), Strings.privacy, onTap: () => context.push('/parent/privacy')),

@@ -14,6 +14,7 @@ import 'printing.dart';
 import 'sharing.dart';
 import 'storage/artwork_store.dart';
 import 'sounds.dart';
+import 'town_time.dart';
 import 'voice.dart';
 
 /// The time. Tests set it to see the town at night or on a festival.
@@ -176,6 +177,45 @@ class VoiceOn extends Notifier<bool> {
   }
 }
 
+/// How the town's day goes by (2.2): sped up unless a parent chose the clock.
+final dayCycleProvider = NotifierProvider<DayCycleSetting, DayCycle>(DayCycleSetting.new);
+
+class DayCycleSetting extends Notifier<DayCycle> {
+  @override
+  DayCycle build() {
+    ref.watch(settingsRepositoryProvider).dayCycle().then((c) {
+      if (ref.mounted) state = c;
+    });
+    return DayCycle.lapse;
+  }
+
+  Future<void> set(DayCycle cycle) async {
+    state = cycle;
+    await ref.read(settingsRepositoryProvider).setDayCycle(cycle);
+  }
+}
+
+/// When the sped-up day began: the first time the town was looked at.
+final dayStartProvider = Provider<DateTime>((ref) => ref.read(clockProvider)());
+
+/// What plays in the background (2.2): the places' own sounds unless a parent chose.
+final backgroundProvider = NotifierProvider<BackgroundSetting, Background>(BackgroundSetting.new);
+
+class BackgroundSetting extends Notifier<Background> {
+  @override
+  Background build() {
+    ref.watch(settingsRepositoryProvider).background().then((b) {
+      if (ref.mounted) state = b;
+    });
+    return Background.auto;
+  }
+
+  Future<void> set(Background background) async {
+    state = background;
+    await ref.read(settingsRepositoryProvider).setBackground(background);
+  }
+}
+
 /// The phone's audio for sounds; tests use silent ones.
 final systemSoundsProvider = Provider<Sounds>((ref) {
   final sounds = SystemSounds();
@@ -205,6 +245,7 @@ class SoundOn extends Notifier<bool> {
 final soundsProvider = Provider<Sounds>((ref) {
   final sounds = ref.watch(systemSoundsProvider);
   sounds.enabled = ref.watch(soundOnProvider);
+  if (sounds is SystemSounds) sounds.background = ref.watch(backgroundProvider);
   return sounds;
 });
 

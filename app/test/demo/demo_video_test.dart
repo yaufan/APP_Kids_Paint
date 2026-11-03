@@ -26,6 +26,7 @@ import 'package:kids_paint/core/festivals.dart';
 import 'package:kids_paint/core/places.dart';
 import 'package:kids_paint/core/play_time.dart';
 import 'package:kids_paint/core/providers.dart';
+import 'package:kids_paint/core/town_time.dart';
 import 'package:kids_paint/core/repositories.dart';
 import 'package:kids_paint/core/sounds.dart';
 import 'package:kids_paint/core/storage/artwork_store.dart';
@@ -99,6 +100,8 @@ void main() {
                     databaseProvider.overrideWithValue(db),
                     artworkStoreProvider.overrideWithValue(ArtworkStore(dir)),
                     clockProvider.overrideWithValue(() => now),
+                    // The chapters set night and dusk by the clock (2.2 speeds the day up by default).
+                    dayCycleProvider.overrideWithBuild((ref, _) => DayCycle.real),
                     photoAlbumProvider.overrideWithValue(_DemoAlbum()),
                     sharerProvider.overrideWithValue(WalkthroughSharer()),
                     printerProvider.overrideWithValue(WalkthroughPrinter()),
@@ -843,6 +846,37 @@ void main() {
     await enterPlace(PlaceKind.zoo);
     await seconds(1);
     mark('v21_end');
+
+    // 7e-0. 2.2: the town's day sped up (a parent's choice), fading from day
+    // to dusk, night and dawn.
+    mark('v22');
+    final container = ProviderScope.containerOf(tester.element(find.byType(Scaffold).first));
+    final began = container.read(dayStartProvider);
+    final clockWas = now;
+    await container.read(dayCycleProvider.notifier).set(DayCycle.fast);
+    GoRouter.of(tester.element(find.byType(Scaffold).first)).go('/');
+    await until(find.byKey(const ValueKey('poke-balloon')));
+    final cycle = DayCycle.fast.length!;
+    // Into the next sped-up day, so it starts in the morning.
+    final day0 = began.add(cycle * (clockWas.difference(began).inSeconds ~/ cycle.inSeconds + 1));
+    for (final (part, words) in [
+      (0.2, '2.2：白天和晚上可以縮時\n（家長模式選：跟著真正的時間、一天 10 分鐘、一天 3 分鐘）'),
+      (0.58, '太陽下山：黃昏'),
+      (0.75, '天黑了：窗戶和燈亮起來'),
+      (0.95, '天快亮了'),
+      (1.2, '又是新的一天'),
+    ]) {
+      now = day0.add(cycle * part);
+      // The town looks every 2 seconds and then fades for 1.6: the words wait for it.
+      await seconds(2.4);
+      caption.value = words;
+      await seconds(2.6);
+    }
+    await container.read(dayCycleProvider.notifier).set(DayCycle.real);
+    now = clockWas;
+    await enterPlace(PlaceKind.zoo);
+    await seconds(1);
+    mark('v22_end');
 
     // 7e. A drawing on real paper, photographed (0.18).
     mark('paper');

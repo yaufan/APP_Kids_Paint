@@ -135,7 +135,7 @@ class _SceneScreenState extends ConsumerState<SceneScreen> with TickerProviderSt
   void initState() {
     super.initState();
     final now = ref.read(clockProvider)();
-    _sounds.hold(this, ambienceFor(widget.habitat, _weather, dayPhaseAt(now)));
+    _sounds.hold(this, ambienceFor(widget.habitat, _weather, townPhase(now, ref.read(dayCycleProvider), ref.read(dayStartProvider))));
     _sounds.play(widget.arrived != null ? Sfx.hooray : Sfx.chime);
     if (widget.arrived != null) {
       _welcome = true;

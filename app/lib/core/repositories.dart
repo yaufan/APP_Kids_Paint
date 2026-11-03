@@ -3,6 +3,8 @@ import 'package:drift/drift.dart';
 import 'creatures.dart';
 import 'db/database.dart';
 import 'places.dart';
+import 'sounds.dart';
+import 'town_time.dart';
 
 /// A postcard on the map: a sent artwork and the place it was sent to.
 typedef Postcard = ({Artwork artwork, Place place});
@@ -249,6 +251,20 @@ class SettingsRepository {
       (await (_db.select(_db.settings)..where((s) => s.key.equals(key))).getSingleOrNull())?.value;
 
   Future<void> _put(String key, String value) => _db.into(_db.settings).insertOnConflictUpdate(Setting(key: key, value: value));
+
+  static const dayCycleKey = 'day_cycle';
+
+  /// How the town's day goes by (2.2; sped up unless a parent chose the clock).
+  Future<DayCycle> dayCycle() async => DayCycle.byName(await _value(dayCycleKey));
+
+  Future<void> setDayCycle(DayCycle cycle) => _put(dayCycleKey, cycle.name);
+
+  static const backgroundKey = 'background';
+
+  /// What plays in the background (2.2; the places' own sounds unless a parent chose).
+  Future<Background> background() async => Background.byName(await _value(backgroundKey));
+
+  Future<void> setBackground(Background background) => _put(backgroundKey, background.name);
 
   static const soundKey = 'sound';
 

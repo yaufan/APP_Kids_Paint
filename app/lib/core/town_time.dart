@@ -18,6 +18,34 @@ const _sunset = [1045, 1067, 1083, 1096, 1110, 1124, 1126, 1109, 1079, 1047, 102
   return (sunrise: lerp(_sunrise), sunset: lerp(_sunset));
 }
 
+/// How the town's day goes by (2.2): with the clock, or sped up so a child
+/// sees the sun go down and come up again while playing ([length]: one
+/// whole day and night). Sped up is the default.
+enum DayCycle {
+  real(null),
+  lapse(Duration(minutes: 10)),
+  fast(Duration(minutes: 3));
+
+  const DayCycle(this.length);
+
+  final Duration? length;
+
+  static DayCycle byName(String? name) => values.where((c) => c.name == name).firstOrNull ?? DayCycle.lapse;
+}
+
+/// How the town looks [now]: by the clock ([DayCycle.real]), or in a
+/// sped-up day that began with the morning at [since]. A sped-up day is
+/// a little more than half day, then dusk, night and dawn.
+DayPhase townPhase(DateTime now, DayCycle cycle, DateTime since) {
+  final length = cycle.length;
+  if (length == null) return dayPhaseAt(now);
+  final f = (now.difference(since).inMilliseconds / length.inMilliseconds) % 1;
+  if (f < 0.55) return DayPhase.day;
+  if (f < 0.65) return DayPhase.dusk;
+  if (f < 0.92) return DayPhase.night;
+  return DayPhase.dusk;
+}
+
 /// Day from half an hour after sunrise, dusk from 40 minutes before sunset
 /// to 25 minutes after it (and around sunrise), night in between.
 DayPhase dayPhaseAt(DateTime time) {
