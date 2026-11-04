@@ -21,7 +21,7 @@
 - 不連網、不定位、沒有廣告和追蹤（`docs/safety-privacy.md`）。
 - 授權：保留一切權利（`LICENSE`）。專案曾經是公開的，使用者打算改回私有。
 - 版本紀錄在 `CHANGELOG.md`，寫給家長看，白話中文。版本號怎麼加見下面「發新版本」。
-- 不公開的文件（產品計畫、功能點子、收費、競品分析）放在使用者的 Google 雲端硬碟，資料夾「畫畫小鎮（不公開文件）」（id `1FLxrsyv4pPZLciXvD9MxVqG7iZdaKlBX`）。功能點子清單是 `feature-ideas.md`，更新方式是上傳新的一份、把舊的移到垃圾桶。**不要放進 git。**
+- 不公開的文件（產品計畫、功能點子、收費、競品分析）放在使用者的 Google 雲端硬碟，資料夾「畫畫小鎮（不公開文件）」（用雲端硬碟工具找這個名字）。功能點子清單是 `feature-ideas.md`，更新方式是上傳新的一份、把舊的移到垃圾桶。**不要放進 git。**
 
 ## 啟動 GitHub Actions 之前，一定要先問使用者
 專案是私人的時候，GitHub Actions 用的是帳號的免費額度：每月 2,000 分鐘（這個帳號所有私有專案共用，每月 1 日歸零；Mac 主機的 1 分鐘算 10 分鐘），建置檔案（Artifacts）全部加起來 500 MB。帳號沒有綁付款方式，用完就全部停下來，要等下個月。細節見 [docs/deployment.md](docs/deployment.md) 的「GitHub Actions 的免費額度」。
