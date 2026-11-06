@@ -10,6 +10,7 @@ import '../features/canvas/canvas_screen.dart';
 import '../features/capture/capture_screen.dart';
 import '../features/lineart/style_picker_screen.dart';
 import '../features/parent/notes_screen.dart';
+import '../features/parent/parent_gate.dart';
 import '../features/parent/parent_screen.dart';
 import '../features/parent/print_screen.dart';
 import '../features/parent/privacy_screen.dart';
@@ -22,6 +23,11 @@ import '../features/town/town_screen.dart';
 PlaceKind? _kind(String? name) => name == null ? null : PlaceKind.byName(name);
 
 GoRouter buildRouter() => GoRouter(
+      // Always start at the town, whatever page another app asks the phone
+      // to open; parent mode only right after the parent gate.
+      initialLocation: '/',
+      overridePlatformDefaultLocation: true,
+      redirect: (_, state) => state.matchedLocation == '/parent' && !ParentPass.take() ? '/' : null,
       routes: [
         // The town map; after sending, ?focus=park (and &grow=park the first time).
         GoRoute(

@@ -4,6 +4,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kids_paint/features/parent/parent_gate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kids_paint/app/app.dart';
 import 'package:kids_paint/app/strings.dart';
@@ -52,6 +53,7 @@ void main() {
       child: const KidsPaintApp(),
     ));
     await tester.pump(const Duration(milliseconds: 300));
+    ParentPass.grant();
     GoRouter.of(tester.element(find.byType(Scaffold).first)).push('/parent');
     final fast = find.byKey(const ValueKey('cycle-fast'));
     for (var i = 0; i < 30 && fast.evaluate().isEmpty; i++) {
